@@ -1,11 +1,8 @@
 from typing import Union
 
-import dotenv
 from fastapi import FastAPI
 
 from model import Team, User
-
-dotenv.load_dotenv()
 
 app = FastAPI()
 
@@ -13,7 +10,7 @@ app = FastAPI()
 @app.get("/")
 def read_root():
     return {"Hello": "World",
-            "teams": Team.objects.find().sort("name")}
+            "teams": str(Team.objects.order_by("name"))}
 
 
 @app.get("/items/{item_id}")
