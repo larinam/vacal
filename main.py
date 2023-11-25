@@ -26,13 +26,17 @@ def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 
 
+def clean_time_from_datetime(dt: datetime.datetime):
+    return datetime.datetime(dt.year, dt.month, dt.day)
+
+
 @app.post("/teams/vac_days/")
 def add_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.datetime]):
     team = Team.objects(id=team_id).first()
     team_member = team.team_members.get(id=team_member_id)
-    for vac_day in vac_days:
-        team_member.update_one(add_to_set__vac_days=vac_day)
-    team.reload()
+    vac_days = set(map(clean_time_from_datetime, vac_days))
+    team_member.vac_days = list(set(team_member.vac_days) | vac_days)
+    team.save()
     return {"team": team}
 
 
