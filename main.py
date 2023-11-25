@@ -27,12 +27,12 @@ def read_item(item_id: int, q: Union[str, None] = None):
 
 
 @app.post("/teams/vac_days/")
-def add_team_member(team_id: str, team_member_id: str, vac_days: List[datetime.datetime]):
-    team = Team.objects(id=team_id)
+def add_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.datetime]):
+    team = Team.objects(id=team_id).first()
     team_member = team.team_members.get(id=team_member_id)
     for vac_day in vac_days:
-        team_member.vac_days.add_to_set(vac_day)
-    team.save()
+        team_member.update_one(add_to_set__vac_days=vac_day)
+    team.reload()
     return {"team": team}
 
 
@@ -43,7 +43,7 @@ def add_team_member(team_id: str, team_member: TeamMemberDTO):
         country=team_member.country,
         vac_days=[]
     )
-    team = Team.objects(id=team_id)
+    team = Team.objects(id=team_id).first()
     team.team_members.append(team_member)
     team.save()
     return {"team": team}
@@ -52,4 +52,4 @@ def add_team_member(team_id: str, team_member: TeamMemberDTO):
 @app.post("/teams/")
 def add_team(team_name: str):
     team = Team(name=team_name).save()
-    return {"team_id": team.id}
+    return {"team_id": str(team.id)}
