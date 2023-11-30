@@ -9,6 +9,9 @@ services:
       - mongo
     environment:
       - MONGO_HOST=mongo
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example_IbLEpHISturb
+
 
   mongo:
     image: mongo:latest
@@ -16,7 +19,4 @@ services:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-      MONGODB_DATABASE: vacal
-      MONGODB_USER: vacal_user
-      MONGODB_PASSWORD: vacal_password
+      MONGO_INITDB_ROOT_PASSWORD: example_IbLEpHISturb

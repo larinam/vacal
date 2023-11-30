@@ -4,3 +4,4 @@ pydantic
 mongoengine
 pycountry
 holidays
+pymongo
