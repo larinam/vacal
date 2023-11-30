@@ -55,7 +55,7 @@ def mongo_to_pydantic(mongo_document, pydantic_model):
     return pydantic_model(**document_dict)
 
 
-def get_holidays_and_weekends(year: int = datetime.datetime.now().year):
+def get_holidays(year: int = datetime.datetime.now().year):
     countries = get_unique_countries()
     holidays_dict = {}
     list(map(lambda x: holidays_dict.update({x: holidays.country_holidays(x, years=year)}), countries))
@@ -63,9 +63,9 @@ def get_holidays_and_weekends(year: int = datetime.datetime.now().year):
 
 
 @app.get("/")
-def read_root():
+def read_root(year: int = datetime.datetime.now().year):
     return {"teams": str(list(map(lambda x: mongo_to_pydantic(x, TeamDTO), Team.objects.order_by("name")))),
-            "holidays": get_holidays_and_weekends()}
+            "holidays": get_holidays(year)}
 
 
 @app.get("/items/{item_id}")
