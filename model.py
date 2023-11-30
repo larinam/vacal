@@ -61,3 +61,11 @@ class TeamMember(EmbeddedDocument):
 class Team(Document):
     name = StringField(required=True)
     team_members = EmbeddedDocumentListField(TeamMember)
+
+
+def get_unique_countries():
+    unique_countries = set()
+    for team in Team.objects:
+        for member in team.team_members:
+            unique_countries.add(member.country)
+    return list(unique_countries)
