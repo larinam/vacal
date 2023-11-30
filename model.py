@@ -1,6 +1,7 @@
-from bson import ObjectId
+import uuid
+
 from mongoengine import StringField, DateField, ListField, connect, Document, EmbeddedDocument, \
-    EmbeddedDocumentListField, ObjectIdField
+    EmbeddedDocumentListField, UUIDField
 
 from pymongo import MongoClient
 
@@ -51,8 +52,8 @@ else:  # just local MongoDB
 
 
 class TeamMember(EmbeddedDocument):
-    id = ObjectIdField(required=True, default=ObjectId, unique=True, primary_key=True)
-    name = StringField(required=True)
+    uid = UUIDField(binary=False, default=uuid.uuid4, unique=True)
+    name = StringField(required=True, unique=True)
     country = StringField(required=True)  # country name from pycountry
     vac_days = ListField(DateField(required=True))
 
