@@ -2,10 +2,12 @@ import datetime
 from typing import Union, List
 
 import holidays
+import pycountry
 from fastapi import FastAPI, status
 
 from model import Team, TeamMember, get_unique_countries
 from pydantic import BaseModel, Field
+from pydantic.functional_validators import field_validator
 from fastapi.responses import RedirectResponse
 import logging
 
@@ -19,6 +21,13 @@ class TeamMemberWriteDTO(BaseModel):
     country: str
     vac_days: List[datetime.datetime]
 
+    @field_validator("country")
+    @classmethod
+    def validate_country(cls, value: str) -> str:
+        if validate_country_name(value):
+            return value
+        raise ValueError("Invalid country name")
+
 
 class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
@@ -28,6 +37,13 @@ class TeamDTO(BaseModel):
     id: str = Field(None, alias='_id')
     name: str
     team_members: List[TeamMemberReadDTO]
+
+
+def validate_country_name(country_name):
+    for country in pycountry.countries:
+        if country_name.lower() == country.name.lower():
+            return True
+    return False
 
 
 def mongo_to_pydantic(mongo_document, pydantic_model):
