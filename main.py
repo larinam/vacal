@@ -3,7 +3,7 @@ from typing import Union, List
 
 import holidays
 import pycountry
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, HTTPException
 
 from model import Team, TeamMember, get_unique_countries
 from pydantic import BaseModel, Field
@@ -33,7 +33,7 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
 
 
-class TeamDTO(BaseModel):
+class TeamReadDTO(BaseModel):
     id: str = Field(None, alias='_id')
     name: str
     team_members: List[TeamMemberReadDTO]
@@ -64,13 +64,8 @@ def get_holidays(year: int = datetime.datetime.now().year):
 
 @app.get("/")
 def read_root(year: int = datetime.datetime.now().year):
-    return {"teams": str(list(map(lambda x: mongo_to_pydantic(x, TeamDTO), Team.objects.order_by("name")))),
+    return {"teams": str(list(map(lambda x: mongo_to_pydantic(x, TeamReadDTO), Team.objects.order_by("name")))),
             "holidays": get_holidays(year)}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
 
 
 def clean_time_from_datetime(dt: datetime.datetime):
@@ -84,7 +79,7 @@ def add_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.date
     vac_days = set(map(clean_time_from_datetime, vac_days))
     team_member.vac_days = list(set(team_member.vac_days) | vac_days)
     team.save()
-    return {"team": str(mongo_to_pydantic(team, TeamDTO))}
+    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
 
 
 @app.post("/teams/{team_id}/members/")
@@ -97,7 +92,7 @@ def add_team_member(team_id: str, team_member: TeamMemberWriteDTO):
     team = Team.objects(id=team_id).first()
     team.team_members.append(team_member)
     team.save()
-    return {"team": str(mongo_to_pydantic(team, TeamDTO))}
+    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
 
 
 @app.post("/teams/")
@@ -129,4 +124,47 @@ def delete_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.d
     vac_days = set(map(clean_time_from_datetime, vac_days))
     team_member.vac_days = list(set(team_member.vac_days) - vac_days)
     team.save()
-    return {"team": str(mongo_to_pydantic(team, TeamDTO))}
+    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+
+
+@app.put("/teams/{team_id}")
+def update_team(team_id: str, team_name: str):
+    team = Team.objects(id=team_id).first()
+    if team:
+        team.name = team_name
+        team.save()
+        return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+    else:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+
+@app.put("/teams/{team_id}/members/{team_member_id}")
+def update_team_member(team_id: str, team_member_id: str, name: str, country: str):
+    team = Team.objects(id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team_member = team.team_members.get(uid=team_member_id)
+    if not team_member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    team_member.name = name
+    team_member.country = country
+
+    team.save()
+    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+
+
+@app.put("/teams/{team_id}/members/{team_member_id}/vac_days")
+def update_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.datetime]):
+    team = Team.objects(id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team_member = team.team_members.get(uid=team_member_id)
+    if not team_member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    team_member.vac_days = list(map(clean_time_from_datetime, vac_days))
+    team.save()
+    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
