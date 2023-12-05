@@ -93,6 +93,30 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
         }
     };
 
+    const deleteTeam = async (teamId) => {
+        if (window.confirm('Are you sure you want to delete this team?')) {
+            try {
+                const response = await fetch(API_URL + `/teams/${teamId}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                updateTeamData(); // Refresh data
+            } catch (error) {
+                console.error('Error deleting team:', error);
+            }
+        }
+    };
+
+    const deleteTeamMember = async (teamId, memberId) => {
+        if (window.confirm('Are you sure you want to delete this team member?')) {
+            try {
+                const response = await fetch(API_URL + `/teams/${teamId}/members/${memberId}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                updateTeamData(); // Refresh data
+            } catch (error) {
+                console.error('Error deleting team member:', error);
+            }
+        }
+    };
+
     return (
         <div>
             <div>
@@ -117,12 +141,18 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                     {teamData.map(team => (
                         <React.Fragment key={team.id}>
                             <tr>
-                                <td className="team-name-cell">{team.name}</td>
+                                <td className="team-name-cell">
+                                    {team.name}
+                                    <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
+                                </td>
                                 {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
                             </tr>
                             {team.team_members.map(member => (
                                 <tr key={member.uid}>
-                                    <td>{member.name}</td>
+                                    <td>
+                                        {member.name}
+                                        <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
+                                    </td>
                                     {daysHeader.map(day => (
                                         <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)}>
                                             {/* Add content or styling for vacation day */}
