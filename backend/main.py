@@ -4,6 +4,7 @@ from typing import Union, List
 import holidays
 import pycountry
 from fastapi import FastAPI, status, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from model import Team, TeamMember, get_unique_countries
 from pydantic import BaseModel, Field
@@ -11,7 +12,21 @@ from pydantic.functional_validators import field_validator
 from fastapi.responses import RedirectResponse
 import logging
 
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:3000",
+]
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +79,7 @@ def get_holidays(year: int = datetime.datetime.now().year):
 
 @app.get("/")
 def read_root(year: int = datetime.datetime.now().year):
-    return {"teams": str(list(map(lambda x: mongo_to_pydantic(x, TeamReadDTO), Team.objects.order_by("name")))),
+    return {"teams": list(map(lambda x: mongo_to_pydantic(x, TeamReadDTO), Team.objects.order_by("name"))),
             "holidays": get_holidays(year)}
 
 
