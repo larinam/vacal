@@ -5,6 +5,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [newTeamName, setNewTeamName] = useState('');
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
@@ -70,7 +71,6 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                 }
             }
         } else {
-            // It's not a vacation day, send PUT request
             if (window.confirm(`Mark ${formattedDate} as a vacation day?`)) {
                 try {
                     const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
@@ -114,6 +114,26 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
             } catch (error) {
                 console.error('Error deleting team member:', error);
             }
+        }
+    };
+
+    const handleAddTeam = async (e) => {
+        e.preventDefault(); // Prevents the default form submit action
+
+        try {
+            const response = await fetch(API_URL + '/teams/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: newTeamName }),
+            });
+
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            setNewTeamName(''); // Reset input field
+            updateTeamData(); // Refresh data
+        } catch (error) {
+            console.error('Error adding team:', error);
         }
     };
 
@@ -164,6 +184,18 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                     ))}
                 </tbody>
             </table>
+
+             {/* Form to add a new team */}
+            <form onSubmit={handleAddTeam}>
+                <input
+                    type="text"
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value)}
+                    placeholder="Enter team name"
+                    required
+                />
+                <button type="submit">Add Team</button>
+            </form>
         </div>
     );
 };

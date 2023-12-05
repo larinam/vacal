@@ -54,6 +54,10 @@ class TeamReadDTO(BaseModel):
     team_members: List[TeamMemberReadDTO]
 
 
+class TeamWriteDTO(BaseModel):
+    name: str
+
+
 def validate_country_name(country_name):
     for country in pycountry.countries:
         if country_name.lower() == country.name.lower():
@@ -108,8 +112,8 @@ def add_team_member(team_id: str, team_member: TeamMemberWriteDTO):
 
 
 @app.post("/teams/")
-def add_team(team_name: str):
-    team = Team(name=team_name).save()
+def add_team(team_dto: TeamWriteDTO):
+    team = Team(name=team_dto.name).save()
     return {"team_id": str(team.id)}
 
 
@@ -140,10 +144,10 @@ def delete_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.d
 
 
 @app.put("/teams/{team_id}")
-def update_team(team_id: str, team_name: str):
+def update_team(team_id: str, team_dto: TeamWriteDTO):
     team = Team.objects(id=team_id).first()
     if team:
-        team.name = team_name
+        team.name = team_dto.name
         team.save()
         return {"team": mongo_to_pydantic(team, TeamReadDTO)}
     else:

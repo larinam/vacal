@@ -48,3 +48,25 @@
 .holiday-cell {
     background-color: #f4e3ff;
 }
+
+
+form {
+    margin-top: 20px;
+}
+
+form input[type="text"] {
+    padding: 8px;
+    margin-right: 10px;
+}
+
+form button {
+    padding: 8px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+form button:hover {
+    background-color: #45a049;
+}
