@@ -9,6 +9,10 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
 
+    const formatDate = (date) => {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+
     const isVacationDay = (vacDays, day) => {
         const formattedDay = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         return vacDays.some(vd => vd.startsWith(formattedDay));
@@ -26,7 +30,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
     };
 
     const isHoliday = (country, day) => {
-        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day+1).toISOString().split('T')[0];
         return holidays[country] && holidays[country][date];
     };
 
@@ -41,25 +45,50 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
 
     const handleDayClick = async (teamId, memberId, day) => {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-        const formattedDate = date.toISOString();
+        const formattedDate = formatDate(date);
+        const member = teamData.find(team => team._id === teamId).team_members.find(member => member.uid === memberId);
 
-        if (window.confirm(`Mark ${formattedDate} as a vacation day?`)) {
-            try {
-                const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify([formattedDate]),
-                });
+        if (isVacationDay(member.vac_days, day)) {
+            // It's a vacation day, send DELETE request
+            if (window.confirm(`Remove ${formattedDate} from vacation days?`)) {
+                try {
+                    const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify([formattedDate]),
+                    });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    updateTeamData(); // Update data after deletion
+                } catch (error) {
+                    console.error('Error removing vacation days:', error);
                 }
+            }
+        } else {
+            // It's not a vacation day, send PUT request
+            if (window.confirm(`Mark ${formattedDate} as a vacation day?`)) {
+                try {
+                    const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify([formattedDate]),
+                    });
 
-                updateTeamData(); // Callback to update the parent state
-            } catch (error) {
-                console.error('Error updating vacation days:', error);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    updateTeamData(); // Update data after addition
+                } catch (error) {
+                    console.error('Error updating vacation days:', error);
+                }
             }
         }
     };
@@ -95,7 +124,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                                 <tr key={member.uid}>
                                     <td>{member.name}</td>
                                     {daysHeader.map(day => (
-                                        <td key={day} onClick={() => handleDayClick(team._id, member.uid, day+1)} className={getCellClassName(member, day+1)}>
+                                        <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)}>
                                             {/* Add content or styling for vacation day */}
                                         </td>
                                     ))}

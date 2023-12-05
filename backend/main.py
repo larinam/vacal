@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 class TeamMemberWriteDTO(BaseModel):
     name: str
     country: str
-    vac_days: List[datetime.datetime]
+    vac_days: List[datetime.date]
 
     @field_validator("country")
     @classmethod
@@ -73,7 +73,8 @@ def mongo_to_pydantic(mongo_document, pydantic_model):
 def get_holidays(year: int = datetime.datetime.now().year):
     countries = get_unique_countries()
     holidays_dict = {}
-    list(map(lambda x: holidays_dict.update({x: holidays.country_holidays(x, years=[year-1, year, year+1])}), countries))
+    list(map(lambda x: holidays_dict.update({x: holidays.country_holidays(x, years=[year - 1, year, year + 1])}),
+             countries))
     return holidays_dict
 
 
@@ -83,15 +84,11 @@ def read_root(year: int = datetime.datetime.now().year):
             "holidays": get_holidays(year)}
 
 
-def clean_time_from_datetime(dt: datetime.datetime):
-    return datetime.datetime(dt.year, dt.month, dt.day).date()
-
-
 @app.post("/teams/{team_id}/members/{team_member_id}/vac_days/")
-def add_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.datetime]):
+def add_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.date]):
     team = Team.objects(id=team_id).first()
     team_member = team.team_members.get(uid=team_member_id)
-    vac_days = set(map(clean_time_from_datetime, vac_days))
+    vac_days = set(vac_days)
     team_member.vac_days = list(set(team_member.vac_days) | vac_days)
     team.save()
     return {"team": mongo_to_pydantic(team, TeamReadDTO)}
@@ -133,10 +130,10 @@ def delete_team_member(team_id: str, team_member_id: str):
 
 
 @app.delete("/teams/{team_id}/members/{team_member_id}/vac_days/")
-def delete_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.datetime]):
+def delete_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.date]):
     team = Team.objects(id=team_id).first()
     team_member = team.team_members.get(uid=team_member_id)
-    vac_days = set(map(clean_time_from_datetime, vac_days))
+    vac_days = set(vac_days)
     team_member.vac_days = list(set(team_member.vac_days) - vac_days)
     team.save()
     return {"team": mongo_to_pydantic(team, TeamReadDTO)}
@@ -171,7 +168,7 @@ def update_team_member(team_id: str, team_member_id: str, name: str, country: st
 
 
 @app.put("/teams/{team_id}/members/{team_member_id}/vac_days")
-def update_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.datetime]):
+def update_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.date]):
     team = Team.objects(id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -180,6 +177,6 @@ def update_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.d
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
 
-    team_member.vac_days = list(map(clean_time_from_datetime, vac_days))
+    team_member.vac_days = vac_days
     team.save()
     return {"team": mongo_to_pydantic(team, TeamReadDTO)}
