@@ -1,0 +1,35 @@
+.calendar-table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed; /* This ensures columns have fixed widths */
+}
+
+.calendar-table th, .calendar-table td {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 8px;
+    text-align: center;
+    overflow: hidden; /* In case content is too wide */
+}
+
+.calendar-table th:first-child, .calendar-table td:first-child {
+    width: 20%; /* Adjust this value based on your preference */
+    text-align: left;
+}
+
+.calendar-table th {
+    background-color: #f0f0f0;
+}
+
+.calendar-table td {
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.calendar-table tr:hover td,
+.calendar-table td:hover {
+    background-color: #f5f5f5; /* Lightly highlight the row and cell on hover */
+}
+
+.calendar-table colgroup col:hover {
+    background-color: #f5f5f5; /* Lightly highlight the column on hover */
+}

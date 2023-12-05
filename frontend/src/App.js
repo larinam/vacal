@@ -6,7 +6,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/main" element={<MainComponent />} />
+        <Route path="/" element={<MainComponent />} />
         {/* Add more routes as needed */}
       </Routes>
     </Router>
