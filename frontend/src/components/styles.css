@@ -70,3 +70,9 @@ form button {
 form button:hover {
     background-color: #45a049;
 }
+
+.add-icon {
+    cursor: pointer;
+    margin-left: 10px;
+    color: #0000ff; /* Blue color for add icon */
+}

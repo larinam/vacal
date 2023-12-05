@@ -6,6 +6,9 @@ const API_URL = process.env.REACT_APP_API_URL;
 const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [newTeamName, setNewTeamName] = useState('');
+    const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+    const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
+    const [selectedTeamId, setSelectedTeamId] = useState(null);
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
@@ -137,6 +140,32 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
         }
     };
 
+    const handleAddMemberIconClick = (teamId) => {
+        setShowAddMemberForm(true);
+        setSelectedTeamId(teamId);
+        setNewMemberData({ ...newMemberData, vac_days: [] }); // Reset form data
+    };
+
+    const handleAddMemberFormSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch(API_URL + `/teams/${selectedTeamId}/members/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newMemberData),
+            });
+
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            setNewMemberData({ name: '', country: '', vac_days: [] }); // Reset form data after successful submission
+            setShowAddMemberForm(false); // Hide form after successful addition
+            updateTeamData(); // Refresh data
+        } catch (error) {
+            console.error('Error adding team member:', error);
+        }
+    };
+
     return (
         <div>
             <div>
@@ -144,6 +173,27 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                 <span>{currentMonth.toLocaleString('default', { month: 'long' })} {currentMonth.getFullYear()}</span>
                 <button onClick={() => changeMonth(1)}>Next &gt;</button>
             </div>
+            {/* Form to add a new team member */}
+            {showAddMemberForm && (
+                <form onSubmit={handleAddMemberFormSubmit}>
+                    <input
+                        type="text"
+                        value={newMemberData.name}
+                        onChange={(e) => setNewMemberData({ ...newMemberData, name: e.target.value })}
+                        placeholder="Enter member's name"
+                        required
+                    />
+                    <input
+                        type="text"
+                        value={newMemberData.country}
+                        onChange={(e) => setNewMemberData({ ...newMemberData, country: e.target.value })}
+                        placeholder="Enter member's country"
+                        required
+                    />
+                    {/* Add input fields for vacation days if needed */}
+                    <button type="submit">Add Member</button>
+                </form>
+            )}
             <table className="calendar-table">
                 <colgroup>
                     <col /> {/* This col is for the non-date column */}
@@ -164,6 +214,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                                 <td className="team-name-cell">
                                     {team.name}
                                     <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
+                                    <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}>➕</span>
                                 </td>
                                 {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
                             </tr>
