@@ -38,6 +38,11 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
         return holidays[country] && holidays[country][date];
     };
 
+    const getHolidayName = (country, day) => {
+        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day+1).toISOString().split('T')[0];
+        return holidays[country] && holidays[country][date] ? holidays[country][date] : '';
+    };
+
     const getCellClassName = (member, day) => {
         if (isVacationDay(member.vac_days, day)) {
             return 'vacation-cell'; // Apply vacation styling
@@ -225,7 +230,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                                         <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
                                     </td>
                                     {daysHeader.map(day => (
-                                        <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)}>
+                                        <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)} title={getHolidayName(member.country, day)}>
                                             {/* Add content or styling for vacation day */}
                                         </td>
                                     ))}
