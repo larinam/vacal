@@ -27,8 +27,6 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
 
     const isHoliday = (country, day) => {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
-        console.log(date)
-        console.log(holidays[country][date])
         return holidays[country] && holidays[country][date];
     };
 
