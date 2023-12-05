@@ -33,3 +33,14 @@
 .calendar-table colgroup col:hover {
     background-color: #f5f5f5; /* Lightly highlight the column on hover */
 }
+
+
+.team-name-cell {
+    font-weight: bold;
+}
+
+/* Existing styles... */
+
+.weekend-column {
+    background-color: #6ec0ff; /* Slightly blue color */
+}

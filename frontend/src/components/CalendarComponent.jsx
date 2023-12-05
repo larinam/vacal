@@ -17,6 +17,12 @@ const CalendarComponent = ({ teamData, holidays }) => {
         setCurrentMonth(newMonth);
     };
 
+    const isWeekend = (day) => {
+        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+        const dayOfWeek = date.getDay();
+        return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+    };
+
     return (
         <div>
             <div>
@@ -25,6 +31,12 @@ const CalendarComponent = ({ teamData, holidays }) => {
                 <button onClick={() => changeMonth(1)}>Next &gt;</button>
             </div>
             <table className="calendar-table">
+                <colgroup>
+                    <col /> {/* This col is for the non-date column */}
+                    {daysHeader.map((day, idx) => (
+                        <col key={idx} className={isWeekend(day) ? 'weekend-column' : ''} />
+                    ))}
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Team / Member</th>
@@ -35,7 +47,7 @@ const CalendarComponent = ({ teamData, holidays }) => {
                     {teamData.map(team => (
                         <React.Fragment key={team.id}>
                             <tr>
-                                <td>{team.name}</td>
+                                <td className="team-name-cell">{team.name}</td>
                                 {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
                             </tr>
                             {team.team_members.map(member => (
