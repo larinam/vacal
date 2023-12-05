@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import './styles.css';
 
-const CalendarComponent = ({ teamData, holidays }) => {
+const API_URL = process.env.REACT_APP_API_URL;
+
+const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
@@ -21,6 +23,47 @@ const CalendarComponent = ({ teamData, holidays }) => {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
         const dayOfWeek = date.getDay();
         return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+    };
+
+    const isHoliday = (country, day) => {
+        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+        console.log(date)
+        console.log(holidays[country][date])
+        return holidays[country] && holidays[country][date];
+    };
+
+    const getCellClassName = (member, day) => {
+        if (isVacationDay(member.vac_days, day)) {
+            return 'vacation-cell'; // Apply vacation styling
+        } else if (isHoliday(member.country, day)) {
+            return 'holiday-cell'; // Apply holiday styling
+        }
+        return '';
+    };
+
+    const handleDayClick = async (teamId, memberId, day) => {
+        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+        const formattedDate = date.toISOString();
+
+        if (window.confirm(`Mark ${formattedDate} as a vacation day?`)) {
+            try {
+                const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify([formattedDate]),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                updateTeamData(); // Callback to update the parent state
+            } catch (error) {
+                console.error('Error updating vacation days:', error);
+            }
+        }
     };
 
     return (
@@ -54,7 +97,7 @@ const CalendarComponent = ({ teamData, holidays }) => {
                                 <tr key={member.uid}>
                                     <td>{member.name}</td>
                                     {daysHeader.map(day => (
-                                        <td key={day} style={{ backgroundColor: isVacationDay(member.vac_days, day) ? 'green' : 'transparent' }}>
+                                        <td key={day} onClick={() => handleDayClick(team._id, member.uid, day+1)} className={getCellClassName(member, day+1)}>
                                             {/* Add content or styling for vacation day */}
                                         </td>
                                     ))}

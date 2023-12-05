@@ -73,7 +73,7 @@ def mongo_to_pydantic(mongo_document, pydantic_model):
 def get_holidays(year: int = datetime.datetime.now().year):
     countries = get_unique_countries()
     holidays_dict = {}
-    list(map(lambda x: holidays_dict.update({x: holidays.country_holidays(x, years=year)}), countries))
+    list(map(lambda x: holidays_dict.update({x: holidays.country_holidays(x, years=[year-1, year, year+1])}), countries))
     return holidays_dict
 
 
@@ -94,7 +94,7 @@ def add_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.date
     vac_days = set(map(clean_time_from_datetime, vac_days))
     team_member.vac_days = list(set(team_member.vac_days) | vac_days)
     team.save()
-    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+    return {"team": mongo_to_pydantic(team, TeamReadDTO)}
 
 
 @app.post("/teams/{team_id}/members/")
@@ -107,7 +107,7 @@ def add_team_member(team_id: str, team_member: TeamMemberWriteDTO):
     team = Team.objects(id=team_id).first()
     team.team_members.append(team_member)
     team.save()
-    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+    return {"team": mongo_to_pydantic(team, TeamReadDTO)}
 
 
 @app.post("/teams/")
@@ -139,7 +139,7 @@ def delete_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.d
     vac_days = set(map(clean_time_from_datetime, vac_days))
     team_member.vac_days = list(set(team_member.vac_days) - vac_days)
     team.save()
-    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+    return {"team": mongo_to_pydantic(team, TeamReadDTO)}
 
 
 @app.put("/teams/{team_id}")
@@ -148,7 +148,7 @@ def update_team(team_id: str, team_name: str):
     if team:
         team.name = team_name
         team.save()
-        return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+        return {"team": mongo_to_pydantic(team, TeamReadDTO)}
     else:
         raise HTTPException(status_code=404, detail="Team not found")
 
@@ -167,7 +167,7 @@ def update_team_member(team_id: str, team_member_id: str, name: str, country: st
     team_member.country = country
 
     team.save()
-    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+    return {"team": mongo_to_pydantic(team, TeamReadDTO)}
 
 
 @app.put("/teams/{team_id}/members/{team_member_id}/vac_days")
@@ -182,4 +182,4 @@ def update_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.d
 
     team_member.vac_days = list(map(clean_time_from_datetime, vac_days))
     team.save()
-    return {"team": str(mongo_to_pydantic(team, TeamReadDTO))}
+    return {"team": mongo_to_pydantic(team, TeamReadDTO)}

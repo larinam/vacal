@@ -1,18 +1,18 @@
 .calendar-table {
     border-collapse: collapse;
     width: 100%;
-    table-layout: fixed; /* This ensures columns have fixed widths */
+    table-layout: fixed;
 }
 
 .calendar-table th, .calendar-table td {
     border: 1px solid rgba(0, 0, 0, 0.1);
     padding: 8px;
     text-align: center;
-    overflow: hidden; /* In case content is too wide */
+    overflow: hidden;
 }
 
 .calendar-table th:first-child, .calendar-table td:first-child {
-    width: 20%; /* Adjust this value based on your preference */
+    width: 20%;
     text-align: left;
 }
 
@@ -25,22 +25,26 @@
     transition: background-color 0.3s;
 }
 
-.calendar-table tr:hover td,
 .calendar-table td:hover {
-    background-color: #f5f5f5; /* Lightly highlight the row and cell on hover */
+    background-color: #f5f5f5; /* Highlight only the hovered cell */
 }
 
 .calendar-table colgroup col:hover {
     background-color: #f5f5f5; /* Lightly highlight the column on hover */
 }
 
-
 .team-name-cell {
     font-weight: bold;
 }
 
-/* Existing styles... */
-
 .weekend-column {
-    background-color: #6ec0ff; /* Slightly blue color */
+    background-color: #6ec0ff;
+}
+
+.vacation-cell {
+    background-color: green;
+}
+
+.holiday-cell {
+    background-color: #f4e3ff;
 }
