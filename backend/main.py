@@ -47,14 +47,13 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
 
 
-class TeamReadDTO(BaseModel):
-    id: str = Field(None, alias='_id')
-    name: str
-    team_members: List[TeamMemberReadDTO]
-
-
 class TeamWriteDTO(BaseModel):
     name: str
+
+
+class TeamReadDTO(TeamWriteDTO):
+    id: str = Field(None, alias='_id')
+    team_members: List[TeamMemberReadDTO]
 
 
 def validate_country_name(country_name):
