@@ -172,7 +172,7 @@ def update_team_member(team_id: str, team_member_id: str, name: str, country: st
 
 @app.put("/teams/{team_id}/members/{team_member_id}/vac_days")
 def update_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.date]):
-    team = Team.objects(id=team_id).first()
+    team: Team = Team.objects(id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
