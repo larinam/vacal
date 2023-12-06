@@ -5,3 +5,4 @@ mongoengine
 pycountry
 holidays
 pymongo
+python-dotenv
