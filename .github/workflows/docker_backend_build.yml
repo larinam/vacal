@@ -1,0 +1,30 @@
+name: Backend - Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out the repo
+      uses: actions/checkout@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v3
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: true
+        tags: ghcr.io/${{ github.repository }}/vacal:latest
