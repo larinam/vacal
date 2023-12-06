@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  app:
+    build: ./backend
+    ports:
+      - "80:80"
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example_IbLEpHISturb
+
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example_IbLEpHISturb
+
+
+  react-app:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - app
+    environment:
+      - REACT_APP_API_URL=http://localhost

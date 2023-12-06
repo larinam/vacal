@@ -10,3 +10,7 @@ ReactJS on the frontend.
 
 ## Screenshot
 ![Screenshot.png](Screenshot.png)
+
+## Run locally with Docker Compose
+* ```./run_docker_compose_local.sh```
+* Access on http://localhost:3000
