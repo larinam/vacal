@@ -176,7 +176,7 @@ def update_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.d
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    team_member = team.team_members.get(uid=team_member_id)
+    team_member: TeamMember = team.team_members.get(uid=team_member_id)
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
 
