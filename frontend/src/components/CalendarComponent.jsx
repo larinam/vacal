@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import './styles.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
@@ -9,6 +11,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
     const [showAddMemberForm, setShowAddMemberForm] = useState(false);
     const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
     const [selectedTeamId, setSelectedTeamId] = useState(null);
+    const [collapsedTeams, setCollapsedTeams] = useState([]);
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
@@ -171,6 +174,16 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
         }
     };
 
+    const toggleTeamCollapse = (teamId) => {
+        setCollapsedTeams(prev => {
+            if (prev.includes(teamId)) {
+                return prev.filter(id => id !== teamId);
+            } else {
+                return [...prev, teamId];
+            }
+        });
+    };
+
     return (
         <div>
             <div>
@@ -217,13 +230,16 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                         <React.Fragment key={team.id}>
                             <tr>
                                 <td className="team-name-cell">
+                                    <span className="collapse-icon" onClick={() => toggleTeamCollapse(team._id)}>
+                                        <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
+                                    </span>
                                     {team.name}
                                     <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
                                     <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)} title="Add team member">➕</span>
                                 </td>
                                 {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
                             </tr>
-                            {team.team_members.map(member => (
+                            {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
                                 <tr key={member.uid}>
                                     <td>
                                         {member.name}
