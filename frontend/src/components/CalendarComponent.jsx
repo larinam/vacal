@@ -219,7 +219,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData }) => {
                                 <td className="team-name-cell">
                                     {team.name}
                                     <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
-                                    <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}>➕</span>
+                                    <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)} title="Add team member">➕</span>
                                 </td>
                                 {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
                             </tr>
