@@ -38,17 +38,16 @@
 }
 
 .weekend-column {
-    background-color: #6ec0ff;
-}
-
-.vacation-cell {
-    background-color: green;
+    background-color: #0076BE;
 }
 
 .holiday-cell {
-    background-color: #f4e3ff;
+    background-color: #4DB4D7;
 }
 
+.vacation-cell {
+    background-color: #48BF91;
+}
 
 form {
     margin-top: 20px;
