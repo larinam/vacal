@@ -11,9 +11,8 @@ import logging
 
 log = logging.getLogger(__name__)
 
-# in production the environments should be set and no need to load from .env
-if not os.getenv("MONGO_USERNAME"):
-    dotenv.load_dotenv()  # mostly for local development with docker-compose
+# in production the environments should be set and not loaded from .env
+dotenv.load_dotenv()  # mostly for local development with docker-compose
 
 mongo_username = os.getenv("MONGO_USERNAME")
 mongo_password = os.getenv("MONGO_PASSWORD")
