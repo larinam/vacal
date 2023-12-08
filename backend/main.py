@@ -11,11 +11,16 @@ from pydantic import BaseModel, Field
 from pydantic.functional_validators import field_validator
 from fastapi.responses import RedirectResponse
 import logging
+import os
 
 origins = [
     "http://localhost",
     "http://localhost:3000",
 ]
+
+cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
+if cors_origin:  # for production
+    origins.append(cors_origin)
 
 app = FastAPI()
 
