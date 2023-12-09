@@ -72,7 +72,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
 
         if (isVacationDay(member.vac_days, day)) {
             // It's a vacation day, send DELETE request
-            if (window.confirm(`Remove ${formattedDate} from vacation days?`)) {
+            if (window.confirm(`Remove ${formattedDate} from ${member.name}'s vacation days?`)) {
                 try {
                     const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
                         method: 'DELETE',
@@ -90,7 +90,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                 }
             }
         } else {
-            if (window.confirm(`Mark ${formattedDate} as a vacation day?`)) {
+            if (window.confirm(`Mark ${formattedDate} as a vacation day for ${member.name}?`)) {
                 try {
                     const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
                         method: 'POST',
@@ -111,7 +111,8 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     };
 
     const deleteTeam = async (teamId) => {
-        if (window.confirm('Are you sure you want to delete this team?')) {
+        const teamName = teamData.find(team => team._id === teamId).name;
+        if (window.confirm(`Are you sure you want to delete the team '${teamName}'?`)) {
             try {
                 const response = await fetch(API_URL + `/teams/${teamId}`, {
                     method: 'DELETE',
@@ -126,7 +127,8 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     };
 
     const deleteTeamMember = async (teamId, memberId) => {
-        if (window.confirm('Are you sure you want to delete this team member?')) {
+        const memberName = teamData.find(team => team._id === teamId).team_members.find(member => member.uid === memberId).name;
+        if (window.confirm(`Are you sure you want to delete the team member '${memberName}'?`)) {
             try {
                 const response = await fetch(API_URL + `/teams/${teamId}/members/${memberId}`, {
                     method: 'DELETE',
