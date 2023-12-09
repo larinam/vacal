@@ -60,6 +60,11 @@ class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
 
+    @field_validator('team_members')
+    @classmethod
+    def sort_team_members(cls, team_members):
+        return sorted(team_members, key=lambda member: member.name)
+
 
 def validate_country_name(country_name):
     for country in pycountry.countries:
