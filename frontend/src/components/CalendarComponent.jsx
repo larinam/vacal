@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
-import './styles.css';
+import './CalendarComponentStyles.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
 

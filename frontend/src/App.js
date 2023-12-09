@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import MainComponent from './components/MainComponent';
-import Login from './components/Login'; // Assuming Login is in the components folder
+import Login from './components/Login';
+import './styles.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

@@ -1,0 +1,21 @@
+form {
+    margin-top: 20px;
+}
+
+form input[type="text"], form input[type="password"] {
+    margin: 10px 0;
+    padding: 8px;
+}
+
+form button {
+    margin: 10px 0;
+    padding: 8px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+form button:hover {
+    background-color: #45a049;
+}

@@ -1,5 +1,3 @@
-/* LoginStyles.css - Ensuring form elements alignment */
-
 .loginContainer {
     display: flex;
     justify-content: center;
@@ -19,8 +17,6 @@
 }
 
 .inputStyle, .buttonStyle {
-    margin: 10px 0; /* Consistent vertical margin */
-    padding: 8px;
     width: 300px; /* Adjust width as needed */
     display: block; /* Block level for consistent alignment */
     box-sizing: border-box; /* Include padding and border in width/height */
@@ -31,11 +27,6 @@
 }
 
 .buttonStyle {
-    padding: 8px 15px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    cursor: pointer;
     width: 320px; /* Slightly larger than input for better visual */
     margin-top: 20px; /* Increased top margin for separation from inputs */
 }
