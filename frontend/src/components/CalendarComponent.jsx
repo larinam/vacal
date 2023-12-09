@@ -248,7 +248,9 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                                                 <FontAwesomeIcon icon={faEye} />
                                             </span>
                                             {team.name}
-                                            <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
+                                            {team.team_members.length === 0 && (
+                                                <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
+                                            )}
                                             <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)} title="Add team member">➕</span>
                                         </td>
                                         {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
