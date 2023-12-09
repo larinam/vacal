@@ -54,6 +54,11 @@
     margin-right: 10px;
 }
 
+.eye-icon-active {
+    color: green;
+}
+
+
 .weekend-column {
     background-color: #4DB4D7;
 }
