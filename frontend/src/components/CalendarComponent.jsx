@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronRight, faEye } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponentStyles.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
@@ -12,6 +12,8 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
     const [selectedTeamId, setSelectedTeamId] = useState(null);
     const [collapsedTeams, setCollapsedTeams] = useState([]);
+    const [focusedTeamId, setFocusedTeamId] = useState(null);
+
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
@@ -234,30 +236,37 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                 <tbody>
                     {teamData.map(team => (
                         <React.Fragment key={team.id}>
-                            <tr>
-                                <td className="team-name-cell">
-                                    <span className="collapse-icon" onClick={() => toggleTeamCollapse(team._id)}>
-                                        <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
-                                    </span>
-                                    {team.name}
-                                    <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
-                                    <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)} title="Add team member">➕</span>
-                                </td>
-                                {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
-                            </tr>
-                            {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
-                                <tr key={member.uid}>
-                                    <td>
-                                        {member.name}
-                                        <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
-                                    </td>
-                                    {daysHeader.map(day => (
-                                        <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)} title={getHolidayName(member.country, day)}>
-                                            {/* Add content or styling for vacation day */}
+                            {(!focusedTeamId || focusedTeamId === team._id) && (
+                                <>
+                                    <tr>
+                                        <td className="team-name-cell">
+                                            <span className="collapse-icon" onClick={() => toggleTeamCollapse(team._id)}>
+                                                <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
+                                            </span>
+                                            <span className="eye-icon" onClick={() => setFocusedTeamId(team._id === focusedTeamId ? null : team._id)}>
+                                                <FontAwesomeIcon icon={faEye} />
+                                            </span>
+                                            {team.name}
+                                            <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
+                                            <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)} title="Add team member">➕</span>
                                         </td>
+                                        {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
+                                    </tr>
+                                    {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
+                                        <tr key={member.uid}>
+                                            <td>
+                                                {member.name}
+                                                <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
+                                            </td>
+                                            {daysHeader.map(day => (
+                                                <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)} title={getHolidayName(member.country, day)}>
+                                                    {/* Add content or styling for vacation day */}
+                                                </td>
+                                            ))}
+                                        </tr>
                                     ))}
-                                </tr>
-                            ))}
+                                </>
+                            )}
                         </React.Fragment>
                     ))}
                 </tbody>

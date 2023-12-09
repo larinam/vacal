@@ -49,6 +49,11 @@
     margin-right: 10px;
 }
 
+.eye-icon {
+    cursor: pointer;
+    margin-right: 10px;
+}
+
 .weekend-column {
     background-color: #4DB4D7;
 }
