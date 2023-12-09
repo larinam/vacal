@@ -243,8 +243,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                                             <span className="collapse-icon" onClick={() => toggleTeamCollapse(team._id)}>
                                                 <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
                                             </span>
-                                            <span className="eye-icon"
-                                                className={`eye-icon ${focusedTeamId === team._id ? 'eye-icon-active' : ''}`}
+                                            <span className={`eye-icon ${focusedTeamId === team._id ? 'eye-icon-active' : ''}`}
                                                 onClick={() => setFocusedTeamId(team._id === focusedTeamId ? null : team._id)}>
                                                 <FontAwesomeIcon icon={faEye} />
                                             </span>
