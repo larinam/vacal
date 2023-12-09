@@ -1,7 +1,7 @@
 import uuid
 
 from mongoengine import StringField, DateField, ListField, connect, Document, EmbeddedDocument, \
-    EmbeddedDocumentListField, UUIDField
+    EmbeddedDocumentListField, UUIDField, EmbeddedDocumentField, SortedListField
 
 from pymongo import MongoClient
 
@@ -59,7 +59,7 @@ class TeamMember(EmbeddedDocument):
 
 class Team(Document):
     name = StringField(required=True)
-    team_members = EmbeddedDocumentListField(TeamMember)
+    team_members = SortedListField(EmbeddedDocumentField(TeamMember), ordering="name")
 
 
 def get_unique_countries():
