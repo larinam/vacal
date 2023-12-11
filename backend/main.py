@@ -1,5 +1,5 @@
 import datetime
-from typing import Union, List
+from typing import List
 
 import holidays
 import pycountry
