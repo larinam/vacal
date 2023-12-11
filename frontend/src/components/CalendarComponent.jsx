@@ -13,10 +13,34 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [selectedTeamId, setSelectedTeamId] = useState(null);
     const [collapsedTeams, setCollapsedTeams] = useState([]);
     const [focusedTeamId, setFocusedTeamId] = useState(null);
+    const [filterInput, setFilterInput] = useState('');
 
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
+
+    const filterTeamsAndMembers = (data) => {
+        if (!filterInput) return data; // If no filter, return all data
+
+        return data.map(team => {
+            // Check if team name matches the filter
+            if (team.name.toLowerCase().includes(filterInput.toLowerCase())) {
+                return team; // Return the whole team as is
+            }
+
+            // Filter team members who match the filter
+            const filteredMembers = team.team_members.filter(member =>
+                member.name.toLowerCase().includes(filterInput.toLowerCase())
+            );
+
+            if (filteredMembers.length > 0) {
+                // Return the team with only the filtered members
+                return { ...team, team_members: filteredMembers };
+            }
+
+            return null; // Exclude teams with no matching members
+        }).filter(team => team !== null); // Remove null entries (teams with no matches)
+    };
 
     const formatDate = (date) => {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -200,6 +224,13 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                 <button onClick={() => changeMonth(-1)}>&lt; Prev</button>
                 <span>{currentMonth.toLocaleString('default', { month: 'long' })} {currentMonth.getFullYear()}</span>
                 <button onClick={() => changeMonth(1)}>Next &gt;</button>
+
+                <input
+                    type="text"
+                    value={filterInput}
+                    onChange={(e) => setFilterInput(e.target.value)}
+                    placeholder="Filter by team or member name"
+                />
             </div>
             {/* Form to add a new team member */}
             {showAddMemberForm && (
@@ -236,7 +267,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                     </tr>
                 </thead>
                 <tbody>
-                    {teamData.map(team => (
+                    {filterTeamsAndMembers(teamData).map(team => (
                         <React.Fragment key={team.id}>
                             {(!focusedTeamId || focusedTeamId === team._id) && (
                                 <>
