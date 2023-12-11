@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faChevronRight, faEye } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponentStyles.css';
@@ -14,6 +14,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [collapsedTeams, setCollapsedTeams] = useState([]);
     const [focusedTeamId, setFocusedTeamId] = useState(null);
     const [filterInput, setFilterInput] = useState('');
+    const filterInputRef = useRef(null);
 
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
@@ -40,6 +41,11 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
 
             return null; // Exclude teams with no matching members
         }).filter(team => team !== null); // Remove null entries (teams with no matches)
+    };
+
+    const clearFilter = () => {
+        setFilterInput('');
+        filterInputRef.current.focus()
     };
 
     const formatDate = (date) => {
@@ -227,10 +233,14 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
 
                 <input
                     type="text"
+                    ref={filterInputRef}
                     value={filterInput}
                     onChange={(e) => setFilterInput(e.target.value)}
                     placeholder="Filter by team or member name"
                 />
+                {filterInput && (
+                    <button onClick={clearFilter}>Clear</button>
+                )}
             </div>
             {/* Form to add a new team member */}
             {showAddMemberForm && (
