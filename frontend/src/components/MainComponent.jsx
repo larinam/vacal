@@ -29,13 +29,19 @@ const MainComponent = ({ authHeader, onLogout }) => {
     if (!data) return <div>Loading...</div>;
 
     return (
-        <CalendarComponent
-            teamData={data.teams}
-            holidays={data.holidays}
-            currentMonth={new Date()}
-            updateTeamData={fetchData}
-            authHeader={authHeader}
-        />
+        <div>
+            <CalendarComponent
+                teamData={data.teams}
+                holidays={data.holidays}
+                currentMonth={new Date()}
+                updateTeamData={fetchData}
+                authHeader={authHeader}
+            />
+            <footer style={{ textAlign: 'center', marginTop: '20px' }}>
+                This application, Vacal, is an open source project. For more details, visit our&nbsp;
+                <a href="https://github.com/larinam/vacal" target="_blank" rel="noopener noreferrer">GitHub repository</a>.
+            </footer>
+        </div>
     );
 };
 
