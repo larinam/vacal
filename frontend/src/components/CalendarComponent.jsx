@@ -225,14 +225,14 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
             <table className="calendar-table">
                 <colgroup>
                     <col /> {/* This col is for the non-date column */}
-                    {daysHeader.map((day, idx) => (
+                    {daysHeader?.map((day, idx) => (
                         <col key={idx} className={isWeekend(day) ? 'weekend-column' : ''} />
                     ))}
                 </colgroup>
                 <thead>
                     <tr>
                         <th>Team / Member</th>
-                        {daysHeader.map(day => <th key={day}>{day}</th>)}
+                        {daysHeader?.map(day => <th key={day}>{day}</th>)}
                     </tr>
                 </thead>
                 <tbody>
