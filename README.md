@@ -14,3 +14,6 @@
 ## Run locally with only one command (Docker Compose)
 * `./run_docker_compose_local.sh`
 * Access on http://localhost:3000
+
+## Production deployment
+
