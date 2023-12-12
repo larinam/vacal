@@ -16,4 +16,13 @@
 * Access on http://localhost:3000
 
 ## Production deployment
+### MongoDB
+MongoDB server with enabled authentication. 
+### Backend
+Use prebuilt Docker container from this repository packages.
+Provide to container relevant environment variables defined in '.env.template'. 
+### Frontend
+Create '.env.production.local' from '.env.example'. 
+Build with 'npm run build'. 
+Use sprinted static sources from the 'build' folder. 
 
