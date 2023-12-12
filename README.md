@@ -17,12 +17,12 @@
 
 ## Production deployment
 ### MongoDB
-MongoDB server with enabled authentication. 
+* Deploy or use existing MongoDB server with enabled authentication. 
 ### Backend
-Use prebuilt Docker container from this repository packages.
-Provide to container relevant environment variables defined in '.env.template'. 
+* Use prebuilt Docker container from this repository packages.
+* Provide to container relevant environment variables defined in [`backend/.env.template`](https://github.com/larinam/vacal/blob/main/backend/.env.template). 
 ### Frontend
-Create '.env.production.local' from '.env.example'. 
-Build with 'npm run build'. 
-Use sprinted static sources from the 'build' folder. 
+* Create `.env.production.local` from [`frontend/.env.example`](https://github.com/larinam/vacal/blob/main/frontend/.env.example). 
+* Build with `npm run build`. 
+* Use built static sources from the `build` folder. 
 
