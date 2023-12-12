@@ -25,3 +25,6 @@
 * Create `.env.production.local` from [`frontend/.env.example`](https://github.com/larinam/vacal/blob/main/frontend/.env.example). 
 * Build with `npm run build`. 
 * Use built static sources from the `build` folder.
+### Authentication
+* The backend can optionally be protected with the Basic Authentication.
+* In this case the `REACT_APP_REQUIRE_BASIC_AUTH` env variable in `.env.production.local` should be set to `true`.
