@@ -1,3 +1,40 @@
+.stickyHeader {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background-color: white;
+    z-index: 1000; /* Make sure it stays on top of other content */
+    padding: 10px 0; /* Add some padding for aesthetics */
+    display: flex; /* Enable flexbox */
+    align-items: center; /* Align items vertically in the center */
+}
+
+.stickyHeader::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -10px; /* Adjust based on your design */
+    height: 20px; /* Height of the gradient effect */
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
+}
+
+/* Padding for content below the sticky header to avoid overlap */
+.contentBelowStickyHeader {
+    padding-top: 44px; /* Adjust this value based on the actual height of your sticky header */
+}
+
+.monthSelector {
+    margin: 0px 10px;
+}
+
+/* Additional CSS rules for month display */
+.monthDisplay {
+    display: inline-block; /* Allows setting a fixed width */
+    width: 130px; /* Adjust this width as needed to fit the longest month name */
+    text-align: center; /* Center-align the month name */
+}
+
 .calendar-table {
     border-collapse: collapse;
     width: 100%;

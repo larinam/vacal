@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faChevronRight, faEye } from '@fortawesome/free-solid-svg-icons';
-import './CalendarComponentStyles.css';
+import './CalendarComponent.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -9,6 +9,8 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [newTeamName, setNewTeamName] = useState('');
     const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+    const addMemberFormRef = useRef(null);
+    const stickyHeaderHeight = 44;
     const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
     const [selectedTeamId, setSelectedTeamId] = useState(null);
     const [collapsedTeams, setCollapsedTeams] = useState([]);
@@ -16,6 +18,12 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [filterInput, setFilterInput] = useState('');
     const filterInputRef = useRef(null);
 
+    useEffect(() => {
+    if (showAddMemberForm && addMemberFormRef.current) {
+        const formPosition = addMemberFormRef.current.getBoundingClientRect().top + window.pageYOffset - stickyHeaderHeight;
+        window.scrollTo({ top: formPosition, behavior: 'smooth' });
+    }
+}, [showAddMemberForm]);
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
@@ -226,10 +234,12 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
 
     return (
         <div>
-            <div>
-                <button onClick={() => changeMonth(-1)}>&lt; Prev</button>
-                <span>{currentMonth.toLocaleString('default', { month: 'long' })} {currentMonth.getFullYear()}</span>
-                <button onClick={() => changeMonth(1)}>Next &gt;</button>
+            <div className="stickyHeader">
+                <div className="monthSelector">
+                    <button onClick={() => changeMonth(-1)}>&lt; Prev</button>
+                    <span className="monthDisplay">{currentMonth.toLocaleString('default', { month: 'long' })} {currentMonth.getFullYear()}</span>
+                    <button onClick={() => changeMonth(1)}>Next &gt;</button>
+                </div>
 
                 <input
                     type="text"
@@ -242,93 +252,93 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                     <button onClick={clearFilter}>Clear</button>
                 )}
             </div>
-            {/* Form to add a new team member */}
-            {showAddMemberForm && (
-                <form onSubmit={handleAddMemberFormSubmit}>
-                    <input
-                        type="text"
-                        value={newMemberData.name}
-                        onChange={(e) => setNewMemberData({ ...newMemberData, name: e.target.value })}
-                        placeholder="Enter member's name"
-                        required
-                    />
-                    <input
-                        type="text"
-                        value={newMemberData.country}
-                        onChange={(e) => setNewMemberData({ ...newMemberData, country: e.target.value })}
-                        placeholder="Enter member's country"
-                        required
-                    />
-                    {/* Add input fields for vacation days if needed */}
-                    <button type="submit">Add Member</button>
-                </form>
-            )}
-            <table className="calendar-table">
-                <colgroup>
-                    <col /> {/* This col is for the non-date column */}
-                    {daysHeader.map((day, idx) => (
-                        <col key={idx} className={isWeekend(day) ? 'weekend-column' : ''} />
-                    ))}
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th>Team / Member</th>
-                        {daysHeader.map(day => <th key={day}>{day}</th>)}
-                    </tr>
-                </thead>
-                <tbody>
-                    {filterTeamsAndMembers(teamData).map(team => (
-                        <React.Fragment key={team.id}>
-                            {(!focusedTeamId || focusedTeamId === team._id) && (
-                                <>
-                                    <tr>
-                                        <td className="team-name-cell">
-                                            <span className="collapse-icon" onClick={() => toggleTeamCollapse(team._id)}>
-                                                <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
-                                            </span>
-                                            <span className={`eye-icon ${focusedTeamId === team._id ? 'eye-icon-active' : ''}`}
-                                                onClick={() => setFocusedTeamId(team._id === focusedTeamId ? null : team._id)}>
-                                                <FontAwesomeIcon icon={faEye} />
-                                            </span>
-                                            {team.name}
-                                            {team.team_members.length === 0 && (
-                                                <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
-                                            )}
-                                            <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)} title="Add team member">➕</span>
-                                        </td>
-                                        {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
-                                    </tr>
-                                    {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
-                                        <tr key={member.uid}>
-                                            <td>
-                                                {member.name}
-                                                <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
+            <div className="contentBelowStickyHeader">
+                {showAddMemberForm && (
+                    <form ref={addMemberFormRef} onSubmit={handleAddMemberFormSubmit}>
+                        <input
+                            type="text"
+                            value={newMemberData.name}
+                            onChange={(e) => setNewMemberData({ ...newMemberData, name: e.target.value })}
+                            placeholder="Enter member's name"
+                            required
+                        />
+                        <input
+                            type="text"
+                            value={newMemberData.country}
+                            onChange={(e) => setNewMemberData({ ...newMemberData, country: e.target.value })}
+                            placeholder="Enter member's country"
+                            required
+                        />
+                        {/* Add input fields for vacation days if needed */}
+                        <button type="submit">Add Member</button>
+                    </form>
+                )}
+                <table className="calendar-table">
+                    <colgroup>
+                        <col /> {/* This col is for the non-date column */}
+                        {daysHeader.map((day, idx) => (
+                            <col key={idx} className={isWeekend(day) ? 'weekend-column' : ''} />
+                        ))}
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Team / Member</th>
+                            {daysHeader.map(day => <th key={day}>{day}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filterTeamsAndMembers(teamData).map(team => (
+                            <React.Fragment key={team.id}>
+                                {(!focusedTeamId || focusedTeamId === team._id) && (
+                                    <>
+                                        <tr>
+                                            <td className="team-name-cell">
+                                                <span className="collapse-icon" onClick={() => toggleTeamCollapse(team._id)}>
+                                                    <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
+                                                </span>
+                                                <span className={`eye-icon ${focusedTeamId === team._id ? 'eye-icon-active' : ''}`}
+                                                    onClick={() => setFocusedTeamId(team._id === focusedTeamId ? null : team._id)}>
+                                                    <FontAwesomeIcon icon={faEye} />
+                                                </span>
+                                                {team.name}
+                                                {team.team_members.length === 0 && (
+                                                    <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
+                                                )}
+                                                <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)} title="Add team member">➕</span>
                                             </td>
-                                            {daysHeader.map(day => (
-                                                <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)} title={getHolidayName(member.country, day)}>
-                                                    {/* Add content or styling for vacation day */}
-                                                </td>
-                                            ))}
+                                            {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
                                         </tr>
-                                    ))}
-                                </>
-                            )}
-                        </React.Fragment>
-                    ))}
-                </tbody>
-            </table>
+                                        {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
+                                            <tr key={member.uid}>
+                                                <td>
+                                                    {member.name}
+                                                    <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
+                                                </td>
+                                                {daysHeader.map(day => (
+                                                    <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)} title={getHolidayName(member.country, day)}>
+                                                        {/* Add content or styling for vacation day */}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </>
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </tbody>
+                </table>
 
-             {/* Form to add a new team */}
-            <form onSubmit={handleAddTeam}>
-                <input
-                    type="text"
-                    value={newTeamName}
-                    onChange={(e) => setNewTeamName(e.target.value)}
-                    placeholder="Enter team name"
-                    required
-                />
-                <button type="submit">Add Team</button>
-            </form>
+                <form onSubmit={handleAddTeam}>
+                    <input
+                        type="text"
+                        value={newTeamName}
+                        onChange={(e) => setNewTeamName(e.target.value)}
+                        placeholder="Enter team name"
+                        required
+                    />
+                    <button type="submit">Add Team</button>
+                </form>
+            </div>
         </div>
     );
 };

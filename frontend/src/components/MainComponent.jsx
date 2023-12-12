@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CalendarComponent from './CalendarComponent';
+import './MainComponent.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -29,15 +30,17 @@ const MainComponent = ({ authHeader, onLogout }) => {
     if (!data) return <div>Loading...</div>;
 
     return (
-        <div>
-            <CalendarComponent
-                teamData={data.teams}
-                holidays={data.holidays}
-                currentMonth={new Date()}
-                updateTeamData={fetchData}
-                authHeader={authHeader}
-            />
-            <footer style={{ textAlign: 'center', marginTop: '20px' }}>
+        <div className="mainContainer">
+            <div className="content">
+                <CalendarComponent
+                    teamData={data.teams}
+                    holidays={data.holidays}
+                    currentMonth={new Date()}
+                    updateTeamData={fetchData}
+                    authHeader={authHeader}
+                />
+            </div>
+            <footer className="footer">
                 This application, Vacal, is an open source project. For more details, visit our&nbsp;
                 <a href="https://github.com/larinam/vacal" target="_blank" rel="noopener noreferrer">GitHub repository</a>.
             </footer>

@@ -24,5 +24,4 @@
 ### Frontend
 * Create `.env.production.local` from [`frontend/.env.example`](https://github.com/larinam/vacal/blob/main/frontend/.env.example). 
 * Build with `npm run build`. 
-* Use built static sources from the `build` folder. 
-
+* Use built static sources from the `build` folder.
