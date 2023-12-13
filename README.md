@@ -19,7 +19,7 @@
 ### MongoDB
 * Deploy or use existing MongoDB server with enabled authentication. 
 ### Backend
-* Use prebuilt Docker container from this repository packages.
+* Use prebuilt Docker container from this repository [packages](https://github.com/larinam/vacal/pkgs/container/vacal).
 * Provide to container relevant environment variables defined in [`backend/.env.template`](https://github.com/larinam/vacal/blob/main/backend/.env.template). 
 ### Frontend
 * Create `.env.production.local` from [`frontend/.env.example`](https://github.com/larinam/vacal/blob/main/frontend/.env.example). 
