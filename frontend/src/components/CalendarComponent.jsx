@@ -157,7 +157,11 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                     headers: getHeaders(),
                 });
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                updateTeamData(); // Refresh data
+                updateTeamData();
+
+                if (focusedTeamId === teamId) {
+                    setFocusedTeamId(null);
+                }
             } catch (error) {
                 console.error('Error deleting team:', error);
             }
