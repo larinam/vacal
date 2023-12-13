@@ -70,6 +70,11 @@
     margin-right: 10px; /* Adjust as needed */
 }
 
+.team-row {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
 .delete-icon {
     cursor: pointer;
     margin-left: 10px;

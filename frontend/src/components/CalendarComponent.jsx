@@ -291,7 +291,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                             <React.Fragment key={team.id}>
                                 {(!focusedTeamId || focusedTeamId === team._id) && (
                                     <>
-                                        <tr>
+                                        <tr className="team-row">
                                             <td className="team-name-cell">
                                                 <span className="collapse-icon" onClick={() => toggleTeamCollapse(team._id)}>
                                                     <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
