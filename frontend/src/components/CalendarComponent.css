@@ -97,13 +97,13 @@
 
 
 .weekend-column {
-    background-color: #4DB4D7;
+    background-color: #4DB4D7; /* Blue */
 }
 
 .holiday-cell {
-    background-color: #95D8EB;
+    background-color: #FF9999; /* Soft Red */
 }
 
 .vacation-cell {
-    background-color: #48BF91;
+    background-color: #48BF91; /* Green */
 }
