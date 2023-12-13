@@ -21,7 +21,7 @@
 
 /* Padding for content below the sticky header to avoid overlap */
 .contentBelowStickyHeader {
-    padding-top: 44px; /* Adjust this value based on the actual height of your sticky header */
+    padding-top: 41px; /* Adjust this value based on the actual height of your sticky header */
 }
 
 .monthSelector {
@@ -39,6 +39,13 @@
     border-collapse: collapse;
     width: 100%;
     table-layout: fixed;
+}
+
+.calendar-table th {
+    position: sticky;
+    top: 41px; /* Adjust this value to the height of your sticky header */
+    background-color: white; /* To ensure the header is not transparent */
+    z-index: 11; /* Ensure this is higher than the z-index of .stickyHeader */
 }
 
 .calendar-table th, .calendar-table td {
