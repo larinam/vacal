@@ -169,20 +169,34 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     };
 
     const deleteTeamMember = async (teamId, memberId) => {
-        const memberName = teamData.find(team => team._id === teamId).team_members.find(member => member.uid === memberId).name;
-        if (window.confirm(`Are you sure you want to delete the team member '${memberName}'?`)) {
+        const member = teamData.find(team => team._id === teamId).team_members.find(member => member.uid === memberId);
+        const memberName = member ? member.name : '';
+
+        const message = `To confirm deletion, please type the name of the member: '${memberName}'`;
+        const confirmedName = window.prompt(message);
+
+        // Check if the prompt was cancelled
+        if (confirmedName === null) {
+            return;
+        }
+
+        if (confirmedName === memberName) {
             try {
                 const response = await fetch(API_URL + `/teams/${teamId}/members/${memberId}`, {
                     method: 'DELETE',
                     headers: getHeaders(),
                 });
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                updateTeamData(); // Refresh data
+                updateTeamData();
             } catch (error) {
                 console.error('Error deleting team member:', error);
             }
+        } else {
+            alert("The entered name did not match. Deletion cancelled.");
         }
     };
+
+
 
     const handleAddTeam = async (e) => {
         e.preventDefault(); // Prevents the default form submit action
