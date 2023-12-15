@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faChevronRight, faEye } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
+import AddTeamModal from './AddTeamModal';
+import AddMemberModal from './AddMemberModal';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -10,6 +12,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [newTeamName, setNewTeamName] = useState('');
     const [showAddMemberForm, setShowAddMemberForm] = useState(false);
     const addMemberFormRef = useRef(null);
+    const [showAddTeamForm, setShowAddTeamForm] = useState(false);
     const stickyHeaderHeight = 44;
     const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
     const [selectedTeamId, setSelectedTeamId] = useState(null);
@@ -19,11 +22,17 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const filterInputRef = useRef(null);
 
     useEffect(() => {
-    if (showAddMemberForm && addMemberFormRef.current) {
-        const formPosition = addMemberFormRef.current.getBoundingClientRect().top + window.pageYOffset - stickyHeaderHeight;
-        window.scrollTo({ top: formPosition, behavior: 'smooth' });
-    }
-}, [showAddMemberForm]);
+        if (filterInputRef.current) {
+            filterInputRef.current.focus();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (showAddMemberForm && addMemberFormRef.current) {
+            const formPosition = addMemberFormRef.current.getBoundingClientRect().top + window.pageYOffset - stickyHeaderHeight;
+            window.scrollTo({ top: formPosition, behavior: 'smooth' });
+        }
+    }, [showAddMemberForm]);
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
@@ -196,7 +205,9 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         }
     };
 
-
+    const handleAddTeamIconClick = () => {
+        setShowAddTeamForm(true); // Show the Add Team form
+    };
 
     const handleAddTeam = async (e) => {
         e.preventDefault(); // Prevents the default form submit action
@@ -210,7 +221,8 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
 
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             setNewTeamName(''); // Reset input field
-            updateTeamData(); // Refresh data
+            setShowAddTeamForm(false);
+            updateTeamData();
         } catch (error) {
             console.error('Error adding team:', error);
         }
@@ -252,6 +264,21 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
 
     return (
         <div>
+            <AddTeamModal
+                isOpen={showAddTeamForm}
+                onClose={() => setShowAddTeamForm(false)}
+                onSubmit={handleAddTeam}
+                teamName={newTeamName}
+                setTeamName={setNewTeamName}
+            />
+            <AddMemberModal
+                isOpen={showAddMemberForm}
+                onClose={() => setShowAddMemberForm(false)}
+                onSubmit={handleAddMemberFormSubmit}
+                memberData={newMemberData}
+                setMemberData={setNewMemberData}
+            />
+
             <div className="stickyHeader">
                 <div className="monthSelector">
                     <button onClick={() => changeMonth(-1)}>&lt; Prev</button>
@@ -271,26 +298,6 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                 )}
             </div>
             <div className="contentBelowStickyHeader">
-                {showAddMemberForm && (
-                    <form ref={addMemberFormRef} onSubmit={handleAddMemberFormSubmit}>
-                        <input
-                            type="text"
-                            value={newMemberData.name}
-                            onChange={(e) => setNewMemberData({ ...newMemberData, name: e.target.value })}
-                            placeholder="Enter member's name"
-                            required
-                        />
-                        <input
-                            type="text"
-                            value={newMemberData.country}
-                            onChange={(e) => setNewMemberData({ ...newMemberData, country: e.target.value })}
-                            placeholder="Enter member's country"
-                            required
-                        />
-                        {/* Add input fields for vacation days if needed */}
-                        <button type="submit">Add Member</button>
-                    </form>
-                )}
                 <table className="calendar-table">
                     <colgroup>
                         <col /> {/* This col is for the non-date column */}
@@ -300,7 +307,10 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                     </colgroup>
                     <thead>
                         <tr>
-                            <th>Team / Member</th>
+                            <th>
+                                Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
+                                / Member
+                            </th>
                             {daysHeader.map(day => <th key={day}>{day}</th>)}
                         </tr>
                     </thead>
@@ -345,17 +355,6 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                         ))}
                     </tbody>
                 </table>
-
-                <form onSubmit={handleAddTeam}>
-                    <input
-                        type="text"
-                        value={newTeamName}
-                        onChange={(e) => setNewTeamName(e.target.value)}
-                        placeholder="Enter team name"
-                        required
-                    />
-                    <button type="submit">Add Team</button>
-                </form>
             </div>
         </div>
     );
