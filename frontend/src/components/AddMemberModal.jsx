@@ -1,6 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const AddMemberModal = ({ isOpen, onClose, onSubmit, memberData, setMemberData }) => {
+const API_URL = process.env.REACT_APP_API_URL;
+
+const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authHeader }) => {
+    const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
     const modalContentRef = useRef(null);
 
     useEffect(() => {
@@ -16,23 +19,49 @@ const AddMemberModal = ({ isOpen, onClose, onSubmit, memberData, setMemberData }
         };
     }, [onClose]);
 
+    const getHeaders = () => {
+        const headers = { 'Content-Type': 'application/json' };
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
+        }
+        return headers;
+    };
+
+    const handleAddMemberFormSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch(API_URL + `/teams/${selectedTeamId}/members/`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(newMemberData),
+            });
+
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            setNewMemberData({ name: '', country: '', vac_days: [] }); // Reset form data after successful submission
+            onClose(); // Close modal
+            updateTeamData(); // Refresh data
+        } catch (error) {
+            console.error('Error adding team member:', error);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
         <div className="modal">
             <div className="modal-content" ref={modalContentRef}>
-                <form onSubmit={onSubmit}>
+                <form onSubmit={handleAddMemberFormSubmit}>
                     <input
                         type="text"
-                        value={memberData.name}
-                        onChange={(e) => setMemberData({ ...memberData, name: e.target.value })}
+                        value={newMemberData.name}
+                        onChange={(e) => setNewMemberData({ ...newMemberData, name: e.target.value })}
                         placeholder="Enter member's name"
                         required
                     />
                     <input
                         type="text"
-                        value={memberData.country}
-                        onChange={(e) => setMemberData({ ...memberData, country: e.target.value })}
+                        value={newMemberData.country}
+                        onChange={(e) => setNewMemberData({ ...newMemberData, country: e.target.value })}
                         placeholder="Enter member's country"
                         required
                     />

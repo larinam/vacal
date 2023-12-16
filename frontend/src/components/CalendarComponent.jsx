@@ -9,12 +9,10 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [newTeamName, setNewTeamName] = useState('');
     const [showAddMemberForm, setShowAddMemberForm] = useState(false);
     const addMemberFormRef = useRef(null);
     const [showAddTeamForm, setShowAddTeamForm] = useState(false);
     const stickyHeaderHeight = 44;
-    const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
     const [selectedTeamId, setSelectedTeamId] = useState(null);
     const [collapsedTeams, setCollapsedTeams] = useState([]);
     const [focusedTeamId, setFocusedTeamId] = useState(null);
@@ -209,47 +207,9 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         setShowAddTeamForm(true); // Show the Add Team form
     };
 
-    const handleAddTeam = async (e) => {
-        e.preventDefault(); // Prevents the default form submit action
-
-        try {
-            const response = await fetch(API_URL + '/teams/', {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ name: newTeamName }),
-            });
-
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            setNewTeamName(''); // Reset input field
-            setShowAddTeamForm(false);
-            updateTeamData();
-        } catch (error) {
-            console.error('Error adding team:', error);
-        }
-    };
-
     const handleAddMemberIconClick = (teamId) => {
         setShowAddMemberForm(true);
         setSelectedTeamId(teamId);
-        setNewMemberData({ ...newMemberData, vac_days: [] }); // Reset form data
-    };
-
-    const handleAddMemberFormSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const response = await fetch(API_URL + `/teams/${selectedTeamId}/members/`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify(newMemberData),
-            });
-
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            setNewMemberData({ name: '', country: '', vac_days: [] }); // Reset form data after successful submission
-            setShowAddMemberForm(false); // Hide form after successful addition
-            updateTeamData(); // Refresh data
-        } catch (error) {
-            console.error('Error adding team member:', error);
-        }
     };
 
     const toggleTeamCollapse = (teamId) => {
@@ -267,16 +227,16 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
             <AddTeamModal
                 isOpen={showAddTeamForm}
                 onClose={() => setShowAddTeamForm(false)}
-                onSubmit={handleAddTeam}
-                teamName={newTeamName}
-                setTeamName={setNewTeamName}
+                updateTeamData={updateTeamData}
+                authHeader={authHeader}
             />
+
             <AddMemberModal
                 isOpen={showAddMemberForm}
                 onClose={() => setShowAddMemberForm(false)}
-                onSubmit={handleAddMemberFormSubmit}
-                memberData={newMemberData}
-                setMemberData={setNewMemberData}
+                selectedTeamId={selectedTeamId}
+                updateTeamData={updateTeamData}
+                authHeader={authHeader}
             />
 
             <div className="stickyHeader">

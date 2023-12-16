@@ -1,6 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const AddTeamModal = ({ isOpen, onClose, onSubmit, teamName, setTeamName }) => {
+const API_URL = process.env.REACT_APP_API_URL;
+const AddTeamModal = ({ isOpen, onClose, updateTeamData, authHeader }) => {
+    const [newTeamName, setNewTeamName] = useState('');
     const modalContentRef = useRef(null);
 
     useEffect(() => {
@@ -16,16 +18,42 @@ const AddTeamModal = ({ isOpen, onClose, onSubmit, teamName, setTeamName }) => {
         };
     }, [onClose]);
 
+    const getHeaders = () => {
+        const headers = { 'Content-Type': 'application/json' };
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
+        }
+        return headers;
+    };
+
+    const handleAddTeam = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch(API_URL + '/teams/', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ name: newTeamName }),
+            });
+
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            setNewTeamName(''); // Reset input field
+            onClose(); // Close modal
+            updateTeamData(); // Refresh data
+        } catch (error) {
+            console.error('Error adding team:', error);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
         <div className="modal">
             <div className="modal-content" ref={modalContentRef}>
-                <form onSubmit={onSubmit}>
+                <form onSubmit={handleAddTeam}>
                     <input
                         type="text"
-                        value={teamName}
-                        onChange={(e) => setTeamName(e.target.value)}
+                        value={newTeamName}
+                        onChange={(e) => setNewTeamName(e.target.value)}
                         placeholder="Enter team name"
                         required
                     />
