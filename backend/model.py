@@ -51,7 +51,7 @@ else:  # just local MongoDB
 
 
 class TeamMember(EmbeddedDocument):
-    uid = UUIDField(binary=False, default=uuid.uuid4, unique=True)
+    uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
     name = StringField(required=True)
     country = StringField(required=True)  # country name from pycountry
     vac_days = ListField(DateField(required=True))
