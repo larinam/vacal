@@ -163,7 +163,7 @@ def update_team(team_id: str, team_dto: TeamWriteDTO):
 
 
 @app.put("/teams/{team_id}/members/{team_member_id}")
-def update_team_member(team_id: str, team_member_id: str, name: str, country: str):
+def update_team_member(team_id: str, team_member_id: str, team_member_dto: TeamMemberWriteDTO):
     team = Team.objects(id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -172,8 +172,8 @@ def update_team_member(team_id: str, team_member_id: str, name: str, country: st
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
 
-    team_member.name = name
-    team_member.country = country
+    team_member.name = team_member_dto.name
+    team_member.country = team_member_dto.country
 
     team.save()
     return {"team": mongo_to_pydantic(team, TeamReadDTO)}

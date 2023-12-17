@@ -2,9 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
-const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authHeader }) => {
+const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authHeader, editingMember }) => {
     const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
     const modalContentRef = useRef(null);
+
+    useEffect(() => {
+        if (editingMember) {
+            setNewMemberData(editingMember);
+        } else {
+            setNewMemberData({ name: '', country: '', vac_days: [] });
+        }
+    }, [editingMember]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -29,9 +37,11 @@ const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authH
 
     const handleAddMemberFormSubmit = async (e) => {
         e.preventDefault();
+        const method = editingMember ? 'PUT' : 'POST';
+        const url = API_URL + (editingMember ? `/teams/${selectedTeamId}/members/${editingMember.uid}` : `/teams/${selectedTeamId}/members/`);
         try {
-            const response = await fetch(API_URL + `/teams/${selectedTeamId}/members/`, {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: method,
                 headers: getHeaders(),
                 body: JSON.stringify(newMemberData),
             });
@@ -67,7 +77,7 @@ const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authH
                     />
                     {/* Add input fields for vacation days if needed */}
                     <div className="button-container">
-                        <button type="submit">Add Member</button>
+                        <button type="submit">{editingMember ? 'Edit Member' : 'Add Member'}</button>
                         <button type="button" onClick={onClose}>Close</button>
                     </div>
                 </form>

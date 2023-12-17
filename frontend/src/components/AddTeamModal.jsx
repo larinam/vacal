@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 const API_URL = process.env.REACT_APP_API_URL;
-const AddTeamModal = ({ isOpen, onClose, updateTeamData, authHeader }) => {
-    const [newTeamName, setNewTeamName] = useState('');
+const AddTeamModal = ({ isOpen, onClose, updateTeamData, authHeader, editingTeam }) => {
+    const [teamName, setTeamName] = useState('');
     const modalContentRef = useRef(null);
+
+    useEffect(() => {
+        if (editingTeam) {
+            setTeamName(editingTeam.name);
+        } else {
+            setTeamName('');
+        }
+    }, [editingTeam]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -26,21 +34,24 @@ const AddTeamModal = ({ isOpen, onClose, updateTeamData, authHeader }) => {
         return headers;
     };
 
-    const handleAddTeam = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        const method = editingTeam ? 'PUT' : 'POST';
+        const url = API_URL + (editingTeam ? `/teams/${editingTeam._id}` : '/teams/');
+
         try {
-            const response = await fetch(API_URL + '/teams/', {
-                method: 'POST',
+            const response = await fetch(url, {
+                method,
                 headers: getHeaders(),
-                body: JSON.stringify({ name: newTeamName }),
+                body: JSON.stringify({ name: teamName }),
             });
 
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            setNewTeamName(''); // Reset input field
+            setTeamName(''); // Reset input field
             onClose(); // Close modal
             updateTeamData(); // Refresh data
         } catch (error) {
-            console.error('Error adding team:', error);
+            console.error('Error in team operation:', error);
         }
     };
 
@@ -49,16 +60,16 @@ const AddTeamModal = ({ isOpen, onClose, updateTeamData, authHeader }) => {
     return (
         <div className="modal">
             <div className="modal-content" ref={modalContentRef}>
-                <form onSubmit={handleAddTeam}>
+                <form onSubmit={handleSubmit}>
                     <input
                         type="text"
-                        value={newTeamName}
-                        onChange={(e) => setNewTeamName(e.target.value)}
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
                         placeholder="Enter team name"
                         required
                     />
                     <div className="button-container">
-                        <button type="submit">Add Team</button>
+                        <button type="submit">{editingTeam ? 'Edit Team' : 'Add Team'}</button>
                         <button type="button" onClick={onClose}>Close</button>
                     </div>
                 </form>

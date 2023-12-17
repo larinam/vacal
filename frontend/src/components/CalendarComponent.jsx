@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronRight, faEye } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronRight, faEye, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
 import AddTeamModal from './AddTeamModal';
 import AddMemberModal from './AddMemberModal';
@@ -18,6 +18,8 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [focusedTeamId, setFocusedTeamId] = useState(null);
     const [filterInput, setFilterInput] = useState('');
     const filterInputRef = useRef(null);
+    const [editingTeam, setEditingTeam] = useState(null);
+    const [editingMember, setEditingMember] = useState(null);
 
     useEffect(() => {
         if (filterInputRef.current) {
@@ -204,10 +206,12 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     };
 
     const handleAddTeamIconClick = () => {
+        setEditingTeam(null); // Reset editing team to null
         setShowAddTeamForm(true); // Show the Add Team form
     };
 
     const handleAddMemberIconClick = (teamId) => {
+        setEditingMember(null);
         setShowAddMemberForm(true);
         setSelectedTeamId(teamId);
     };
@@ -222,21 +226,39 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         });
     };
 
+    const handleEditTeamClick = (teamId) => {
+        const teamToEdit = teamData.find(team => team._id === teamId);
+        setEditingTeam(teamToEdit);
+        setShowAddTeamForm(true); // Open the AddTeamModal in edit mode
+    };
+
+    const handleEditMemberClick = (teamId, memberId) => {
+        const team = teamData.find(t => t._id === teamId);
+        const memberToEdit = team.team_members.find(m => m.uid === memberId);
+        setEditingMember(memberToEdit);
+        setSelectedTeamId(teamId);
+        setShowAddMemberForm(true);
+    };
+
+
+
     return (
         <div>
             <AddTeamModal
                 isOpen={showAddTeamForm}
-                onClose={() => setShowAddTeamForm(false)}
+                onClose={() => { setShowAddTeamForm(false); setEditingTeam(null); }}
                 updateTeamData={updateTeamData}
                 authHeader={authHeader}
+                editingTeam={editingTeam}
             />
 
             <AddMemberModal
                 isOpen={showAddMemberForm}
-                onClose={() => setShowAddMemberForm(false)}
+                onClose={() => { setShowAddMemberForm(false); setEditingMember(null); }}
                 selectedTeamId={selectedTeamId}
                 updateTeamData={updateTeamData}
                 authHeader={authHeader}
+                editingMember={editingMember}
             />
 
             <div className="stickyHeader">
@@ -293,13 +315,19 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                                                     <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
                                                 )}
                                                 <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)} title="Add team member">➕</span>
+                                                <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
+                                                    <FontAwesomeIcon icon={faPencilAlt} />
+                                                </span>
                                             </td>
                                             {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
                                         </tr>
                                         {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
                                             <tr key={member.uid}>
-                                                <td>
+                                                <td className="member-name-cell">
                                                     {member.name}
+                                                    <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
+                                                        <FontAwesomeIcon icon={faPencilAlt} />
+                                                    </span>
                                                     <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
                                                 </td>
                                                 {daysHeader.map(day => (

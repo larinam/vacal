@@ -82,6 +82,26 @@
     font-weight: bold;
 }
 
+/* Hide icons by default */
+.team-name-cell .edit-icon,
+.team-name-cell .delete-icon,
+.member-name-cell .edit-icon,
+.member-name-cell .delete-icon {
+    visibility: hidden;
+}
+
+/* Show icons on hover of the cell */
+.team-name-cell:hover .edit-icon,
+.team-name-cell:hover .delete-icon,
+.member-name-cell:hover .edit-icon,
+.member-name-cell:hover .delete-icon {
+    visibility: visible;
+}
+.edit-icon {
+    cursor: pointer;
+    margin-left: 10px;
+}
+
 .delete-icon {
     cursor: pointer;
     margin-left: 10px;
