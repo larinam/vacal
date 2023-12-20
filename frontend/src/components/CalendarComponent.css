@@ -140,6 +140,10 @@
     color: green;
 }
 
+.info-icon {
+    margin-left: 10px;
+    cursor: pointer;
+}
 
 .weekend-column {
     background-color: #4DB4D7; /* Blue */

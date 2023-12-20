@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import {Tooltip} from 'react-tooltip';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
 import AddTeamModal from './AddTeamModal';
 import AddMemberModal from './AddMemberModal';
@@ -276,6 +277,12 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         setFocusedTeamId(prev => (prev === teamId ? null : teamId));
     };
 
+    const renderVacationDaysTooltip = (member) => {
+        const selectedYear = currentMonth.getFullYear()
+        const vacationDays = member.vacation_days_by_year[selectedYear];
+        return vacationDays ? `Vacation days in ${selectedYear}: ${vacationDays}` : `No vacation days in ${selectedYear}`;
+    };
+
     return (
         <div>
             <AddTeamModal
@@ -360,6 +367,12 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                                             <tr key={member.uid}>
                                                 <td className="member-name-cell">
                                                     {member.name}
+                                                    <span className="info-icon" data-tip data-tooltip-id={`tooltip-${member.uid}`}>
+                                                        <FontAwesomeIcon icon={faInfoCircle} />
+                                                    </span>
+                                                    <Tooltip id={`tooltip-${member.uid}`} place="top" effect="solid">
+                                                        {renderVacationDaysTooltip(member)}
+                                                    </Tooltip>
                                                     <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
                                                         <FontAwesomeIcon icon={faPencilAlt} />
                                                     </span>
