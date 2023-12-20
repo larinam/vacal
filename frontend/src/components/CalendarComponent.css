@@ -58,6 +58,7 @@
 .calendar-table th:first-child, .calendar-table td:first-child {
     width: 20%;
     text-align: left;
+    cursor: default;
 }
 
 .calendar-table th {
