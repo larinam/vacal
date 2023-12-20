@@ -14,9 +14,12 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [showAddTeamForm, setShowAddTeamForm] = useState(false);
     const stickyHeaderHeight = 44;
     const [selectedTeamId, setSelectedTeamId] = useState(null);
-    const [collapsedTeams, setCollapsedTeams] = useState([]);
-    const [focusedTeamId, setFocusedTeamId] = useState(null);
-    const [filterInput, setFilterInput] = useState('');
+    const savedCollapsedTeams = JSON.parse(localStorage.getItem('collapsedTeams')) || [];
+    const [collapsedTeams, setCollapsedTeams] = useState(savedCollapsedTeams);
+    const savedFocusedTeamId = localStorage.getItem('focusedTeamId');
+    const [focusedTeamId, setFocusedTeamId] = useState(savedFocusedTeamId);
+    const savedFilter = localStorage.getItem('vacalFilter') || '';
+    const [filterInput, setFilterInput] = useState(savedFilter);
     const filterInputRef = useRef(null);
     const [editingTeam, setEditingTeam] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
@@ -26,6 +29,22 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
             filterInputRef.current.focus();
         }
     }, []);
+
+    useEffect(() => {
+        localStorage.setItem('collapsedTeams', JSON.stringify(collapsedTeams));
+    }, [collapsedTeams]);
+
+    useEffect(() => {
+        if (focusedTeamId) {
+            localStorage.setItem('focusedTeamId', focusedTeamId);
+        } else {
+            localStorage.removeItem('focusedTeamId');
+        }
+    }, [focusedTeamId]);
+
+    useEffect(() => {
+        localStorage.setItem('vacalFilter', filterInput);
+    }, [filterInput]);
 
     useEffect(() => {
         if (showAddMemberForm && addMemberFormRef.current) {
@@ -62,7 +81,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
 
     const clearFilter = () => {
         setFilterInput('');
-        filterInputRef.current.focus()
+        filterInputRef.current.focus();
     };
 
     const formatDate = (date) => {
@@ -240,7 +259,9 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         setShowAddMemberForm(true);
     };
 
-
+    const handleFocusTeam = (teamId) => {
+        setFocusedTeamId(prev => (prev === teamId ? null : teamId));
+    };
 
     return (
         <div>
@@ -307,7 +328,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                                                     <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
                                                 </span>
                                                 <span className={`eye-icon ${focusedTeamId === team._id ? 'eye-icon-active' : ''}`}
-                                                    onClick={() => setFocusedTeamId(team._id === focusedTeamId ? null : team._id)}>
+                                                    onClick={() => handleFocusTeam(team._id)}>
                                                     <FontAwesomeIcon icon={faEye} />
                                                 </span>
                                                 {team.name}
