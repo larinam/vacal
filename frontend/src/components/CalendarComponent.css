@@ -19,6 +19,14 @@
     background: linear-gradient(to bottom, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
 }
 
+.stickyHeader .save-icon {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    color: gray;
+}
+
 /* Padding for content below the sticky header to avoid overlap */
 .contentBelowStickyHeader {
     padding-top: 41px; /* Adjust this value based on the actual height of your sticky header */

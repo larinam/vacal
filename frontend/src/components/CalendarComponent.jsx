@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronRight, faEye, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
 import AddTeamModal from './AddTeamModal';
 import AddMemberModal from './AddMemberModal';
@@ -9,6 +9,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [showSaveIcon, setShowSaveIcon] = useState(false);
     const [showAddMemberForm, setShowAddMemberForm] = useState(false);
     const addMemberFormRef = useRef(null);
     const [showAddTeamForm, setShowAddTeamForm] = useState(false);
@@ -24,6 +25,18 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const [editingTeam, setEditingTeam] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
 
+    const saveToLocalStorage = (key, value) => {
+        localStorage.setItem(key, value);
+        setShowSaveIcon(true);
+        setTimeout(() => setShowSaveIcon(false), 2000); // Hide icon after 2 seconds
+    };
+
+    const removeFromLocalStorage = (key) => {
+        localStorage.removeItem(key);
+        setShowSaveIcon(true);
+        setTimeout(() => setShowSaveIcon(false), 2000); // Hide icon after 2 seconds
+    };
+
     useEffect(() => {
         if (filterInputRef.current) {
             filterInputRef.current.focus();
@@ -31,19 +44,19 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('collapsedTeams', JSON.stringify(collapsedTeams));
+        saveToLocalStorage('collapsedTeams', JSON.stringify(collapsedTeams));
     }, [collapsedTeams]);
 
     useEffect(() => {
         if (focusedTeamId) {
-            localStorage.setItem('focusedTeamId', focusedTeamId);
+            saveToLocalStorage('focusedTeamId', focusedTeamId);
         } else {
-            localStorage.removeItem('focusedTeamId');
+            removeFromLocalStorage('focusedTeamId');
         }
     }, [focusedTeamId]);
 
     useEffect(() => {
-        localStorage.setItem('vacalFilter', filterInput);
+        saveToLocalStorage('vacalFilter', filterInput);
     }, [filterInput]);
 
     useEffect(() => {
@@ -299,6 +312,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                 {filterInput && (
                     <button onClick={clearFilter}>Clear</button>
                 )}
+                {showSaveIcon && <FontAwesomeIcon icon={faSave} className="save-icon" />}
             </div>
             <div className="contentBelowStickyHeader">
                 <table className="calendar-table">
