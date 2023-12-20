@@ -83,6 +83,10 @@
     font-weight: bold;
 }
 
+.team-row td {
+    cursor: default;
+}
+
 /* Hide icons by default */
 .team-name-cell .edit-icon,
 .team-name-cell .delete-icon,
