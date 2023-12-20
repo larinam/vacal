@@ -1,5 +1,6 @@
 import datetime
-from typing import List
+from collections import defaultdict
+from typing import List, Dict
 
 import holidays
 import pycountry
@@ -7,7 +8,7 @@ from fastapi import FastAPI, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from model import Team, TeamMember, get_unique_countries
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 from pydantic.functional_validators import field_validator
 from fastapi.responses import RedirectResponse
 import logging
@@ -50,6 +51,14 @@ class TeamMemberWriteDTO(BaseModel):
 
 class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
+
+    @computed_field
+    @property
+    def vacation_days_by_year(self) -> Dict[int, int]:
+        vac_days_count = defaultdict(int)
+        for day in self.vac_days:
+            vac_days_count[day.year] += 1
+        return dict(vac_days_count)
 
 
 class TeamWriteDTO(BaseModel):
