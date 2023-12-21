@@ -7,7 +7,7 @@ import pycountry
 from fastapi import FastAPI, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from model import Team, TeamMember, get_unique_countries
+from model import Team, TeamMember, get_unique_countries, DayType
 from pydantic import BaseModel, Field, computed_field
 from pydantic.functional_validators import field_validator
 from fastapi.responses import RedirectResponse
@@ -34,6 +34,15 @@ app.add_middleware(
 )
 
 log = logging.getLogger(__name__)
+
+
+class DayTypeWriteDTO(BaseModel):
+    name: str
+    color: str
+
+
+class DayTypeReadDTO(DayTypeWriteDTO):
+    id: str = Field(None, alias='_id')
 
 
 class TeamMemberWriteDTO(BaseModel):
@@ -202,3 +211,30 @@ def update_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.d
     team_member.vac_days = vac_days
     team.save()
     return {"team": mongo_to_pydantic(team, TeamReadDTO)}
+
+
+@app.post("/daytypes/")
+def create_day_type(day_type_dto: DayTypeWriteDTO):
+    day_type_data = day_type_dto.model_dump()
+    DayType(**day_type_data).save()
+    return {"day_types": [mongo_to_pydantic(day_type, DayTypeReadDTO) for day_type in DayType.objects.order_by("name")]}
+
+
+@app.put("/daytypes/{day_type_id}")
+def update_day_type(day_type_id: str, day_type_dto: DayTypeWriteDTO):
+    day_type = DayType.objects(id=day_type_id).first()
+    if not day_type:
+        raise HTTPException(status_code=404, detail="DayType not found")
+
+    day_type.name = day_type_dto.name
+    day_type.color = day_type_dto.color
+    day_type.save()
+    return {"day_types": [mongo_to_pydantic(day_type, DayTypeReadDTO) for day_type in DayType.objects.order_by("name")]}
+
+
+@app.delete("/daytypes/{day_type_id}")
+def delete_day_type(day_type_id: str):
+    result = DayType.objects(id=day_type_id).delete()
+    if result == 0:
+        raise HTTPException(status_code=404, detail="DayType not found")
+    return {"message": "DayType deleted successfully"}

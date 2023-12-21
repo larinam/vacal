@@ -128,6 +128,23 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         return holidays[country] && holidays[country][date] ? holidays[country][date] : '';
     };
 
+    const getCellTitle = (member, day) => {
+        if (isVacationDay(member.vac_days, day)) {
+            return 'Vacation';
+        }
+
+        const holidayName = getHolidayName(member.country, day);
+        if (holidayName) {
+            return holidayName;
+        }
+
+        if (isWeekend(day)) {
+            return 'Weekend';
+        }
+
+        return ''; // No special title for regular days
+    };
+
     const getCellClassName = (member, day) => {
         if (isVacationDay(member.vac_days, day)) {
             return 'vacation-cell'; // Apply vacation styling
@@ -379,7 +396,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                                                     <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
                                                 </td>
                                                 {daysHeader.map(day => (
-                                                    <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)} title={getHolidayName(member.country, day)}>
+                                                    <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)} title={getCellTitle(member, day)}>
                                                         {/* Add content or styling for vacation day */}
                                                     </td>
                                                 ))}

@@ -1,7 +1,8 @@
 import uuid
+import random
 
 from mongoengine import StringField, DateField, ListField, connect, Document, EmbeddedDocument, \
-    EmbeddedDocumentListField, UUIDField, EmailField
+    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField
 
 from pymongo import MongoClient
 
@@ -50,6 +51,16 @@ else:  # just local MongoDB
     connect("vacal")
 
 
+def generate_random_hex_color():
+    """Generate a random hex color code."""
+    return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
+
+class DayType(Document):
+    name = StringField(required=True)
+    color = StringField(default=generate_random_hex_color)
+
+
 class TeamMember(EmbeddedDocument):
     uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
     name = StringField(required=True)
@@ -57,11 +68,13 @@ class TeamMember(EmbeddedDocument):
     email = EmailField()
     phone = StringField()
     vac_days = ListField(DateField(required=True))
+    day_types = ListField(ReferenceField(DayType))
 
 
 class Team(Document):
     name = StringField(required=True)
     team_members = EmbeddedDocumentListField(TeamMember)
+    day_types = ListField(ReferenceField(DayType))
 
 
 def get_unique_countries():
