@@ -142,7 +142,8 @@
 
 .info-icon {
     margin-left: 10px;
-    cursor: pointer;
+    cursor: help;
+    color: grey;
 }
 
 .weekend-column {
@@ -175,12 +176,6 @@
     padding: 20px;
     border-radius: 5px;
     width: 300px; /* Adjust the width as needed */
-}
-
-.modal-content form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px; /* Spacing between form elements */
 }
 
 .modal-content form input {

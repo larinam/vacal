@@ -1,6 +1,6 @@
 import datetime
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import holidays
 import pycountry
@@ -39,7 +39,9 @@ log = logging.getLogger(__name__)
 class TeamMemberWriteDTO(BaseModel):
     name: str
     country: str
-    vac_days: List[datetime.date]
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    vac_days: List[datetime.date] = []
 
     @field_validator("country")
     @classmethod
@@ -116,12 +118,9 @@ def add_vac_days(team_id: str, team_member_id: str, vac_days: List[datetime.date
 
 
 @app.post("/teams/{team_id}/members/")
-def add_team_member(team_id: str, team_member: TeamMemberWriteDTO):
-    team_member = TeamMember(
-        name=team_member.name,
-        country=team_member.country,
-        vac_days=team_member.vac_days
-    )
+def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO):
+    team_member_data = team_member_dto.model_dump()
+    team_member = TeamMember(**team_member_data)
     team = Team.objects(id=team_id).first()
     team.team_members.append(team_member)
     team.save()
@@ -183,6 +182,8 @@ def update_team_member(team_id: str, team_member_id: str, team_member_dto: TeamM
 
     team_member.name = team_member_dto.name
     team_member.country = team_member_dto.country
+    team_member.email = team_member_dto.email if team_member_dto.email else None
+    team_member.phone = team_member_dto.phone
 
     team.save()
     return {"team": mongo_to_pydantic(team, TeamReadDTO)}

@@ -3,14 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 const API_URL = process.env.REACT_APP_API_URL;
 
 const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authHeader, editingMember }) => {
-    const [newMemberData, setNewMemberData] = useState({ name: '', country: '', vac_days: [] });
+    const [newMemberData, setNewMemberData] = useState({ name: '', country: '', email: '', phone: '', vac_days: [] });
     const modalContentRef = useRef(null);
 
     useEffect(() => {
         if (editingMember) {
             setNewMemberData(editingMember);
         } else {
-            setNewMemberData({ name: '', country: '', vac_days: [] });
+            setNewMemberData({ name: '', country: '', email: '', phone: '', vac_days: [] });
         }
     }, [editingMember]);
 
@@ -47,7 +47,7 @@ const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authH
             });
 
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            setNewMemberData({ name: '', country: '', vac_days: [] }); // Reset form data after successful submission
+            setNewMemberData({ name: '', country: '', email: '', phone: '', vac_days: [] }); // Reset form data
             onClose(); // Close modal
             updateTeamData(); // Refresh data
         } catch (error) {
@@ -75,7 +75,18 @@ const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authH
                         placeholder="Enter member's country"
                         required
                     />
-                    {/* Add input fields for vacation days if needed */}
+                    <input
+                        type="email"
+                        value={newMemberData.email}
+                        onChange={(e) => setNewMemberData({ ...newMemberData, email: e.target.value })}
+                        placeholder="Enter member's email"
+                    />
+                    <input
+                        type="tel"
+                        value={newMemberData.phone}
+                        onChange={(e) => setNewMemberData({ ...newMemberData, phone: e.target.value })}
+                        placeholder="Enter member's phone"
+                    />
                     <div className="button-container">
                         <button type="submit">{editingMember ? 'Edit Member' : 'Add Member'}</button>
                         <button type="button" onClick={onClose}>Close</button>

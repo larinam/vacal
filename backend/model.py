@@ -1,7 +1,7 @@
 import uuid
 
 from mongoengine import StringField, DateField, ListField, connect, Document, EmbeddedDocument, \
-    EmbeddedDocumentListField, UUIDField
+    EmbeddedDocumentListField, UUIDField, EmailField
 
 from pymongo import MongoClient
 
@@ -54,6 +54,8 @@ class TeamMember(EmbeddedDocument):
     uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
     name = StringField(required=True)
     country = StringField(required=True)  # country name from pycountry
+    email = EmailField()
+    phone = StringField()
     vac_days = ListField(DateField(required=True))
 
 

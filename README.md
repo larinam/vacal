@@ -1,5 +1,7 @@
 # vacal - Vacation Calendar
 
+A modern tool to manage calendar scheduling business processes.
+
 * Manage teams and team members.
 * Manage vacation days.
 * Visualize vacation days, weekends and public holidays.
