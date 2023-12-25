@@ -150,6 +150,15 @@
     background-color: #4DB4D7; /* Blue */
 }
 
+.day-cell {
+    display: flex;
+}
+
+.day-type {
+    flex-grow: 1;
+    height: 100%;
+}
+
 .holiday-cell {
     background-color: #FF9999; /* Soft Red */
 }
@@ -157,6 +166,12 @@
 .vacation-cell {
     background-color: #48BF91; /* Green */
 }
+
+.current-day-number {
+    filter: brightness(90%); /* Adjust brightness for darker effect */
+    font-weight: bold;
+}
+
 
 .modal {
     position: fixed;

@@ -5,11 +5,17 @@ import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave, faInfoCircle
 import './CalendarComponent.css';
 import AddTeamModal from './AddTeamModal';
 import AddMemberModal from './AddMemberModal';
+import DayTypeModal from './DayTypeModal';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
-const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) => {
-    const [currentMonth, setCurrentMonth] = useState(new Date());
+const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authHeader }) => {
+    const today = new Date();
+    const todayDay = today.getDate();
+    const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
+    const todayYear = today.getFullYear();
+
+    const [displayMonth, setDisplayMonth] = useState(new Date());
     const [showSaveIcon, setShowSaveIcon] = useState(false);
     const [showAddMemberForm, setShowAddMemberForm] = useState(false);
     const addMemberFormRef = useRef(null);
@@ -25,6 +31,8 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     const filterInputRef = useRef(null);
     const [editingTeam, setEditingTeam] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
+    const [showDayTypeModal, setShowDayTypeModal] = useState(false);
+    const [selectedDayInfo, setSelectedDayInfo] = useState(null);
 
     const saveToLocalStorage = (key, value) => {
         localStorage.setItem(key, value);
@@ -67,7 +75,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         }
     }, [showAddMemberForm]);
 
-    const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+    const daysInMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
 
     const filterTeamsAndMembers = (data) => {
@@ -103,34 +111,37 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     };
 
     const isVacationDay = (vacDays, day) => {
-        const formattedDay = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const formattedDay = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         return vacDays.some(vd => vd.startsWith(formattedDay));
     };
 
     const changeMonth = (offset) => {
-        const newMonth = new Date(currentMonth.setMonth(currentMonth.getMonth() + offset));
-        setCurrentMonth(newMonth);
+        const newMonth = new Date(displayMonth.setMonth(displayMonth.getMonth() + offset));
+        setDisplayMonth(newMonth);
     };
 
     const isWeekend = (day) => {
-        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+        const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day);
         const dayOfWeek = date.getDay();
         return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
     };
 
     const isHoliday = (country, day) => {
-        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day+1).toISOString().split('T')[0];
+        const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day+1).toISOString().split('T')[0];
         return holidays[country] && holidays[country][date];
     };
 
     const getHolidayName = (country, day) => {
-        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day+1).toISOString().split('T')[0];
+        const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day+1).toISOString().split('T')[0];
         return holidays[country] && holidays[country][date] ? holidays[country][date] : '';
     };
 
     const getCellTitle = (member, day) => {
-        if (isVacationDay(member.vac_days, day)) {
-            return 'Vacation';
+        const dateStr = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayTypes = member.days[dateStr];
+    
+        if (dayTypes && dayTypes.length > 0) {
+            return dayTypes.map(dt => dt.name).join(', '); // Join multiple day types with a comma
         }
 
         const holidayName = getHolidayName(member.country, day);
@@ -145,14 +156,6 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         return ''; // No special title for regular days
     };
 
-    const getCellClassName = (member, day) => {
-        if (isVacationDay(member.vac_days, day)) {
-            return 'vacation-cell'; // Apply vacation styling
-        } else if (isHoliday(member.country, day)) {
-            return 'holiday-cell'; // Apply holiday styling
-        }
-        return '';
-    };
 
     const getHeaders = () => {
         const headers = { 'Content-Type': 'application/json' };
@@ -162,49 +165,21 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
         return headers;
     };
 
-    const handleDayClick = async (teamId, memberId, day) => {
-        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-        const formattedDate = formatDate(date);
-        const member = teamData.find(team => team._id === teamId).team_members.find(member => member.uid === memberId);
-
-        if (isVacationDay(member.vac_days, day)) {
-            // It's a vacation day, send DELETE request
-            if (window.confirm(`Remove ${formattedDate} from ${member.name}'s vacation days?`)) {
-                try {
-                    const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
-                        method: 'DELETE',
-                        headers: getHeaders(),
-                        body: JSON.stringify([formattedDate]),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-
-                    updateTeamData(); // Update data after deletion
-                } catch (error) {
-                    console.error('Error removing vacation days:', error);
-                }
-            }
-        } else {
-            if (window.confirm(`Mark ${formattedDate} as a vacation day for ${member.name}?`)) {
-                try {
-                    const response = await fetch(API_URL+`/teams/${teamId}/members/${memberId}/vac_days/`, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify([formattedDate]),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-
-                    updateTeamData(); // Update data after addition
-                } catch (error) {
-                    console.error('Error updating vacation days:', error);
-                }
-            }
-        }
+    const handleDayClick = (teamId, memberId, day) => {
+        const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day);
+        const team = teamData.find(t => t._id === teamId);
+        const member = team.team_members.find(m => m.uid === memberId);
+        const dateStr = formatDate(date);
+        // Fetch existing day types for the member on this date
+        const existingDayTypes = member.days[dateStr] || [];
+    
+        setSelectedDayInfo({
+            teamId, 
+            memberId, 
+            date, 
+            existingDayTypes
+        });
+        setShowDayTypeModal(true);
     };
 
     const deleteTeam = async (teamId) => {
@@ -295,7 +270,7 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
     };
 
     const renderVacationDaysTooltip = (member) => {
-        const selectedYear = currentMonth.getFullYear()
+        const selectedYear = displayMonth.getFullYear()
         const vacationDays = member.vacation_days_by_year[selectedYear];
         return vacationDays ? `Vacation days in ${selectedYear}: ${vacationDays}` : `No vacation days in ${selectedYear}`;
     };
@@ -318,11 +293,19 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                 authHeader={authHeader}
                 editingMember={editingMember}
             />
+            <DayTypeModal
+                isOpen={showDayTypeModal}
+                onClose={() => setShowDayTypeModal(false)}
+                dayTypes={dayTypes} // Assuming dayTypes are passed as a prop to CalendarComponent
+                selectedDayInfo={selectedDayInfo}
+                updateTeamData={updateTeamData}
+                authHeader={authHeader}
+            />
 
             <div className="stickyHeader">
                 <div className="monthSelector">
                     <button onClick={() => changeMonth(-1)}>&lt; Prev</button>
-                    <span className="monthDisplay">{currentMonth.toLocaleString('default', { month: 'long' })} {currentMonth.getFullYear()}</span>
+                    <span className="monthDisplay">{displayMonth.toLocaleString('default', { month: 'long' })} {displayMonth.getFullYear()}</span>
                     <button onClick={() => changeMonth(1)}>Next &gt;</button>
                 </div>
 
@@ -352,7 +335,12 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                                 Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
                                 / Member
                             </th>
-                            {daysHeader.map(day => <th key={day}>{day}</th>)}
+                            {daysHeader.map(day => <th key={day} 
+                                className={
+                                    day === todayDay && 
+                                    displayMonth.getMonth() === todayMonth && 
+                                    displayMonth.getFullYear() === todayYear 
+                                    ? 'current-day-number' : ''}>{day}</th>)}
                         </tr>
                     </thead>
                     <tbody>
@@ -395,11 +383,27 @@ const CalendarComponent = ({ teamData, holidays, updateTeamData, authHeader }) =
                                                     </span>
                                                     <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
                                                 </td>
-                                                {daysHeader.map(day => (
-                                                    <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} className={getCellClassName(member, day)} title={getCellTitle(member, day)}>
-                                                        {/* Add content or styling for vacation day */}
-                                                    </td>
-                                                ))}
+                                                {daysHeader.map(day => {
+                                                    const dateStr = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                                    const dateDayTypes = member.days[dateStr] || [];
+                                                    const isHolidayDay = isHoliday(member.country, day);
+
+                                                    return (
+                                                        <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} title={getCellTitle(member, day)} className={isHolidayDay ? 'holiday-cell' : ''}>
+                                                            <div className="day-cell">
+                                                                {dateDayTypes.length > 0 ? (
+                                                                    dateDayTypes.map(dayType => (
+                                                                        <div key={dayType._id} className="day-type" style={{ backgroundColor: dayType.color }}>
+                                                                            &nbsp;
+                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    isHolidayDay && <div className="day-type" style={{ backgroundColor: '#FF9999' }}></div> // Assign a default color for holidays
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                })}
                                             </tr>
                                         ))}
                                     </>

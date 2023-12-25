@@ -14,3 +14,11 @@
     margin-bottom: 8px;
     font-size: 0.8em;
 }
+
+.settingsIcon {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    z-index: 5000;
+}

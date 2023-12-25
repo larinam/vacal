@@ -2,7 +2,7 @@ import uuid
 import random
 
 from mongoengine import StringField, DateField, ListField, connect, Document, EmbeddedDocument, \
-    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField
+    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField
 
 from pymongo import MongoClient
 
@@ -68,13 +68,15 @@ class TeamMember(EmbeddedDocument):
     email = EmailField()
     phone = StringField()
     vac_days = ListField(DateField(required=True))
-    day_types = ListField(ReferenceField(DayType))
+    # {date_str1:[day_type1, day_type2, day_type3, ..., day_typeN, date_str2:[day_type3, ...]]
+    days = MapField(ListField(ReferenceField(DayType)))
+    available_day_types = ListField(ReferenceField(DayType))
 
 
 class Team(Document):
     name = StringField(required=True)
     team_members = EmbeddedDocumentListField(TeamMember)
-    day_types = ListField(ReferenceField(DayType))
+    available_day_types = ListField(ReferenceField(DayType))
 
 
 def get_unique_countries():
@@ -83,3 +85,14 @@ def get_unique_countries():
         for member in team.team_members:
             unique_countries.add(member.country)
     return list(unique_countries)
+
+
+def initialize_database():
+    if DayType.objects.count() == 0:
+        initial_day_types = [
+            DayType(name='Vacation', color="#48BF91"),
+        ]
+        DayType.objects.insert(initial_day_types, load_bulk=False)
+
+
+initialize_database()
