@@ -4,6 +4,7 @@ from typing import List, Dict, Optional
 
 import holidays
 import pycountry
+from bson import ObjectId
 from fastapi import FastAPI, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -89,11 +90,18 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
                 vac_days_count[date.year] += 1
         return dict(vac_days_count)
 
-    @field_validator('days')
+    @validator('days', pre=True, always=True)
     @classmethod
     def convert_days(cls, v):
-        if v:
-            return [DayTypeReadDTO.from_mongo_reference_field(day_type) for day_type in v]
+        if v and isinstance(v, dict):
+            converted_days = {}
+            for date_str, day_type_ids in v.items():
+                converted_day_types = []
+                for day_type_id in day_type_ids:
+                    if isinstance(day_type_id, ObjectId):
+                        converted_day_types.append(DayTypeReadDTO.from_mongo_reference_field(day_type_id))
+                converted_days[date_str] = converted_day_types
+            return converted_days
         return v
 
 
