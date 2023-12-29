@@ -4,6 +4,7 @@ from typing import List, Dict, Optional
 
 import holidays
 import pycountry
+import uvicorn
 from bson import ObjectId
 from fastapi import FastAPI, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -310,3 +311,7 @@ def delete_day_type(day_type_id: str):
         raise HTTPException(status_code=404, detail="DayType not found")
 
     return {"message": "DayType deleted successfully"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
