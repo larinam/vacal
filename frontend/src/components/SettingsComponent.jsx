@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrashAlt, faEdit } from '@fortawesome/free-solid-svg-icons';
-import './SettingsComponent.css'; // Import the CSS for the SettingsComponent
+import './SettingsComponent.css';
 
-const API_URL = process.env.REACT_APP_API_URL; // Use the same API URL as in MainComponent
+const API_URL = process.env.REACT_APP_API_URL;
 
 const SettingsComponent = ({ onClose }) => {
     const [dayTypes, setDayTypes] = useState([]);
@@ -53,31 +53,63 @@ const SettingsComponent = ({ onClose }) => {
         setNewDayType({ name: dayType.name, color: dayType.color });
     };
 
+    const colorInputRef = React.createRef();
+
+    const onColorButtonClick = () => {
+        colorInputRef.current.click(); // Simulate click on the color input when the button is clicked
+    };
+
+    const onColorChange = (e) => {
+        setNewDayType({ ...newDayType, color: e.target.value });
+    };
+
     return (
         <div className="settingsContainer">
             <h2>Day Types Settings</h2>
-            <div>
-                {dayTypes.map(dayType => (
-                    <div key={dayType._id} className="dayTypeItem">
-                        {dayType.name} ({dayType.color})
-                        <FontAwesomeIcon icon={faEdit} onClick={() => editDayType(dayType)} />
-                        <FontAwesomeIcon icon={faTrashAlt} onClick={() => deleteDayType(dayType._id)} />
-                    </div>
-                ))}
-            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Color</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {dayTypes.map(dayType => (
+                        <tr key={dayType._id}>
+                            <td>{dayType.name}</td>
+                            <td>
+                                <div className="colorCircle" style={{ backgroundColor: dayType.color }}></div>
+                                {dayType.color}
+                            </td>
+                            <td>
+                                <FontAwesomeIcon icon={faEdit} onClick={() => editDayType(dayType)} />
+                                <FontAwesomeIcon icon={faTrashAlt} onClick={() => deleteDayType(dayType._id)} />
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
             <div className="dayTypeForm">
-                <input 
-                    type="text" 
-                    value={newDayType.name} 
+                <input
+                    type="text"
+                    value={newDayType.name}
                     onChange={(e) => setNewDayType({ ...newDayType, name: e.target.value })}
                     placeholder="Day Type Name"
                     required
                 />
-                <input 
-                    type="text" 
-                    value={newDayType.color} 
+                <input
+                    type="text"
+                    value={newDayType.color}
                     onChange={(e) => setNewDayType({ ...newDayType, color: e.target.value })}
                     placeholder="Day Type Color"
+                />
+                <input
+                    ref={colorInputRef}
+                    type="color"
+                    value={newDayType.color}
+                    onChange={onColorChange}
                 />
                 <button onClick={saveDayType}>{editingDayType ? 'Update' : 'Add'}</button>
             </div>
