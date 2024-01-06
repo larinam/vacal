@@ -40,10 +40,10 @@ const MainComponent = ({ authHeader, onLogout }) => {
             <div className="settingsIcon" onClick={toggleSettings}>
                 <FontAwesomeIcon icon={faCog} />
             </div>
-            {showSettings ? (
-                <SettingsComponent onClose={toggleSettings} />
-            ) : (
-                <div className="content">
+            <div className="content">
+                {showSettings ? (
+                    <SettingsComponent onClose={toggleSettings} />
+                    ) : (
                     <CalendarComponent
                         teamData={data.teams}
                         holidays={data.holidays}
@@ -52,8 +52,8 @@ const MainComponent = ({ authHeader, onLogout }) => {
                         updateTeamData={fetchData}
                         authHeader={authHeader}
                     />
-                </div>
-            )}
+                )}
+            </div>
             <footer className="footer">
                 This application, Vacal, is an open source project. For more details, visit our&nbsp;
                 <a href="https://github.com/larinam/vacal" target="_blank" rel="noopener noreferrer">GitHub repository</a>.
