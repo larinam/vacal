@@ -44,7 +44,6 @@ if mongo_username:  # connect to some external MongoDB
             else:
                 log.info("MongoDB user already exists")
     mongo_connection_string = f"mongodb://{mongo_username}:{mongo_password}@{mongo_host}:{mongo_port}/"
-    log.debug(f"MongoDB connection string: {mongo_connection_string}")
     connect(mongo_db_name, host=mongo_connection_string)
 else:  # just local MongoDB
     log.info("Connecting to local MongoDB")
