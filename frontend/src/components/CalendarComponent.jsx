@@ -305,7 +305,9 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
             <div className="stickyHeader">
                 <div className="monthSelector">
                     <button onClick={() => changeMonth(-1)}>&lt; Prev</button>
-                    <span className="monthDisplay">{displayMonth.toLocaleString('default', { month: 'long' })} {displayMonth.getFullYear()}</span>
+                    <span className="monthDisplay" onClick={() => setDisplayMonth(new Date(todayYear, todayMonth))}>
+                        {displayMonth.toLocaleString('default', { month: 'long' })} {displayMonth.getFullYear()}
+                    </span>
                     <button onClick={() => changeMonth(1)}>Next &gt;</button>
                 </div>
 
