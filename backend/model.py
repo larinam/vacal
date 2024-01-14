@@ -9,6 +9,7 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 import logging
+from mongodb_migration_engine import run_migrations
 
 log = logging.getLogger(__name__)
 
@@ -94,4 +95,5 @@ def initialize_database():
         DayType.objects.insert(initial_day_types, load_bulk=False)
 
 
+run_migrations()
 initialize_database()
