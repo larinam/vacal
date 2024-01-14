@@ -53,12 +53,6 @@ const SettingsComponent = ({ onClose }) => {
         setNewDayType({ name: dayType.name, color: dayType.color });
     };
 
-    const colorInputRef = React.createRef();
-
-    const onColorButtonClick = () => {
-        colorInputRef.current.click(); // Simulate click on the color input when the button is clicked
-    };
-
     const onColorChange = (e) => {
         setNewDayType({ ...newDayType, color: e.target.value });
     };
@@ -106,7 +100,6 @@ const SettingsComponent = ({ onClose }) => {
                     placeholder="Day Type Color"
                 />
                 <input
-                    ref={colorInputRef}
                     type="color"
                     value={newDayType.color}
                     onChange={onColorChange}

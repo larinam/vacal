@@ -110,11 +110,6 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     };
 
-    const isVacationDay = (vacDays, day) => {
-        const formattedDay = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        return vacDays.some(vd => vd.startsWith(formattedDay));
-    };
-
     const changeMonth = (offset) => {
         const newMonth = new Date(displayMonth.setMonth(displayMonth.getMonth() + offset));
         setDisplayMonth(newMonth);
