@@ -5,6 +5,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 const DayTypeModal = ({ isOpen, onClose, dayTypes, selectedDayInfo, updateTeamData, authHeader }) => {
     const [selectedDayTypes, setSelectedDayTypes] = useState([]);
     const modalContentRef = useRef(null);
+    const formRef = useRef(null);
 
     useEffect(() => {
         // Check if existingDayTypes is an array and transform it to an array of _id values
@@ -25,6 +26,22 @@ const DayTypeModal = ({ isOpen, onClose, dayTypes, selectedDayInfo, updateTeamDa
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [onClose]);
+
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                onClose();
+            } else if (event.key === 'Enter' && formRef.current) {
+                event.preventDefault();
+                formRef.current.requestSubmit();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
         };
     }, [onClose]);
 
@@ -76,7 +93,7 @@ const DayTypeModal = ({ isOpen, onClose, dayTypes, selectedDayInfo, updateTeamDa
     return (
         <div className="modal">
             <div className="modal-content" ref={modalContentRef}>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} ref={formRef}>
                     {dayTypes.map(type => (
                         <div key={type._id} className="day-type-item">
                             <input
