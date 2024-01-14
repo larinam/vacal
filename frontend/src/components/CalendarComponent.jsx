@@ -275,6 +275,23 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
         return vacationDays ? `Vacation days in ${selectedYear}: ${vacationDays}` : `No vacation days in ${selectedYear}`;
     };
 
+    function generateGradientStyle(dateDayTypes) {
+        const style = {};
+
+        if (dateDayTypes.length > 0) {
+            const percentagePerType = 100 / dateDayTypes.length;
+            const gradientParts = dateDayTypes.map((dayType, index) => {
+                const start = percentagePerType * index;
+                const end = percentagePerType * (index + 1);
+                return `${dayType.color} ${start}% ${end}%`;
+            });
+
+            style.background = `linear-gradient(to right, ${gradientParts.join(', ')})`;
+        }
+
+        return style;
+    }
+
     return (
         <div>
             <AddTeamModal
@@ -391,18 +408,13 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
                                                     const isHolidayDay = isHoliday(member.country, day);
 
                                                     return (
-                                                        <td key={day} onClick={() => handleDayClick(team._id, member.uid, day)} title={getCellTitle(member, day)} className={isHolidayDay ? 'holiday-cell' : ''}>
-                                                            <div className="day-cell">
-                                                                {dateDayTypes.length > 0 ? (
-                                                                    dateDayTypes.map(dayType => (
-                                                                        <div key={dayType._id} className="day-type" style={{ backgroundColor: dayType.color }}>
-                                                                            &nbsp;
-                                                                        </div>
-                                                                    ))
-                                                                ) : (
-                                                                    isHolidayDay && <div className="day-type" style={{ backgroundColor: '#FF9999' }}></div> // Assign a default color for holidays
-                                                                )}
-                                                            </div>
+                                                        <td
+                                                            key={day}
+                                                            onClick={() => handleDayClick(team._id, member.uid, day)}
+                                                            title={getCellTitle(member, day)}
+                                                            className={isHolidayDay ? 'holiday-cell' : ''}
+                                                            style={generateGradientStyle(dateDayTypes)}
+                                                        >
                                                         </td>
                                                     );
                                                 })}
