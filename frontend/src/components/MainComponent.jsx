@@ -42,7 +42,7 @@ const MainComponent = ({ authHeader, onLogout }) => {
             </div>
             <div className="content">
                 {showSettings ? (
-                    <SettingsComponent onClose={toggleSettings} />
+                    <SettingsComponent onClose={toggleSettings} authHeader={authHeader} />
                     ) : (
                     <CalendarComponent
                         teamData={data.teams}

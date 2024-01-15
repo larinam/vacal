@@ -5,13 +5,21 @@ import './SettingsComponent.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
-const SettingsComponent = ({ onClose }) => {
+const SettingsComponent = ({ onClose, authHeader }) => {
     const [dayTypes, setDayTypes] = useState([]);
     const [newDayType, setNewDayType] = useState({ name: '', color: '' });
     const [editingDayType, setEditingDayType] = useState(null);
 
+    const getHeaders = () => {
+        const headers = { 'Content-Type': 'application/json' };
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
+        }
+        return headers;
+    };
+    
     const refreshDayTypes = () => {
-        fetch(`${API_URL}/daytypes/`)
+        fetch(`${API_URL}/daytypes/`, { headers: getHeaders() })
             .then(response => response.json())
             .then(data => setDayTypes(data.day_types))
             .catch(error => console.error('Error fetching day types:', error));
@@ -27,23 +35,26 @@ const SettingsComponent = ({ onClose }) => {
 
         fetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: getHeaders(),
             body: JSON.stringify(newDayType)
         })
         .then(response => response.json())
         .then(data => {
             setNewDayType({ name: '', color: '' });
             setEditingDayType(null);
-            refreshDayTypes(); // Refresh the list
+            refreshDayTypes();
         })
         .catch(error => console.error('Error saving day type:', error));
     };
 
     const deleteDayType = (dayTypeId) => {
-        fetch(`${API_URL}/daytypes/${dayTypeId}`, { method: 'DELETE' })
+        fetch(`${API_URL}/daytypes/${dayTypeId}`, { 
+            method: 'DELETE', 
+            headers: getHeaders() 
+        })
             .then(response => response.json())
             .then(data => {
-                refreshDayTypes(); // Refresh the list after deletion
+                refreshDayTypes();
             })
             .catch(error => console.error('Error deleting day type:', error));
     };
