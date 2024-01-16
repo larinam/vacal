@@ -6,3 +6,4 @@ pycountry
 holidays
 pymongo
 python-dotenv
+boto3
