@@ -6,10 +6,10 @@ import './CalendarComponent.css';
 import AddTeamModal from './AddTeamModal';
 import AddMemberModal from './AddMemberModal';
 import DayTypeModal from './DayTypeModal';
-
-const API_URL = process.env.REACT_APP_API_URL;
+import { useApi } from '../hooks/useApi';
 
 const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authHeader }) => {
+    const { apiCall } = useApi();
     const today = new Date();
     const todayDay = today.getDate();
     const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
@@ -151,15 +151,6 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
         return ''; // No special title for regular days
     };
 
-
-    const getHeaders = () => {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authHeader) {
-            headers['Authorization'] = authHeader;
-        }
-        return headers;
-    };
-
     const handleDayClick = (teamId, memberId, day) => {
         const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day);
         const team = teamData.find(t => t._id === teamId);
@@ -181,11 +172,7 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
         const teamName = teamData.find(team => team._id === teamId).name;
         if (window.confirm(`Are you sure you want to delete the team '${teamName}'?`)) {
             try {
-                const response = await fetch(API_URL + `/teams/${teamId}`, {
-                    method: 'DELETE',
-                    headers: getHeaders(),
-                });
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                await apiCall(`/teams/${teamId}`, 'DELETE');
                 updateTeamData();
 
                 if (focusedTeamId === teamId) {
@@ -211,11 +198,7 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
 
         if (confirmedName === memberName) {
             try {
-                const response = await fetch(API_URL + `/teams/${teamId}/members/${memberId}`, {
-                    method: 'DELETE',
-                    headers: getHeaders(),
-                });
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                await apiCall(`/teams/${teamId}/members/${memberId}`, 'DELETE');
                 updateTeamData();
             } catch (error) {
                 console.error('Error deleting team member:', error);

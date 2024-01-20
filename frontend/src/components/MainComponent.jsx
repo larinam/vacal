@@ -4,23 +4,16 @@ import SettingsComponent from './SettingsComponent';
 import './MainComponent.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCog } from '@fortawesome/free-solid-svg-icons';
-
-const API_URL = process.env.REACT_APP_API_URL;
+import { useApi } from '../hooks/useApi';
 
 const MainComponent = ({ authHeader, onLogout }) => {
     const [data, setData] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
+    const { apiCall, isLoading } = useApi();
 
     const fetchData = async () => {
         try {
-            const response = await fetch(API_URL + '/', {
-                headers: authHeader ? { 'Authorization': authHeader } : {}
-            });
-            if (response.status === 401) {
-                onLogout();
-                return;
-            }
-            const data = await response.json();
+            const data = await apiCall('/');
             setData(data);
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -29,7 +22,7 @@ const MainComponent = ({ authHeader, onLogout }) => {
 
     useEffect(() => {
         fetchData();
-    }, [authHeader, onLogout]);
+    }, [authHeader]);
 
     const toggleSettings = () => setShowSettings(!showSettings);
 
@@ -38,6 +31,7 @@ const MainComponent = ({ authHeader, onLogout }) => {
     return (
         <div className="mainContainer">
             <div className="settingsIcon" onClick={toggleSettings}>
+                {isLoading && <span>Loading...</span>}
                 <FontAwesomeIcon icon={faCog} />
             </div>
             <div className="content">

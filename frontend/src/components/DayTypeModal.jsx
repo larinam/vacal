@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DateTypeModal.css';
+import { useApi } from '../hooks/useApi';
 
-const API_URL = process.env.REACT_APP_API_URL;
 const DayTypeModal = ({ isOpen, onClose, dayTypes, selectedDayInfo, updateTeamData, authHeader }) => {
     const [selectedDayTypes, setSelectedDayTypes] = useState([]);
     const modalContentRef = useRef(null);
     const formRef = useRef(null);
+    const { apiCall } = useApi();
 
     useEffect(() => {
         // Check if existingDayTypes is an array and transform it to an array of _id values
@@ -53,14 +54,6 @@ const DayTypeModal = ({ isOpen, onClose, dayTypes, selectedDayInfo, updateTeamDa
         );
     };
 
-    const getHeaders = () => {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authHeader) {
-            headers['Authorization'] = authHeader;
-        }
-        return headers;
-    };
-
     const formatDate = (date) => {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     };
@@ -71,15 +64,9 @@ const DayTypeModal = ({ isOpen, onClose, dayTypes, selectedDayInfo, updateTeamDa
         const dateStr = formatDate(selectedDayInfo.date);
         let dayTypeData = {[dateStr] : selectedDayTypes};
     
-        const url = `${API_URL}/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
+        const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
         try {
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify(dayTypeData),
-            });
-    
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            await apiCall(url, 'PUT', dayTypeData);
             onClose();
             updateTeamData();
         } catch (error) {

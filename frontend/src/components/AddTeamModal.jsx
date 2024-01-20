@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useApi } from '../hooks/useApi';
 
-const API_URL = process.env.REACT_APP_API_URL;
 const AddTeamModal = ({ isOpen, onClose, updateTeamData, authHeader, editingTeam }) => {
     const [teamName, setTeamName] = useState('');
     const modalContentRef = useRef(null);
+    const { apiCall } = useApi(authHeader);
 
     useEffect(() => {
         if (editingTeam) {
@@ -26,29 +27,15 @@ const AddTeamModal = ({ isOpen, onClose, updateTeamData, authHeader, editingTeam
         };
     }, [onClose]);
 
-    const getHeaders = () => {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authHeader) {
-            headers['Authorization'] = authHeader;
-        }
-        return headers;
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         const method = editingTeam ? 'PUT' : 'POST';
-        const url = API_URL + (editingTeam ? `/teams/${editingTeam._id}` : '/teams/');
+        const url = editingTeam ? `/teams/${editingTeam._id}` : '/teams/';
 
         try {
-            const response = await fetch(url, {
-                method,
-                headers: getHeaders(),
-                body: JSON.stringify({ name: teamName }),
-            });
-
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            setTeamName(''); // Reset input field
-            onClose(); // Close modal
+            await apiCall(url, method, { name: teamName })
+            setTeamName('');
+            onClose();
             updateTeamData(); // Refresh data
         } catch (error) {
             console.error('Error in team operation:', error);

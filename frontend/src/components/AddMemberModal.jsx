@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-
-const API_URL = process.env.REACT_APP_API_URL;
+import { useApi } from '../hooks/useApi';
 
 const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authHeader, editingMember }) => {
     const [newMemberData, setNewMemberData] = useState({ name: '', country: '', email: '', phone: '', vac_days: [] });
     const modalContentRef = useRef(null);
+    const { apiCall } = useApi(authHeader);
 
     useEffect(() => {
         if (editingMember) {
@@ -27,26 +27,13 @@ const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authH
         };
     }, [onClose]);
 
-    const getHeaders = () => {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authHeader) {
-            headers['Authorization'] = authHeader;
-        }
-        return headers;
-    };
-
     const handleAddMemberFormSubmit = async (e) => {
         e.preventDefault();
         const method = editingMember ? 'PUT' : 'POST';
-        const url = API_URL + (editingMember ? `/teams/${selectedTeamId}/members/${editingMember.uid}` : `/teams/${selectedTeamId}/members/`);
+        const url = editingMember ? `/teams/${selectedTeamId}/members/${editingMember.uid}` : `/teams/${selectedTeamId}/members/`;
         try {
-            const response = await fetch(url, {
-                method: method,
-                headers: getHeaders(),
-                body: JSON.stringify(newMemberData),
-            });
+            await apiCall(url, method, newMemberData);
 
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             setNewMemberData({ name: '', country: '', email: '', phone: '', vac_days: [] }); // Reset form data
             onClose(); // Close modal
             updateTeamData(); // Refresh data

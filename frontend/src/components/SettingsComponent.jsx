@@ -2,61 +2,44 @@ import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrashAlt, faEdit } from '@fortawesome/free-solid-svg-icons';
 import './SettingsComponent.css';
-
-const API_URL = process.env.REACT_APP_API_URL;
+import { useApi } from '../hooks/useApi';
 
 const SettingsComponent = ({ onClose, authHeader }) => {
     const [dayTypes, setDayTypes] = useState([]);
     const [newDayType, setNewDayType] = useState({ name: '', color: '' });
     const [editingDayType, setEditingDayType] = useState(null);
+    const { apiCall } = useApi();
 
-    const getHeaders = () => {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authHeader) {
-            headers['Authorization'] = authHeader;
-        }
-        return headers;
-    };
-    
-    const refreshDayTypes = () => {
-        fetch(`${API_URL}/daytypes/`, { headers: getHeaders() })
-            .then(response => response.json())
-            .then(data => setDayTypes(data.day_types))
-            .catch(error => console.error('Error fetching day types:', error));
+    const refreshDayTypes = async () => {
+        const data = await apiCall('/daytypes/');
+        setDayTypes(data.day_types);
     };
 
     useEffect(() => {
         refreshDayTypes();
     }, []);
 
-    const saveDayType = () => {
-        const url = editingDayType ? `${API_URL}/daytypes/${editingDayType._id}` : `${API_URL}/daytypes/`;
+    const saveDayType = async () => {
+        const url = editingDayType ? `/daytypes/${editingDayType._id}` : `/daytypes/`;
         const method = editingDayType ? 'PUT' : 'POST';
-
-        fetch(url, {
-            method: method,
-            headers: getHeaders(),
-            body: JSON.stringify(newDayType)
-        })
-        .then(response => response.json())
-        .then(data => {
+        try {
+            await apiCall(url, method, newDayType);
             setNewDayType({ name: '', color: '' });
             setEditingDayType(null);
             refreshDayTypes();
-        })
-        .catch(error => console.error('Error saving day type:', error));
+        }
+        catch(error) {
+            console.error('Error saving day type:', error);
+        }
     };
 
-    const deleteDayType = (dayTypeId) => {
-        fetch(`${API_URL}/daytypes/${dayTypeId}`, { 
-            method: 'DELETE', 
-            headers: getHeaders() 
-        })
-            .then(response => response.json())
-            .then(data => {
-                refreshDayTypes();
-            })
-            .catch(error => console.error('Error deleting day type:', error));
+    const deleteDayType = async (dayTypeId) => {
+        try{
+            await apiCall(`/daytypes/${dayTypeId}`, 'DELETE', newDayType);
+        }
+        catch(error) {
+            console.error('Error deleting day type:', error);
+        }
     };
 
     const editDayType = (dayType) => {
