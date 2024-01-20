@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApi } from '../hooks/useApi';
 
-const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, authHeader, editingMember }) => {
+const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, editingMember }) => {
     const [newMemberData, setNewMemberData] = useState({ name: '', country: '', email: '', phone: '', vac_days: [] });
     const modalContentRef = useRef(null);
-    const { apiCall } = useApi(authHeader);
+    const { apiCall } = useApi();
 
     useEffect(() => {
         if (editingMember) {

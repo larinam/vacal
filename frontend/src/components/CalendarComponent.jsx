@@ -8,7 +8,7 @@ import AddMemberModal from './AddMemberModal';
 import DayTypeModal from './DayTypeModal';
 import { useApi } from '../hooks/useApi';
 
-const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authHeader }) => {
+const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => {
     const { apiCall } = useApi();
     const today = new Date();
     const todayDay = today.getDate();
@@ -276,7 +276,6 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
                 isOpen={showAddTeamForm}
                 onClose={() => { setShowAddTeamForm(false); setEditingTeam(null); }}
                 updateTeamData={updateTeamData}
-                authHeader={authHeader}
                 editingTeam={editingTeam}
             />
 
@@ -285,7 +284,6 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
                 onClose={() => { setShowAddMemberForm(false); setEditingMember(null); }}
                 selectedTeamId={selectedTeamId}
                 updateTeamData={updateTeamData}
-                authHeader={authHeader}
                 editingMember={editingMember}
             />
             <DayTypeModal
@@ -294,7 +292,6 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData, authH
                 dayTypes={dayTypes} // Assuming dayTypes are passed as a prop to CalendarComponent
                 selectedDayInfo={selectedDayInfo}
                 updateTeamData={updateTeamData}
-                authHeader={authHeader}
             />
 
             <div className="stickyHeader">

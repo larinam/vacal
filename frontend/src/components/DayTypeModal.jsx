@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './DateTypeModal.css';
 import { useApi } from '../hooks/useApi';
 
-const DayTypeModal = ({ isOpen, onClose, dayTypes, selectedDayInfo, updateTeamData, authHeader }) => {
+const DayTypeModal = ({ isOpen, onClose, dayTypes, selectedDayInfo, updateTeamData }) => {
     const [selectedDayTypes, setSelectedDayTypes] = useState([]);
     const modalContentRef = useRef(null);
     const formRef = useRef(null);

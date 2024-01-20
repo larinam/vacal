@@ -5,7 +5,7 @@ import './styles.css';
 import { useAuth } from './contexts/AuthContext';
 
 function App() {
-  const { isAuthenticated, handleLogin, handleLogout } = useAuth();
+  const { isAuthenticated, handleLogin } = useAuth();
   const requiresBasicAuth = process.env.REACT_APP_REQUIRE_BASIC_AUTH === 'true';
 
   return (
@@ -14,7 +14,7 @@ function App() {
         {requiresBasicAuth && !isAuthenticated ? (
           <Route path="/" element={<Login onLogin={handleLogin} />} />
         ) : (
-          <Route path="/" element={<MainComponent onLogout={handleLogout} />} />
+          <Route path="/" element={<MainComponent />} />
         )}
         {/* Additional routes */}
       </Routes>

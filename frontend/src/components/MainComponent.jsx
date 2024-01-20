@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCog } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../hooks/useApi';
 
-const MainComponent = ({ authHeader, onLogout }) => {
+const MainComponent = () => {
     const [data, setData] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
     const { apiCall, isLoading } = useApi();
@@ -22,7 +22,7 @@ const MainComponent = ({ authHeader, onLogout }) => {
 
     useEffect(() => {
         fetchData();
-    }, [authHeader]);
+    }, []);
 
     const toggleSettings = () => setShowSettings(!showSettings);
 
@@ -36,7 +36,7 @@ const MainComponent = ({ authHeader, onLogout }) => {
             </div>
             <div className="content">
                 {showSettings ? (
-                    <SettingsComponent onClose={toggleSettings} authHeader={authHeader} />
+                    <SettingsComponent onClose={toggleSettings} />
                     ) : (
                     <CalendarComponent
                         teamData={data.teams}
@@ -44,7 +44,6 @@ const MainComponent = ({ authHeader, onLogout }) => {
                         dayTypes={data.day_types}
                         currentMonth={new Date()}
                         updateTeamData={fetchData}
-                        authHeader={authHeader}
                     />
                 )}
             </div>

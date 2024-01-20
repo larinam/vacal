@@ -4,7 +4,7 @@ import { faTrashAlt, faEdit } from '@fortawesome/free-solid-svg-icons';
 import './SettingsComponent.css';
 import { useApi } from '../hooks/useApi';
 
-const SettingsComponent = ({ onClose, authHeader }) => {
+const SettingsComponent = ({ onClose }) => {
     const [dayTypes, setDayTypes] = useState([]);
     const [newDayType, setNewDayType] = useState({ name: '', color: '' });
     const [editingDayType, setEditingDayType] = useState(null);
