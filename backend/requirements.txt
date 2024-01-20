@@ -7,3 +7,4 @@ holidays
 pymongo
 python-dotenv
 boto3
+apscheduler

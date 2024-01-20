@@ -15,6 +15,7 @@ from pydantic.functional_validators import field_validator
 from fastapi.responses import RedirectResponse
 import logging
 import os
+from apscheduler.schedulers.background import BackgroundScheduler
 
 origins = [
     "http://localhost",
@@ -26,6 +27,24 @@ if cors_origin:  # for production
     origins.append(cors_origin)
 
 app = FastAPI()
+scheduler = BackgroundScheduler()
+
+
+def your_scheduled_task():
+    # Your task logic
+    print("Scheduled task executed")
+
+
+@app.on_event("startup")
+def start_scheduler():
+    scheduler.add_job(your_scheduled_task, 'cron', hour=7, minute=0)
+    scheduler.start()
+
+
+@app.on_event("shutdown")
+def shutdown_scheduler():
+    scheduler.shutdown()
+
 
 app.add_middleware(
     CORSMiddleware,
