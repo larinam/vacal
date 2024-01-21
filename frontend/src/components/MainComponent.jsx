@@ -24,7 +24,12 @@ const MainComponent = () => {
         fetchData();
     }, []);
 
-    const toggleSettings = () => setShowSettings(!showSettings);
+    const toggleSettings = async () => {
+        if (showSettings) {
+            await fetchData();
+        }
+        setShowSettings(!showSettings);
+    }
 
     if (!data) return <div>Loading...</div>;
 
