@@ -36,6 +36,7 @@ const SettingsComponent = ({ onClose }) => {
     const deleteDayType = async (dayTypeId) => {
         try{
             await apiCall(`/daytypes/${dayTypeId}`, 'DELETE', newDayType);
+            refreshDayTypes();
         }
         catch(error) {
             console.error('Error deleting day type:', error);

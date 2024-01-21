@@ -5,7 +5,7 @@ import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave, faInfoCircle
 import './CalendarComponent.css';
 import AddTeamModal from './AddTeamModal';
 import AddMemberModal from './AddMemberModal';
-import DayTypeModal from './DayTypeModal';
+import DayTypeContextMenu from './DayTypeContextMenu';
 import { useApi } from '../hooks/useApi';
 
 const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => {
@@ -31,8 +31,9 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
     const filterInputRef = useRef(null);
     const [editingTeam, setEditingTeam] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
-    const [showDayTypeModal, setShowDayTypeModal] = useState(false);
     const [selectedDayInfo, setSelectedDayInfo] = useState(null);
+    const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+    const [showContextMenu, setShowContextMenu] = useState(false);
 
     const saveToLocalStorage = (key, value) => {
         localStorage.setItem(key, value);
@@ -151,21 +152,24 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
         return ''; // No special title for regular days
     };
 
-    const handleDayClick = (teamId, memberId, day) => {
+    const handleDayClick = (teamId, memberId, day, event) => {
+        event.preventDefault();
+
         const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day);
         const team = teamData.find(t => t._id === teamId);
         const member = team.team_members.find(m => m.uid === memberId);
         const dateStr = formatDate(date);
-        // Fetch existing day types for the member on this date
         const existingDayTypes = member.days[dateStr] || [];
-    
+
         setSelectedDayInfo({
-            teamId, 
-            memberId, 
-            date, 
+            teamId,
+            memberId,
+            date,
             existingDayTypes
         });
-        setShowDayTypeModal(true);
+
+        setContextMenuPosition({ x: event.clientX, y: event.clientY });
+        setShowContextMenu(true);
     };
 
     const deleteTeam = async (teamId) => {
@@ -286,10 +290,11 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
                 updateTeamData={updateTeamData}
                 editingMember={editingMember}
             />
-            <DayTypeModal
-                isOpen={showDayTypeModal}
-                onClose={() => setShowDayTypeModal(false)}
-                dayTypes={dayTypes} // Assuming dayTypes are passed as a prop to CalendarComponent
+            <DayTypeContextMenu
+                isOpen={showContextMenu}
+                position={contextMenuPosition}
+                onClose={() => setShowContextMenu(false)}
+                dayTypes={dayTypes}
                 selectedDayInfo={selectedDayInfo}
                 updateTeamData={updateTeamData}
             />
@@ -385,7 +390,7 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
                                                     return (
                                                         <td
                                                             key={day}
-                                                            onClick={() => handleDayClick(team._id, member.uid, day)}
+                                                            onClick={(e) => handleDayClick(team._id, member.uid, day, e)}
                                                             title={getCellTitle(member, day)}
                                                             className={isHolidayDay ? 'holiday-cell' : ''}
                                                             style={generateGradientStyle(dateDayTypes)}

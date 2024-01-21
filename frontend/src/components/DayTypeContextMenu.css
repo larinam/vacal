@@ -1,0 +1,38 @@
+.day-type-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.color-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%; /* Makes it a circle */
+    margin-right: 5px;
+}
+
+.context-menu {
+    background-color: rgba(255, 255, 255, 0.9); /* White with slight transparency */
+    border: 1px solid #ddd; /* Optional: adds a border */
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); /* Optional: adds a shadow */
+    padding: 10px; /* Optional: adds padding inside the menu */
+    border-radius: 4px; /* Optional: rounds the corners */
+    z-index: 1000; /* Ensure it appears above other elements */
+}
+
+.close-button {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    cursor: pointer;
+    font-size: 20px;
+    color: #333;
+    padding: 3px; /* Adds some space around the close icon */
+    background-color: rgba(255, 255, 255, 0.9); /* Optional: matches the menu's background */
+    border-radius: 50%; /* Optional: makes it a circle */
+    line-height: 1; /* Adjusts the line height to help center the text vertically */
+    text-align: center; /* Centers the text horizontally */
+    width: 20px; /* Width of the close button */
+    height: 20px; /* Height of the close button */
+}
