@@ -30,8 +30,10 @@ const MainComponent = () => {
 
     return (
         <div className="mainContainer">
+            <div className="loadingIndicator">
+                {isLoading && 'Loading...'}
+            </div>
             <div className="settingsIcon" onClick={toggleSettings}>
-                {isLoading && <span>Loading...</span>}
                 <FontAwesomeIcon icon={faCog} />
             </div>
             <div className="content">
