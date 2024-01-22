@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './DayTypeContextMenu.css';
 import { useApi } from '../hooks/useApi';
 
-const DayTypeContextMenu = ({ isOpen, position, onClose, dayTypes, selectedDayInfo, updateTeamData }) => {
+const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayTypes, selectedDayInfo, updateTeamData }) => {
     const [selectedDayTypes, setSelectedDayTypes] = useState([]);
     const { apiCall } = useApi();
 
@@ -65,7 +65,7 @@ const DayTypeContextMenu = ({ isOpen, position, onClose, dayTypes, selectedDayIn
     };
 
     return (
-        <div className="context-menu" style={contextMenuStyle}>
+        <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
             <div className="close-button" onClick={onClose}>&times;</div>
             {dayTypes.map(type => (
                 <div key={type._id} className="day-type-item">

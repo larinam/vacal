@@ -32,6 +32,7 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
     const [editingTeam, setEditingTeam] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
     const [selectedDayInfo, setSelectedDayInfo] = useState(null);
+    const contextMenuRef = useRef(null);
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
     const [showContextMenu, setShowContextMenu] = useState(false);
 
@@ -75,6 +76,21 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
             window.scrollTo({ top: formPosition, behavior: 'smooth' });
         }
     }, [showAddMemberForm]);
+
+    useEffect(() => {
+        if (showContextMenu && contextMenuRef.current) {
+            const menuWidth = contextMenuRef.current.offsetWidth;
+            let adjustedX = contextMenuPosition.x;
+
+            if (adjustedX + menuWidth > window.innerWidth) {
+                adjustedX -= menuWidth;
+            }
+
+            if (adjustedX !== contextMenuPosition.x) {
+                setContextMenuPosition({ x: adjustedX, y: contextMenuPosition.y });
+            }
+        }
+    }, [showContextMenu, contextMenuPosition]);
 
     const daysInMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0).getDate();
     const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
@@ -294,6 +310,7 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
                 editingMember={editingMember}
             />
             <DayTypeContextMenu
+                contextMenuRef={contextMenuRef}
                 isOpen={showContextMenu}
                 position={contextMenuPosition}
                 onClose={() => setShowContextMenu(false)}
