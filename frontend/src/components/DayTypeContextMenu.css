@@ -4,6 +4,12 @@
     margin-bottom: 5px;
 }
 
+.day-type-item label {
+    display: flex;
+    align-items: center; /* Centers items vertically */
+    white-space: nowrap; /* Prevents wrapping */
+}
+
 .color-indicator {
     display: inline-block;
     width: 10px;
@@ -17,6 +23,7 @@
     border: 1px solid #ddd; /* Optional: adds a border */
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); /* Optional: adds a shadow */
     padding: 10px; /* Optional: adds padding inside the menu */
+    padding-right: 25px;
     border-radius: 4px; /* Optional: rounds the corners */
     z-index: 1000; /* Ensure it appears above other elements */
 }
