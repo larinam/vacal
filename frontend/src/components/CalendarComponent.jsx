@@ -168,7 +168,10 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
             existingDayTypes
         });
 
-        setContextMenuPosition({ x: event.clientX, y: event.clientY });
+        const xPosition = event.clientX + window.scrollX;
+        const yPosition = event.clientY + window.scrollY;
+
+        setContextMenuPosition({ x: xPosition, y: yPosition });
         setShowContextMenu(true);
     };
 
