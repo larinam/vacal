@@ -1,5 +1,9 @@
 import os
 from pymongo import MongoClient
+from dotenv import load_dotenv
+
+# in production the environments should be set and not loaded from .env
+load_dotenv()  # mostly for local development with docker-compose
 
 mongo_username = os.getenv("MONGO_USERNAME")
 mongo_password = os.getenv("MONGO_PASSWORD")
