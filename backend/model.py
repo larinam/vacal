@@ -95,5 +95,17 @@ def initialize_database():
         DayType.objects.insert(initial_day_types, load_bulk=False)
 
 
+def get_team_id_and_member_uid_by_email(email):
+    for team in Team.objects:
+        for member in team.team_members:
+            if member.email == email:
+                return str(team.id), str(member.uid)
+    return None, None
+
+
+def get_vacation_date_type_id():
+    return str(DayType.objects(name='Vacation').first().id)
+
+
 run_migrations()
 initialize_database()
