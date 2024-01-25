@@ -8,3 +8,4 @@ pymongo
 python-dotenv
 boto3
 apscheduler
+openai

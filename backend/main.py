@@ -1,3 +1,4 @@
+import json
 import datetime
 from collections import defaultdict
 from typing import List, Dict, Optional
@@ -9,13 +10,15 @@ from bson import ObjectId
 from fastapi import FastAPI, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from model import Team, TeamMember, get_unique_countries, DayType
+from model import Team, TeamMember, get_unique_countries, DayType, get_team_id_and_member_uid_by_email, get_vacation_date_type_id
 from pydantic import BaseModel, Field, computed_field, validator
 from pydantic.functional_validators import field_validator
 from fastapi.responses import RedirectResponse
 import logging
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
+from openai import OpenAI
+
 
 origins = [
     "http://localhost",
@@ -330,6 +333,69 @@ def delete_day_type(day_type_id: str):
         raise HTTPException(status_code=404, detail="DayType not found")
 
     return {"message": "DayType deleted successfully"}
+
+
+def chat_with_gpt(chat_text):
+    SYSTEM_PROMPT=\
+    """You are an interface to the Vacation calendar application.
+    Users will provide requests to add, modify, remove or ask about(show) existing records of their vacation.
+    Email is provided in the message, extract it and put to json appropriate user_email field.
+    You need to analyze the request and generate valid json in response as in the following example.
+    {{intent:add|modify|remove|show,
+    dates:[date1, date2, date3, ...],
+    email:user_email}}.
+    Please provide row valid json without visual formatting. Ensure it is a valid json.
+    Have the following information in mind when analyzing the user request:
+    Today is {}.
+    Today's date is {}.
+    The current week number is {}
+    If not intentionally stated to start the vacation from today, then start from tomorrow.
+    Exclude weekends from the list of dates.
+    """.format(datetime.datetime.now().strftime("%A"), datetime.date.today(), datetime.date.today().isocalendar()[1])
+    
+    client = OpenAI()
+
+    response = client.chat.completions.create(
+    model="gpt-4-1106-preview",
+    messages=[
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": chat_text},
+    ]
+    )
+    response_text = response.choices[0].message.content
+    return response_text
+
+
+@app.get("/chat/{chat_text}")
+def chat(chat_text="Give me a joke!"):
+    try:
+        gpt4_response = chat_with_gpt(chat_text)
+        print(f'gpt4_response is {gpt4_response}')
+        json_str = gpt4_response #.split('\n', 1)[1].rsplit('\n', 1)[0]
+        data = json.loads(json_str)
+        print(f"data: {data}")
+        # Parse the response and call the relevant method
+        if data['intent']=='add':
+            team_id, member_uid = get_team_id_and_member_uid_by_email(data['email'])
+            vacation_day_type_id = get_vacation_date_type_id()
+            new_days = {}
+            for d in data['dates']:
+                new_days.update({d:[vacation_day_type_id]})
+
+            add_days(team_id, member_uid, new_days)
+        elif data['intent']=='remove':
+            team_id, member_uid = get_team_id_and_member_uid_by_email(data['email'])
+            vacation_day_type_id = get_vacation_date_type_id()
+            new_days = {}
+            for d in data['dates']:
+                new_days.update({d:[]})
+
+            update_days(team_id, member_uid, new_days)
+        # Add more conditions here for other actions
+        return {"message": json_str}
+    except Exception as e:
+        print(repr(e))
+        return {"error": str(e)}
 
 
 if __name__ == "__main__":
