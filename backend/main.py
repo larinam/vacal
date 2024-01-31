@@ -283,7 +283,10 @@ def update_days(team_id: str, team_member_id: str, days: Dict[str, List[str]]):
 
 @app.get("/daytypes/")
 def get_all_day_types():
-    day_types = DayType.objects.order_by("name")
+    vacation = DayType.objects(name="Vacation").first()
+    other_day_types = DayType.objects(name__ne="Vacation").order_by("name")
+    # Ensure 'Vacation' is at the start if it exists
+    day_types = [vacation] + list(other_day_types) if vacation else list(other_day_types)
     return {"day_types": [mongo_to_pydantic(day_type, DayTypeReadDTO) for day_type in day_types]}
 
 
