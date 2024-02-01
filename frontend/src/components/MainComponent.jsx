@@ -38,7 +38,7 @@ const MainComponent = () => {
             <div className="loadingIndicator">
                 {isLoading && 'Loading...'}
             </div>
-            <div className="settingsIcon" onClick={toggleSettings}>
+            <div className="settingsIcon" onClick={toggleSettings} title="Settings">
                 <FontAwesomeIcon icon={faCog} />
             </div>
             <div className="content">
