@@ -1,0 +1,10 @@
+.monthSelector {
+    margin: 0px 10px;
+}
+
+.monthDisplay {
+    display: inline-block; /* Allows setting a fixed width */
+    width: 130px; /* Adjust this width as needed to fit the longest month name */
+    text-align: center;
+    cursor: default;
+}

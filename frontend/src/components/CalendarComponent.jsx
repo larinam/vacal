@@ -3,6 +3,7 @@ import {Tooltip} from 'react-tooltip';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
+import MonthSelector from './MonthSelector';
 import AddTeamModal from './AddTeamModal';
 import AddMemberModal from './AddMemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
@@ -125,11 +126,6 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
 
     const formatDate = (date) => {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    };
-
-    const changeMonth = (offset) => {
-        const newMonth = new Date(displayMonth.setMonth(displayMonth.getMonth() + offset));
-        setDisplayMonth(newMonth);
     };
 
     const isWeekend = (day) => {
@@ -320,14 +316,12 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
             />
 
             <div className="stickyHeader">
-                <div className="monthSelector">
-                    <button onClick={() => changeMonth(-1)}>&lt; Prev</button>
-                    <span className="monthDisplay" onClick={() => setDisplayMonth(new Date(todayYear, todayMonth))}>
-                        {displayMonth.toLocaleString('default', { month: 'long' })} {displayMonth.getFullYear()}
-                    </span>
-                    <button onClick={() => changeMonth(1)}>Next &gt;</button>
-                </div>
-
+                <MonthSelector
+                    displayMonth={displayMonth}
+                    setDisplayMonth={setDisplayMonth}
+                    todayYear={todayYear}
+                    todayMonth={todayMonth}
+                />
                 <input
                     type="text"
                     ref={filterInputRef}

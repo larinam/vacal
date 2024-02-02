@@ -32,18 +32,6 @@
     padding-top: 41px; /* Adjust this value based on the actual height of your sticky header */
 }
 
-.monthSelector {
-    margin: 0px 10px;
-}
-
-/* Additional CSS rules for month display */
-.monthDisplay {
-    display: inline-block; /* Allows setting a fixed width */
-    width: 130px; /* Adjust this width as needed to fit the longest month name */
-    text-align: center; /* Center-align the month name */
-    cursor: default;
-}
-
 .calendar-table {
     border-collapse: collapse;
     width: 100%;
