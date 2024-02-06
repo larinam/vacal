@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {Tooltip} from 'react-tooltip';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave, faInfoCircle, faGripVertical } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
 import MonthSelector from './MonthSelector';
 import AddTeamModal from './AddTeamModal';
@@ -391,6 +391,9 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
                                                     <Tooltip id={`tooltip-${member.uid}`} place="top" effect="solid">
                                                         {renderVacationDaysTooltip(member)}
                                                     </Tooltip>
+                                                    <span className="drag-icon" title="Drag and drop">
+                                                        <FontAwesomeIcon icon={faGripVertical} />
+                                                    </span>
                                                     <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
                                                         <FontAwesomeIcon icon={faPencilAlt} />
                                                     </span>

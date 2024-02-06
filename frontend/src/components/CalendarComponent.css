@@ -87,6 +87,7 @@
 /* Hide icons by default */
 .team-name-cell .edit-icon,
 .team-name-cell .delete-icon,
+.member-name-cell .drag-icon,
 .member-name-cell .edit-icon,
 .member-name-cell .delete-icon {
     visibility: hidden;
@@ -95,6 +96,7 @@
 /* Show icons on hover of the cell */
 .team-name-cell:hover .edit-icon,
 .team-name-cell:hover .delete-icon,
+.member-name-cell:hover .drag-icon,
 .member-name-cell:hover .edit-icon,
 .member-name-cell:hover .delete-icon {
     visibility: visible;
@@ -133,6 +135,15 @@
     margin-left: 10px;
     cursor: help;
     color: grey;
+}
+
+.drag-icon {
+    cursor: grab;
+    margin-left: 10px;
+}
+
+.drag-icon:hover {
+    cursor: grabbing;
 }
 
 .weekend-column {
