@@ -6,7 +6,7 @@ import holidays
 import pycountry
 import uvicorn
 from bson import ObjectId
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 
 from model import Team, TeamMember, get_unique_countries, DayType
@@ -233,6 +233,31 @@ def update_team_member(team_id: str, team_member_id: str, team_member_dto: TeamM
 
     team.save()
     return {"team": mongo_to_pydantic(team, TeamReadDTO)}
+
+
+@app.post("/move-team-member/{team_member_uid}")
+async def move_team_member(team_member_uid: str, target_team_id: str = Body(...), source_team_id: str = Body(...)):
+    # Retrieve source and target teams
+    source_team = Team.objects(id=source_team_id).first()
+    target_team = Team.objects(id=target_team_id).first()
+
+    if not source_team or not target_team:
+        raise HTTPException(status_code=404, detail="One or both teams not found")
+
+    # Find the team member in source team
+    team_member = next((member for member in source_team.team_members if str(member.uid) == str(team_member_uid)), None)
+    if not team_member:
+        raise HTTPException(status_code=404, detail="Team member not found in source team")
+
+    # Remove team member from source team
+    source_team.update(pull__team_members=team_member)
+    source_team.save()
+
+    # Add team member to target team
+    target_team.update(push__team_members=team_member)
+    target_team.save()
+
+    return {"message": "Team member successfully moved"}
 
 
 @app.post("/teams/{team_id}/members/{team_member_id}/days")
