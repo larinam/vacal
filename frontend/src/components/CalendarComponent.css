@@ -142,7 +142,7 @@
     margin-left: 10px;
 }
 
-.drag-icon:hover {
+.drag-icon:active {
     cursor: grabbing;
 }
 
@@ -160,11 +160,11 @@
 }
 
 .holiday-cell {
-    background-color: #FF9999; /* Soft Red */
+    background-color: #FF9999;
 }
 
 .vacation-cell {
-    background-color: #48BF91; /* Green */
+    background-color: #48BF91;
 }
 
 .current-day-number {
@@ -172,6 +172,14 @@
     font-weight: bold;
 }
 
+.dragging {
+    opacity: 0.5;
+    background-color: #f0f0f0;
+}
+
+.drop-target {
+    background-color: #E0E0E0;
+}
 
 .modal {
     position: fixed;

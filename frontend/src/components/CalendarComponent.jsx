@@ -36,6 +36,9 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
     const contextMenuRef = useRef(null);
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
     const [showContextMenu, setShowContextMenu] = useState(false);
+    const [draggedMember, setDraggedMember] = useState({ memberId: null, originTeamId: null , memberName: ''});
+    const [draggingMemberId, setDraggingMemberId] = useState(null);
+    const [dropTargetId, setDropTargetId] = useState(null);
 
     const saveToLocalStorage = (key, value) => {
         localStorage.setItem(key, value);
@@ -289,6 +292,54 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
         return style;
     }
 
+    const handleDragStart = (e, originTeamId, memberId, memberName) => {
+        setDraggedMember({ memberId, memberName, originTeamId });
+        setDraggingMemberId(memberId);
+        e.dataTransfer.setData('text/plain', memberId);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragEnd = (e) => {
+        setDraggingMemberId(null);
+    };
+
+    const handleDragOver = (e, targetTeamId) => {
+        e.preventDefault();
+        const { originTeamId } = draggedMember;
+        e.dataTransfer.dropEffect = 'move';
+        if (targetTeamId !== originTeamId) {
+            setDropTargetId(targetTeamId); // Highlight this row as a potential drop target
+        }
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setDropTargetId(null); // Remove highlight when the dragged item leaves the row
+    };
+
+    const handleDrop = async (e, targetTeamId) => {
+        e.preventDefault();
+        const { memberId, originTeamId, memberName } = draggedMember;
+        if (targetTeamId !== originTeamId) {
+            const confirmMove = window.confirm(`Are you sure you want to move ${memberName} to the new team?`);
+            if (confirmMove) {
+                try {
+                    const response = await apiCall(`/move-team-member/${memberId}`, 'POST', {
+                        source_team_id: originTeamId,
+                        target_team_id: targetTeamId,
+                    });
+                    updateTeamData();
+                    console.log('Move successful:', response);
+                } catch (error) {
+                    console.error('Failed to move team member:', error);
+                }
+            }
+        }   
+        setDropTargetId(null); // Remove highlight when the dragged item leaves the row
+        setDraggedMember({ memberId: null, originTeamId: null, memberName: '' }); // Reset drag state
+    };
+    
+
     return (
         <div>
             <AddTeamModal
@@ -361,7 +412,12 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
                             <React.Fragment key={team.id}>
                                 {(!focusedTeamId || focusedTeamId === team._id) && (
                                     <>
-                                        <tr className="team-row">
+                                        <tr
+                                            className={`team-row ${dropTargetId === team._id ? 'drop-target' : ''}`}
+                                            onDragOver={(e) => handleDragOver(e, team._id)}
+                                            onDragLeave={(e) => handleDragLeave(e)}
+                                            onDrop={(e) => handleDrop(e, team._id)}
+                                        >
                                             <td className="team-name-cell">
                                                 <span className="collapse-icon" onClick={() => toggleTeamCollapse(team._id)}>
                                                     <FontAwesomeIcon icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown} />
@@ -382,7 +438,7 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
                                             {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
                                         </tr>
                                         {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
-                                            <tr key={member.uid}>
+                                            <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                                                 <td className="member-name-cell">
                                                     {member.name}
                                                     <span className="info-icon" data-tip data-tooltip-id={`tooltip-${member.uid}`}>
@@ -391,7 +447,12 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
                                                     <Tooltip id={`tooltip-${member.uid}`} place="top" effect="solid">
                                                         {renderVacationDaysTooltip(member)}
                                                     </Tooltip>
-                                                    <span className="drag-icon" title="Drag and drop">
+                                                    <span
+                                                        className="drag-icon"
+                                                        draggable="true"
+                                                        onDragStart={(e) => handleDragStart(e, team._id, member.uid, member.name)}
+                                                        onDragEnd={handleDragEnd}
+                                                        title="Drag and drop">
                                                         <FontAwesomeIcon icon={faGripVertical} />
                                                     </span>
                                                     <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
