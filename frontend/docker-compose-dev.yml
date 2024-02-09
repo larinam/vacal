@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+  react-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/usr/src/app/src # Only mount the source code for hot reloading
+      - ./public:/usr/src/app/public # Only mount the source code for hot reloading
+      # - /usr/src/app/node_modules # Use a volume to avoid overriding the node_modules directory
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost
