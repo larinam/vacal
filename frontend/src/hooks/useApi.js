@@ -2,17 +2,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLoading } from './useLoading';
 
 export const useApi = () => {
-    const [ isLoading, startLoading, stopLoading ] = useLoading();
+    const [isLoading, startLoading, stopLoading] = useLoading();
     const { authHeader, onLogout } = useAuth();
 
-    const apiCall = async ( url, method = 'GET', body = null ) => {
+    const apiCall = async (url, method = 'GET', body = null, isBlob = false) => {
         const loadingTimer = startLoading();
         const fullUrl = `${process.env.REACT_APP_API_URL}${url}`;
         const options = {
             method,
             headers: {
-                'Content-Type': 'application/json',
-                ...(authHeader ? { 'Authorization': authHeader } : {})
+                ...(authHeader ? { 'Authorization': authHeader } : {}),
+                ...(!isBlob && { 'Content-Type': 'application/json' }), // Set content type to JSON unless it's a blob
             },
             ...(body && { body: JSON.stringify(body) })
         };
@@ -26,8 +26,16 @@ export const useApi = () => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            const data = await response.json();
-            return data;
+
+            if (isBlob) {
+                // Handle blob data (file download)
+                const blob = await response.blob();
+                return blob;
+            } else {
+                // Handle JSON data
+                const data = await response.json();
+                return data;
+            }
         } catch (error) {
             console.error('API call error:', error);
             throw error;
