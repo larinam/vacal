@@ -1,21 +1,26 @@
 import datetime
+import logging
+import os
 from collections import defaultdict
+from io import BytesIO
 from typing import List, Dict, Optional
 
 import holidays
 import pycountry
 import uvicorn
+from apscheduler.schedulers.background import BackgroundScheduler
 from bson import ObjectId
-from fastapi import FastAPI, status, HTTPException, Body
+from fastapi import FastAPI, status, Body
+from fastapi import Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
-from model import Team, TeamMember, get_unique_countries, DayType
+from fastapi.responses import RedirectResponse
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
 from pydantic import BaseModel, Field, computed_field, validator
 from pydantic.functional_validators import field_validator
-from fastapi.responses import RedirectResponse
-import logging
-import os
-from apscheduler.schedulers.background import BackgroundScheduler
+
+from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id
+
 
 origins = [
     "http://localhost",
@@ -259,6 +264,44 @@ def move_team_member(team_member_uid: str, target_team_id: str = Body(...), sour
         target_team.save()
 
     return {"message": "Team member successfully moved"}
+
+
+# Assuming the use of the previously defined models and database setup
+
+@app.get("/export-vacations/")
+def export_vacations(start_date: datetime.date = Query(...), end_date: datetime.date = Query(...)):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Vacations"
+
+    # Headers
+    ws.append(["Team", "Team Member Name", "Country", "Number of Vacation Days"])
+
+    vacation_day_type_id = get_vacation_date_type_id()
+
+    # Query and process the data
+    for team in Team.objects:
+        for member in team.team_members:
+            vac_days_count = 0
+            for date_str, day_types in member.days.items():
+                # Convert the string to a date object to compare with the given date range
+                date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+                if start_date <= date <= end_date:
+                    # Count only if the day type list contains the 'Vacation' day type ID
+                    if any(vacation_day_type_id == str(day_type.id) for day_type in day_types):
+                        vac_days_count += 1
+            if vac_days_count > 0:
+                ws.append([team.name, member.name, member.country, vac_days_count])
+
+    # Save the workbook to a BytesIO object
+    b_io = BytesIO()
+    wb.save(b_io)
+    b_io.seek(0)  # Go to the start of the BytesIO object
+
+    # Create and return the streaming response
+    return StreamingResponse(b_io, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={
+                                 "Content-Disposition": f"attachment; filename=vacations_{start_date}_{end_date}.xlsx"})
 
 
 @app.post("/teams/{team_id}/members/{team_member_id}/days")
