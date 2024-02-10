@@ -236,7 +236,7 @@ def update_team_member(team_id: str, team_member_id: str, team_member_dto: TeamM
 
 
 @app.post("/move-team-member/{team_member_uid}")
-async def move_team_member(team_member_uid: str, target_team_id: str = Body(...), source_team_id: str = Body(...)):
+def move_team_member(team_member_uid: str, target_team_id: str = Body(...), source_team_id: str = Body(...)):
     # Retrieve source and target teams
     source_team = Team.objects(id=source_team_id).first()
     target_team = Team.objects(id=target_team_id).first()
