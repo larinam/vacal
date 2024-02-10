@@ -250,12 +250,13 @@ def move_team_member(team_member_uid: str, target_team_id: str = Body(...), sour
         raise HTTPException(status_code=404, detail="Team member not found in source team")
 
     # Remove team member from source team
-    source_team.update(pull__team_members=team_member)
+    source_team.team_members = [member for member in source_team.team_members if member.uid != team_member.uid]
     source_team.save()
 
-    # Add team member to target team
-    target_team.update(push__team_members=team_member)
-    target_team.save()
+    # Add team member to target team, ensuring no duplicates
+    if not any(member.uid == team_member.uid for member in target_team.team_members):
+        target_team.team_members.append(team_member)
+        target_team.save()
 
     return {"message": "Team member successfully moved"}
 
