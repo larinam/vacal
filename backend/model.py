@@ -67,7 +67,6 @@ class TeamMember(EmbeddedDocument):
     country = StringField(required=True)  # country name from pycountry
     email = EmailField()
     phone = StringField()
-    vac_days = ListField(DateField(required=True))
     # {date_str1:[day_type1, day_type2, day_type3, ..., day_typeN, date_str2:[day_type3, ...]]
     days = MapField(ListField(ReferenceField(DayType)))
     available_day_types = ListField(ReferenceField(DayType))
