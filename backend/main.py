@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 from pydantic import BaseModel, Field, computed_field, validator
 from pydantic.functional_validators import field_validator
 from pycountry.db import Country
@@ -279,7 +280,8 @@ def export_vacations(start_date: datetime.date = Query(...), end_date: datetime.
     ws.title = "Vacations"
 
     # Headers
-    ws.append(["Team", "Team Member Name", "Country", "Number of Vacation Days"])
+    headers = ["Team", "Team Member Name", "Country", "Number of Vacation Days"]
+    ws.append(headers)
 
     vacation_day_type_id = get_vacation_date_type_id()
 
@@ -296,6 +298,10 @@ def export_vacations(start_date: datetime.date = Query(...), end_date: datetime.
                         vac_days_count += 1
             if vac_days_count > 0:
                 ws.append([team.name, member.name, member.country, vac_days_count])
+
+    # Assuming you have added data below headers, now apply auto_filter
+    last_column_letter = get_column_letter(len(headers))
+    ws.auto_filter.ref = f"A1:{last_column_letter}1"
 
     # Save the workbook to a BytesIO object
     b_io = BytesIO()
