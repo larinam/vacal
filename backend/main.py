@@ -165,7 +165,7 @@ def mongo_to_pydantic(mongo_document, pydantic_model):
     return pydantic_model(**document_dict)
 
 
-def get_holidays(year: int = datetime.datetime.now().year):
+def get_holidays(year: int = datetime.datetime.now().year) -> dict:
     countries = get_unique_countries()
     holidays_dict = {}
     list(map(lambda x: holidays_dict.update(
@@ -271,7 +271,20 @@ def move_team_member(team_member_uid: str, target_team_id: str = Body(...), sour
     return {"message": "Team member successfully moved"}
 
 
-# Assuming the use of the previously defined models and database setup
+def is_weekend(date):
+    return date.weekday() >= 5  # 5 for Saturday and 6 for Sunday
+
+
+def get_working_days(start_date, end_date, country_holidays):
+    # Calculate the number of working days excluding weekends and holidays
+    working_days = 0
+    current_date = start_date
+    while current_date <= end_date:
+        if not is_weekend(current_date) and current_date not in country_holidays:
+            working_days += 1
+        current_date += datetime.timedelta(days=1)
+    return working_days
+
 
 @app.get("/export-vacations/")
 def export_vacations(start_date: datetime.date = Query(...), end_date: datetime.date = Query(...)):
@@ -280,14 +293,16 @@ def export_vacations(start_date: datetime.date = Query(...), end_date: datetime.
     ws.title = "Vacations"
 
     # Headers
-    headers = ["Team", "Team Member Name", "Country", "Number of Vacation Days"]
+    headers = ["Team", "Team Member Name", "Country", "Vacation Days", "Working Days", "Days Worked", "Hours Worked"]
     ws.append(headers)
 
     vacation_day_type_id = get_vacation_date_type_id()
+    country_holidays = get_holidays()
 
     # Query and process the data
     for team in Team.objects:
         for member in team.team_members:
+            member_holidays = country_holidays.get(member.country, [])
             vac_days_count = 0
             for date_str, day_types in member.days.items():
                 # Convert the string to a date object to compare with the given date range
@@ -296,8 +311,11 @@ def export_vacations(start_date: datetime.date = Query(...), end_date: datetime.
                     # Count only if the day type list contains the 'Vacation' day type ID
                     if any(vacation_day_type_id == str(day_type.id) for day_type in day_types):
                         vac_days_count += 1
-            if vac_days_count > 0:
-                ws.append([team.name, member.name, member.country, vac_days_count])
+            # Calculate working days
+            working_days = get_working_days(start_date, end_date, member_holidays)
+            ws.append(
+                [team.name, member.name, member.country, vac_days_count, working_days, working_days - vac_days_count,
+                 (working_days - vac_days_count) * 8])
 
     # Assuming you have added data below headers, now apply auto_filter
     last_column_letter = get_column_letter(len(headers))
