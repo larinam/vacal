@@ -18,9 +18,9 @@ from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from pydantic import BaseModel, Field, computed_field, validator
 from pydantic.functional_validators import field_validator
+from pycountry.db import Country
 
 from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id
-
 
 origins = [
     "http://localhost",
@@ -90,8 +90,9 @@ class TeamMemberWriteDTO(BaseModel):
     @field_validator("country")
     @classmethod
     def validate_country(cls, value: str) -> str:
-        if validate_country_name(value):
-            return value
+        country_name = validate_country_name(value)
+        if country_name:
+            return country_name
         raise ValueError("Invalid country name")
 
     @field_validator('email')
@@ -146,10 +147,12 @@ class TeamReadDTO(TeamWriteDTO):
 
 
 def validate_country_name(country_name):
-    for country in pycountry.countries:
-        if country_name.lower() == country.name.lower():
-            return True
-    return False
+    countries = pycountry.countries.search_fuzzy(country_name)
+    if countries:
+        country = countries[0]
+        if isinstance(country, Country):
+            return country.name
+    return None
 
 
 def mongo_to_pydantic(mongo_document, pydantic_model):
@@ -164,7 +167,8 @@ def mongo_to_pydantic(mongo_document, pydantic_model):
 def get_holidays(year: int = datetime.datetime.now().year):
     countries = get_unique_countries()
     holidays_dict = {}
-    list(map(lambda x: holidays_dict.update({x: holidays.country_holidays(x, years=[year - 1, year, year + 1])}),
+    list(map(lambda x: holidays_dict.update(
+        {x: holidays.country_holidays(pycountry.countries.get(name=x).alpha_2, years=[year - 1, year, year + 1])}),
              countries))
     return holidays_dict
 
