@@ -286,6 +286,20 @@ def get_working_days(start_date, end_date, country_holidays):
     return working_days
 
 
+def auto_adjust_column_width(ws):
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column  # Get the column name
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(cell.value)
+            except:
+                pass
+        adjusted_width = (max_length + 2) * 1.2
+        ws.column_dimensions[get_column_letter(column)].width = adjusted_width
+
+
 @app.get("/export-vacations/")
 def export_vacations(start_date: datetime.date = Query(...), end_date: datetime.date = Query(...)):
     wb = Workbook()
@@ -320,6 +334,7 @@ def export_vacations(start_date: datetime.date = Query(...), end_date: datetime.
     # Assuming you have added data below headers, now apply auto_filter
     last_column_letter = get_column_letter(len(headers))
     ws.auto_filter.ref = f"A1:{last_column_letter}1"
+    auto_adjust_column_width(ws)
 
     # Save the workbook to a BytesIO object
     b_io = BytesIO()
