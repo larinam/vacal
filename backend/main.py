@@ -296,8 +296,7 @@ def auto_adjust_column_width(ws):
                     max_length = len(cell.value)
             except:
                 pass
-        adjusted_width = (max_length + 2) * 1.2
-        ws.column_dimensions[get_column_letter(column)].width = adjusted_width
+        ws.column_dimensions[get_column_letter(column)].width = max_length
 
 
 @app.get("/export-vacations/")
