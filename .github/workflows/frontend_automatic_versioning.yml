@@ -1,0 +1,36 @@
+name: Frontend Auto Versioning
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Calculate new version
+        run: |
+            # Fetch all tags
+            git fetch --tags
+            
+            # Get the latest tag, extract date and serial, and calculate the new version
+            LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+            DATE=$(date +%Y.%m.%d)
+            if [[ "$LATEST_TAG" == "$DATE"* ]]; then
+                SERIAL=$(( ${LATEST_TAG##*.} + 1 ))
+            else
+                SERIAL=1
+            fi
+            NEW_VERSION="${DATE}.${SERIAL}"
+            echo "New version: $NEW_VERSION"
+            echo "::set-output name=NEW_VERSION::$NEW_VERSION"
+
+      - name: Tag New Version
+        run: |
+          git tag $NEW_VERSION
+          git push origin $NEW_VERSION
