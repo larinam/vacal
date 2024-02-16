@@ -3,7 +3,7 @@ import { useLoading } from './useLoading';
 
 export const useApi = () => {
     const [isLoading, startLoading, stopLoading] = useLoading();
-    const { authHeader, onLogout } = useAuth();
+    const { authHeader, handleLogout } = useAuth();
 
     const apiCall = async (url, method = 'GET', body = null, isBlob = false) => {
         const loadingTimer = startLoading();
@@ -20,7 +20,7 @@ export const useApi = () => {
         try {
             const response = await fetch(fullUrl, options);
             if (response.status === 401) {
-                onLogout();
+                handleLogout();
                 return;
             }
             if (!response.ok) {
