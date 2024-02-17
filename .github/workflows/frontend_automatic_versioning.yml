@@ -21,7 +21,7 @@ jobs:
             
             # Get the latest tag, extract date and serial, and calculate the new version
             LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
-            DATE=$(date +%Y.%m.%d)
+            DATE=$(date +%y.%m)
             if [[ "$LATEST_TAG" == "$DATE"* ]]; then
                 SERIAL=$(( ${LATEST_TAG##*.} + 1 ))
             else
