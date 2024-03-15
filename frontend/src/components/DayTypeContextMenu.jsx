@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './DayTypeContextMenu.css';
 import { useApi } from '../hooks/useApi';
 
-const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayTypes, selectedDayInfo, updateTeamData }) => {
+const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayTypes, selectedDayInfo, updateTeamData, updateLocalTeamData }) => {
     const [selectedDayTypes, setSelectedDayTypes] = useState([]);
     const { apiCall } = useApi();
 
@@ -37,6 +37,7 @@ const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayType
             : selectedDayTypes.filter(type => type !== value);
 
         setSelectedDayTypes(updatedDayTypes);
+        updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, formatDate(selectedDayInfo.date), updatedDayTypes);
 
         const dateStr = formatDate(selectedDayInfo.date);
         let dayTypeData = {[dateStr]: updatedDayTypes};

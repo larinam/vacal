@@ -1,24 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import CalendarComponent from './CalendarComponent';
 import SettingsComponent from './SettingsComponent';
 import ReportFormModal from './ReportFormModal'; // Import the ReportFormModal component
 import './MainComponent.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCog, faFileExcel } from '@fortawesome/free-solid-svg-icons';
-import { useApi } from '../hooks/useApi';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faCog, faFileExcel} from '@fortawesome/free-solid-svg-icons';
+import {useApi} from '../hooks/useApi';
 
 const MainComponent = () => {
     const [data, setData] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false); // State to control the visibility of the ReportFormModal
-    const { apiCall, isLoading } = useApi();
+    const {apiCall, isLoading} = useApi();
+    const abortControllerRef = useRef(null);
 
     const fetchData = async () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
         try {
-            const data = await apiCall('/');
-            setData(data);
+            const data = await apiCall('/', 'GET', null, false, signal);
+            if (!signal.aborted) {
+                setData(data);
+            }
         } catch (error) {
-            console.error('Error fetching data:', error);
+            if (!signal.aborted) {
+                console.error('Error fetching data:', error);
+            }
         }
     };
 
@@ -64,18 +74,18 @@ const MainComponent = () => {
             </div>
             <div className="iconContainer">
                 <div className="reportIcon" onClick={openReportModal} title="Generate Report">
-                    <FontAwesomeIcon icon={faFileExcel} />
+                    <FontAwesomeIcon icon={faFileExcel}/>
                 </div>
                 <div className="settingsIcon" onClick={toggleSettings} title="Settings">
-                    <FontAwesomeIcon icon={faCog} />
+                    <FontAwesomeIcon icon={faCog}/>
                 </div>
             </div>
             <div className="content">
                 {showSettings ? (
-                    <SettingsComponent onClose={toggleSettings} />
-                    ) : (
+                    <SettingsComponent onClose={toggleSettings}/>
+                ) : (
                     <CalendarComponent
-                        teamData={data.teams}
+                        serverTeamData={data.teams}
                         holidays={data.holidays}
                         dayTypes={data.day_types}
                         currentMonth={new Date()}
@@ -85,7 +95,8 @@ const MainComponent = () => {
             </div>
             <footer className="footer">
                 This application, Vacal, is an open source project. For more details, visit our&nbsp;
-                <a href="https://github.com/larinam/vacal" target="_blank" rel="noopener noreferrer">GitHub repository</a>.
+                <a href="https://github.com/larinam/vacal" target="_blank" rel="noopener noreferrer">GitHub
+                    repository</a>.
             </footer>
             <ReportFormModal
                 isOpen={showReportModal}

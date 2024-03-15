@@ -5,7 +5,7 @@ export const useApi = () => {
     const [isLoading, startLoading, stopLoading] = useLoading();
     const { authHeader, handleLogout } = useAuth();
 
-    const apiCall = async (url, method = 'GET', body = null, isBlob = false) => {
+    const apiCall = async (url, method = 'GET', body = null, isBlob = false, signal = null) => {
         const loadingTimer = startLoading();
         const fullUrl = `${process.env.REACT_APP_API_URL}${url}`;
         const options = {
@@ -14,7 +14,8 @@ export const useApi = () => {
                 ...(authHeader ? { 'Authorization': authHeader } : {}),
                 ...(!isBlob && { 'Content-Type': 'application/json' }), // Set content type to JSON unless it's a blob
             },
-            ...(body && { body: JSON.stringify(body) })
+            ...(body && { body: JSON.stringify(body) }),
+            signal,
         };
 
         try {

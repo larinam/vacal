@@ -1,21 +1,30 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Tooltip} from 'react-tooltip';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronRight, faEye, faPencilAlt, faSave, faInfoCircle, faGripVertical } from '@fortawesome/free-solid-svg-icons';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {
+    faChevronDown,
+    faChevronRight,
+    faEye,
+    faGripVertical,
+    faInfoCircle,
+    faPencilAlt,
+    faSave
+} from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
 import MonthSelector from './MonthSelector';
 import AddTeamModal from './AddTeamModal';
 import AddMemberModal from './AddMemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
-import { useApi } from '../hooks/useApi';
+import {useApi} from '../hooks/useApi';
 
-const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => {
+const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData }) => {
     const { apiCall } = useApi();
     const today = new Date();
     const todayDay = today.getDate();
     const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
     const todayYear = today.getFullYear();
 
+    const [teamData, setTeamData] = useState(serverTeamData);
     const [displayMonth, setDisplayMonth] = useState(new Date());
     const [showSaveIcon, setShowSaveIcon] = useState(false);
     const [showAddMemberForm, setShowAddMemberForm] = useState(false);
@@ -51,6 +60,10 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
         setShowSaveIcon(true);
         setTimeout(() => setShowSaveIcon(false), 2000); // Hide icon after 2 seconds
     };
+
+    useEffect(() => {
+        setTeamData(serverTeamData);
+    }, [serverTeamData]);
 
     useEffect(() => {
         if (filterInputRef.current) {
@@ -338,6 +351,28 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
         setDropTargetId(null); // Remove highlight when the dragged item leaves the row
         setDraggedMember({ memberId: null, originTeamId: null, memberName: '' }); // Reset drag state
     };
+
+    const updateLocalTeamData = (teamId, memberId, dateStr, newDayTypes) => {
+
+        const getDayTypeById = (id) => {
+            return dayTypes.find(dayType => dayType._id === id);
+        };
+
+        setTeamData(teamData => {
+            return teamData.map(team => {
+                if (team._id === teamId) {
+                    const updatedMembers = team.team_members.map(member => {
+                        if (member.uid === memberId) {
+                            return {...member, days: {...member.days, [dateStr]: newDayTypes.map(id => getDayTypeById(id))}};
+                        }
+                        return member;
+                    });
+                    return {...team, team_members: updatedMembers};
+                }
+                return team;
+            });
+        });
+    };
     
 
     return (
@@ -364,6 +399,7 @@ const CalendarComponent = ({ teamData, holidays, dayTypes, updateTeamData }) => 
                 dayTypes={dayTypes}
                 selectedDayInfo={selectedDayInfo}
                 updateTeamData={updateTeamData}
+                updateLocalTeamData={updateLocalTeamData}
             />
 
             <div className="stickyHeader">
