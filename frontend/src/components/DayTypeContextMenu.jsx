@@ -37,7 +37,6 @@ const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayType
             : selectedDayTypes.filter(type => type !== value);
 
         setSelectedDayTypes(updatedDayTypes);
-        updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, formatDate(selectedDayInfo.date), updatedDayTypes);
 
         const dateStr = formatDate(selectedDayInfo.date);
         let dayTypeData = {[dateStr]: updatedDayTypes};
@@ -49,7 +48,7 @@ const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayType
         } catch (error) {
             console.error('Error updating day types:', error);
         }
-
+        updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, formatDate(selectedDayInfo.date), updatedDayTypes);
         onClose();
     };
 
