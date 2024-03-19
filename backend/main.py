@@ -367,7 +367,7 @@ def add_days(team_id: str, team_member_id: str, new_days: Dict[str, List[str]]):
             team_member.days[date_str] = day_types
 
     team.save()
-    return {"team": mongo_to_pydantic(team, TeamReadDTO)}
+    return {"message": "Days added"}
 
 
 @app.put("/teams/{team_id}/members/{team_member_id}/days")
@@ -389,7 +389,7 @@ def update_days(team_id: str, team_member_id: str, days: Dict[str, List[str]]):
 
     team_member.days = team_member.days | updated_days
     team.save()
-    return {"team": mongo_to_pydantic(team, TeamReadDTO)}
+    return {"message": "Days modified"}
 
 
 @app.get("/daytypes/")
