@@ -1,9 +1,11 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useLoading } from './useLoading';
+import {useNavigate} from "react-router-dom";
 
 export const useApi = () => {
     const [isLoading, startLoading, stopLoading] = useLoading();
     const { authHeader, handleLogout } = useAuth();
+    const navigate = useNavigate();
 
     const apiCall = async (url, method = 'GET', body = null, isBlob = false, signal = null) => {
         const loadingTimer = startLoading();
@@ -22,6 +24,7 @@ export const useApi = () => {
             const response = await fetch(fullUrl, options);
             if (response.status === 401) {
                 handleLogout();
+                navigate('/');
                 return;
             }
             if (!response.ok) {

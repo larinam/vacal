@@ -1,4 +1,5 @@
 import React, {useEffect, useState, useRef} from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import CalendarComponent from './CalendarComponent';
 import SettingsComponent from './SettingsComponent';
 import ReportFormModal from './ReportFormModal'; // Import the ReportFormModal component
@@ -8,8 +9,8 @@ import {faCog, faFileExcel} from '@fortawesome/free-solid-svg-icons';
 import {useApi} from '../hooks/useApi';
 
 const MainComponent = () => {
+    const navigate = useNavigate();
     const [data, setData] = useState(null);
-    const [showSettings, setShowSettings] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false); // State to control the visibility of the ReportFormModal
     const {apiCall, isLoading} = useApi();
     const abortControllerRef = useRef(null);
@@ -35,13 +36,6 @@ const MainComponent = () => {
     useEffect(() => {
         fetchData();
     }, []);
-
-    const toggleSettings = async () => {
-        if (showSettings) {
-            await fetchData();
-        }
-        setShowSettings(!showSettings);
-    };
 
     const openReportModal = () => {
         setShowReportModal(true);
@@ -76,22 +70,25 @@ const MainComponent = () => {
                 <div className="reportIcon" onClick={openReportModal} title="Generate Report">
                     <FontAwesomeIcon icon={faFileExcel}/>
                 </div>
-                <div className="settingsIcon" onClick={toggleSettings} title="Settings">
+                <div className="settingsIcon" onClick={() => navigate('/main/settings')} title="Settings">
                     <FontAwesomeIcon icon={faCog}/>
                 </div>
             </div>
             <div className="content">
-                {showSettings ? (
-                    <SettingsComponent onClose={toggleSettings}/>
-                ) : (
-                    <CalendarComponent
-                        serverTeamData={data.teams}
-                        holidays={data.holidays}
-                        dayTypes={data.day_types}
-                        currentMonth={new Date()}
-                        updateTeamData={fetchData}
-                    />
-                )}
+                <Routes>
+                    <Route index element={
+                        <CalendarComponent
+                            serverTeamData={data.teams}
+                            holidays={data.holidays}
+                            dayTypes={data.day_types}
+                            currentMonth={new Date()}
+                            updateTeamData={fetchData}
+                        />
+                    } />
+                    <Route path="settings" element={<SettingsComponent onClose={() => {navigate("/main"); fetchData()}} />} />
+                    {/* You can add more nested routes here */}
+                    <Route path="*" element={<Navigate to="/main" replace />} />
+                </Routes>
             </div>
             <footer className="footer">
                 This application, Vacal, is an open source project. For more details, visit our&nbsp;
