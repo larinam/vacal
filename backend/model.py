@@ -1,14 +1,13 @@
-import uuid
+import logging
+import os
 import random
-
-from mongoengine import StringField, DateField, ListField, connect, Document, EmbeddedDocument, \
-    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField
-
-from pymongo import MongoClient
+import uuid
 
 from dotenv import load_dotenv
-import os
-import logging
+from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
+    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField
+from pymongo import MongoClient
+
 from mongodb_migration_engine import run_migrations
 
 log = logging.getLogger(__name__)
@@ -76,6 +75,27 @@ class Team(Document):
     name = StringField(required=True)
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
+
+
+class AuthDetails(EmbeddedDocument):
+    # This embedded document stores various authentication details
+    telegram_id = StringField()
+    telegram_username = StringField()
+    # Add more fields for different authentication methods as needed
+
+
+class User(Document):
+    name = StringField(required=True)
+    email = EmailField()
+    auth_details = EmbeddedDocumentField(AuthDetails)
+
+    meta = {
+        "indexes": [
+            "email",
+            "auth_details.telegram_id",
+            "auth_details.telegram_username"
+        ]
+    }
 
 
 def get_unique_countries():
