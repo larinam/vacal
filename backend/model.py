@@ -79,14 +79,14 @@ class Team(Document):
 
 class AuthDetails(EmbeddedDocument):
     # This embedded document stores various authentication details
-    telegram_id = StringField()
-    telegram_username = StringField()
+    telegram_id = StringField(unique=True, required=False, sparse=True, default=None)
+    telegram_username = StringField(unique=True, required=False, sparse=True, default=None)
     # Add more fields for different authentication methods as needed
 
 
 class User(Document):
     name = StringField(required=True)
-    email = EmailField()
+    email = EmailField(unique=True, required=False, sparse=True, default=None)
     auth_details = EmbeddedDocumentField(AuthDetails)
 
     meta = {
