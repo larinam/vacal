@@ -187,14 +187,14 @@ def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO):
     team = Team.objects(id=team_id).first()
     team.team_members.append(team_member)
     team.save()
-    return {"team": mongo_to_pydantic(team, TeamReadDTO)}
+    return {"message": "Team member created successfully"}
 
 
 @app.post("/teams/")
 def add_team(team_dto: TeamWriteDTO):
     team_data = team_dto.model_dump()
     team = Team(**team_data).save()
-    return {"team_id": str(team.id)}
+    return {"message": "Team created successfully"}
 
 
 @app.delete("/teams/{team_id}")
@@ -220,7 +220,7 @@ def update_team(team_id: str, team_dto: TeamWriteDTO):
         team.name = team_dto.name
         team.available_day_types = team_dto.available_day_types
         team.save()
-        return {"team": mongo_to_pydantic(team, TeamReadDTO)}
+        return {"message": "Team modified successfully"}
     else:
         raise HTTPException(status_code=404, detail="Team not found")
 
@@ -242,7 +242,7 @@ def update_team_member(team_id: str, team_member_id: str, team_member_dto: TeamM
     team_member.available_day_types = team_member_dto.available_day_types
 
     team.save()
-    return {"team": mongo_to_pydantic(team, TeamReadDTO)}
+    return {"message": "Team member modified successfully"}
 
 
 @app.post("/move-team-member/{team_member_uid}")
@@ -367,7 +367,7 @@ def add_days(team_id: str, team_member_id: str, new_days: Dict[str, List[str]]):
             team_member.days[date_str] = day_types
 
     team.save()
-    return {"message": "Days added"}
+    return {"message": "Days added successfully"}
 
 
 @app.put("/teams/{team_id}/members/{team_member_id}/days")
@@ -389,7 +389,7 @@ def update_days(team_id: str, team_member_id: str, days: Dict[str, List[str]]):
 
     team_member.days = team_member.days | updated_days
     team.save()
-    return {"message": "Days modified"}
+    return {"message": "Days modified successfully"}
 
 
 @app.get("/daytypes/")
