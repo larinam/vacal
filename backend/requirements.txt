@@ -9,3 +9,4 @@ python-dotenv
 boto3
 apscheduler
 openpyxl
+prometheus-fastapi-instrumentator

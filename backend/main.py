@@ -4,6 +4,7 @@ import os
 from collections import defaultdict
 from io import BytesIO
 from typing import List, Dict, Optional
+from prometheus_fastapi_instrumentator import Instrumentator
 
 import holidays
 import pycountry
@@ -33,6 +34,7 @@ if cors_origin:  # for production
     origins.append(cors_origin)
 
 app = FastAPI()
+Instrumentator().instrument(app).expose(app)
 scheduler = BackgroundScheduler()
 
 
