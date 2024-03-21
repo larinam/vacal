@@ -4,7 +4,6 @@ import os
 from collections import defaultdict
 from io import BytesIO
 from typing import List, Dict, Optional
-from prometheus_fastapi_instrumentator import Instrumentator
 
 import holidays
 import pycountry
@@ -18,9 +17,10 @@ from fastapi.responses import RedirectResponse
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
+from prometheus_fastapi_instrumentator import Instrumentator
+from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field, validator
 from pydantic.functional_validators import field_validator
-from pycountry.db import Country
 
 from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id
 
@@ -132,6 +132,14 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
                 converted_days[date_str] = converted_day_types
             return converted_days
         return v
+
+    @computed_field
+    @property
+    def country_flag(self) -> str:
+        country = pycountry.countries.get(name=self.country)
+        if country:
+            return country.flag
+        raise ValueError(f"Invalid country name: {self.country}")
 
 
 class TeamWriteDTO(BaseModel):
