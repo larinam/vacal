@@ -292,6 +292,13 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
         const style = {};
 
         if (dateDayTypes.length > 0) {
+            // Move the "Vacation" day type to the front if it exists
+            const vacationIndex = dateDayTypes.findIndex(dayType => dayType.name === "Vacation");
+            if (vacationIndex > -1) {
+                const [vacationDayType] = dateDayTypes.splice(vacationIndex, 1);
+                dateDayTypes.unshift(vacationDayType);
+            }
+
             const percentagePerType = 100 / dateDayTypes.length;
             const gradientParts = dateDayTypes.map((dayType, index) => {
                 const start = percentagePerType * index;
