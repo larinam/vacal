@@ -476,7 +476,7 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
                                         {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
                                             <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                                                 <td className="member-name-cell">
-                                                    {member.name}
+                                                    {member.name} <span title={member.country}>{member.country_flag}</span>
                                                     <span className="info-icon" data-tip data-tooltip-id={`tooltip-${member.uid}`}>
                                                         <FontAwesomeIcon icon={faInfoCircle} />
                                                     </span>
