@@ -178,9 +178,16 @@ def mongo_to_pydantic(mongo_document, pydantic_model):
 def get_holidays(year: int = datetime.datetime.now().year) -> dict:
     countries = get_unique_countries()
     holidays_dict = {}
-    list(map(lambda x: holidays_dict.update(
-        {x: holidays.country_holidays(pycountry.countries.get(name=x).alpha_2, years=[year - 1, year, year + 1])}),
-             countries))
+    for country in countries:
+        country_holidays = {}
+        country_alpha_2 = pycountry.countries.get(name=country).alpha_2
+        try:
+            country_holidays = holidays.country_holidays(
+                    country_alpha_2, years=[year - 1, year, year + 1]
+                    )
+        except NotImplementedError as e:  # there are no holidays for some countries, but it's fine
+            log.warning(e, exc_info=e)
+        holidays_dict.update({country: country_holidays})
     return holidays_dict
 
 
