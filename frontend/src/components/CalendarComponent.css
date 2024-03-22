@@ -89,7 +89,8 @@
 .team-name-cell .delete-icon,
 .member-name-cell .drag-icon,
 .member-name-cell .edit-icon,
-.member-name-cell .delete-icon {
+.member-name-cell .delete-icon,
+.member-name-cell .info-icon {
     visibility: hidden;
 }
 
@@ -98,9 +99,11 @@
 .team-name-cell:hover .delete-icon,
 .member-name-cell:hover .drag-icon,
 .member-name-cell:hover .edit-icon,
-.member-name-cell:hover .delete-icon {
+.member-name-cell:hover .delete-icon,
+.member-name-cell:hover .info-icon {
     visibility: visible;
 }
+
 .edit-icon {
     cursor: pointer;
     margin-left: 10px;
