@@ -24,7 +24,7 @@ from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field, validator
 from pydantic.functional_validators import field_validator
 
-from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id, User
+from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id, User, AuthDetails
 
 origins = [
     "http://localhost",
@@ -106,8 +106,8 @@ class TeamMemberWriteDTO(BaseModel):
             return country_name
         raise ValueError("Invalid country name")
 
-    @field_validator('email')
     @classmethod
+    @field_validator('email')
     def empty_email_to_none(cls, v):
         return None if v == "" else v
 
@@ -127,8 +127,8 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
                 vac_days_count[date.year] += 1
         return dict(vac_days_count)
 
-    @validator('days', pre=True, always=True)
     @classmethod
+    @validator('days', pre=True, always=True)
     def convert_days(cls, v):
         if v and isinstance(v, dict):
             converted_days = {}
@@ -159,8 +159,8 @@ class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
 
-    @field_validator('team_members')
     @classmethod
+    @field_validator('team_members')
     def sort_team_members(cls, team_members):
         return sorted(team_members, key=lambda member: member.name)
 
@@ -175,10 +175,30 @@ class TokenDataDTO(BaseModel):
 
 
 class UserDTO(BaseModel):
-    username: str
+    name: str | None = None
     email: str | None = None
-    full_name: str | None = None
+    username: str
     disabled: bool | None = None
+
+
+class UserCreationModel(BaseModel):
+    name: str
+    email: str
+    username: str
+    password: str
+
+
+class PasswordUpdateModel(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+    @classmethod
+    @field_validator('confirm_password')
+    def passwords_match(cls, v, values, **kwargs):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError("passwords do not match")
+        return v
 
 
 def validate_country_name(country_name):
@@ -263,6 +283,76 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         data={"sub": user.auth_details.username}, expires_delta=access_token_expires
     )
     return TokenDTO(access_token=access_token, token_type="bearer")
+
+
+@app.post("/users/create-initial")
+async def create_initial_user(user_creation: UserCreationModel):
+    # Check if there are any users in the system
+    existing_users = User.objects.count()
+    if existing_users > 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="An initial user already exists."
+        )
+
+    user = User()
+    user.name = user_creation.name
+    user.email = user_creation.email
+    user.auth_details = AuthDetails(username=user_creation.username)
+    user.hash_password(user_creation.password)
+    user.save()
+
+    return {"message": "Initial user created successfully"}
+
+
+@app.post("/users/create", dependencies=[Depends(get_current_active_user)])
+async def create_user(user_creation: UserCreationModel,
+                      current_user: Annotated[User, Depends(get_current_active_user)]):
+    user = User()
+    user.name = user_creation.name
+    user.email = user_creation.email
+    user.auth_details = AuthDetails(username=user_creation.username)
+    user.hash_password(user_creation.password)
+    user.save()
+
+    return {"message": "User created successfully"}
+
+
+@app.post("/users/me/password")
+async def update_password(password_update: PasswordUpdateModel,
+                          current_user: Annotated[User, Depends(get_current_active_user)]):
+    # Verify current password
+    if not current_user.verify_password(password_update.current_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password."
+        )
+
+    # Check if the new password is different from the old password
+    if password_update.current_password == password_update.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from the current password."
+        )
+
+    # Update to the new password
+    current_user.hash_password(password_update.new_password)
+    current_user.save()
+    return {"message": "Password updated successfully"}
+
+
+@app.get("/users/", response_model=List[UserDTO])
+async def read_users(current_user: Annotated[User, Depends(get_current_active_user)]):
+    users = User.objects.all()
+    return [
+        {
+            "name": user.name,
+            "email": user.email,
+            "username": user.auth_details.username,
+            "disabled": user.disabled,
+        }
+        for user in users
+    ]
 
 
 # Business Logic
