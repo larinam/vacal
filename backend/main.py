@@ -106,8 +106,8 @@ class TeamMemberWriteDTO(BaseModel):
             return country_name
         raise ValueError("Invalid country name")
 
-    @classmethod
     @field_validator('email')
+    @classmethod
     def empty_email_to_none(cls, v):
         return None if v == "" else v
 
@@ -127,8 +127,8 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
                 vac_days_count[date.year] += 1
         return dict(vac_days_count)
 
+    @field_validator('days', mode="before")
     @classmethod
-    @validator('days', pre=True, always=True)
     def convert_days(cls, v):
         if v and isinstance(v, dict):
             converted_days = {}
@@ -159,8 +159,8 @@ class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
 
-    @classmethod
     @field_validator('team_members')
+    @classmethod
     def sort_team_members(cls, team_members):
         return sorted(team_members, key=lambda member: member.name)
 
@@ -193,8 +193,8 @@ class PasswordUpdateModel(BaseModel):
     new_password: str
     confirm_password: str
 
-    @classmethod
     @field_validator('confirm_password')
+    @classmethod
     def passwords_match(cls, v, values, **kwargs):
         if 'new_password' in values and v != values['new_password']:
             raise ValueError("passwords do not match")
