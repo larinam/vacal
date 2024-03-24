@@ -10,3 +10,4 @@ boto3
 apscheduler
 openpyxl
 prometheus-fastapi-instrumentator
+passlib[bcrypt]

@@ -6,11 +6,14 @@ import uuid
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField
+from passlib.context import CryptContext
 from pymongo import MongoClient
 
 from mongodb_migration_engine import run_migrations
 
 log = logging.getLogger(__name__)
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # in production the environments should be set and not loaded from .env
 load_dotenv()  # mostly for local development with docker-compose
@@ -78,10 +81,12 @@ class Team(Document):
 
 
 class AuthDetails(EmbeddedDocument):
-    # This embedded document stores various authentication details
-    telegram_id = StringField(unique=True, required=False, sparse=True, default=None)
-    telegram_username = StringField(unique=True, required=False, sparse=True, default=None)
-    # Add more fields for different authentication methods as needed
+    # Stores various authentication details
+    telegram_id = StringField(unique=True, required=False, sparse=True)
+    telegram_username = StringField(unique=True, required=False, sparse=True)
+    # Fields for username/password authentication
+    username = StringField(unique=True, required=False, sparse=True)
+    hashed_password = StringField(required=False)
 
 
 class User(Document):
@@ -93,9 +98,17 @@ class User(Document):
         "indexes": [
             "email",
             "auth_details.telegram_id",
-            "auth_details.telegram_username"
-        ]
+            "auth_details.telegram_username",
+            "auth_details.username"
+        ],
+        "index_background": True
     }
+
+    def hash_password(self, plain_password):
+        self.auth_details.hashed_password = pwd_context.hash(plain_password)
+
+    def verify_password(self, plain_password):
+        return pwd_context.verify(plain_password, self.auth_details.hashed_password)
 
 
 def get_unique_countries():
