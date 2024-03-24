@@ -5,7 +5,7 @@ import uuid
 
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
-    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField
+    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField
 from passlib.context import CryptContext
 from pymongo import MongoClient
 
@@ -85,7 +85,7 @@ class AuthDetails(EmbeddedDocument):
     telegram_id = StringField(unique=True, required=False, sparse=True)
     telegram_username = StringField(unique=True, required=False, sparse=True)
     # Fields for username/password authentication
-    username = StringField(unique=True, required=False, sparse=True)
+    username = StringField(unique=True, required=True, sparse=True)
     hashed_password = StringField(required=False)
 
 
@@ -93,6 +93,7 @@ class User(Document):
     name = StringField(required=True)
     email = EmailField(unique=True, required=False, sparse=True, default=None)
     auth_details = EmbeddedDocumentField(AuthDetails)
+    disabled = BooleanField(default=False)
 
     meta = {
         "indexes": [
@@ -104,11 +105,23 @@ class User(Document):
         "index_background": True
     }
 
+    @classmethod
+    def get_by_username(cls, username: str):
+        user = cls.objects(auth_details__username=username).first()
+        return user
+
     def hash_password(self, plain_password):
         self.auth_details.hashed_password = pwd_context.hash(plain_password)
 
     def verify_password(self, plain_password):
         return pwd_context.verify(plain_password, self.auth_details.hashed_password)
+
+    @classmethod
+    def authenticate_user(cls, username: str, password: str):
+        user = cls.get_by_username(username)
+        if not user or not user.verify_password(password):
+            return False
+        return user
 
 
 def get_unique_countries():

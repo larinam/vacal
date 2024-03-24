@@ -3,18 +3,20 @@ import logging
 import os
 from collections import defaultdict
 from io import BytesIO
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Annotated
 
 import holidays
+import jwt
 import pycountry
 import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
 from bson import ObjectId
-from fastapi import FastAPI, status, Body
+from fastapi import FastAPI, status, Body, Depends
 from fastapi import Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.responses import StreamingResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -22,7 +24,7 @@ from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field, validator
 from pydantic.functional_validators import field_validator
 
-from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id
+from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id, User
 
 origins = [
     "http://localhost",
@@ -32,6 +34,12 @@ origins = [
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
 if cors_origin:  # for production
     origins.append(cors_origin)
+
+SECRET_KEY = "b461cb38030c172d3feb5275e3d841087951b8fe88ad9c1697eb5ee41269a135"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 365
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 app = FastAPI()
 Instrumentator().instrument(app).expose(app)
@@ -157,6 +165,22 @@ class TeamReadDTO(TeamWriteDTO):
         return sorted(team_members, key=lambda member: member.name)
 
 
+class TokenDTO(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenDataDTO(BaseModel):
+    username: str | None = None
+
+
+class UserDTO(BaseModel):
+    username: str
+    email: str | None = None
+    full_name: str | None = None
+    disabled: bool | None = None
+
+
 def validate_country_name(country_name):
     countries = pycountry.countries.search_fuzzy(country_name)
     if countries:
@@ -183,12 +207,73 @@ def get_holidays(year: int = datetime.datetime.now().year) -> dict:
         country_alpha_2 = pycountry.countries.get(name=country).alpha_2
         try:
             country_holidays = holidays.country_holidays(
-                    country_alpha_2, years=[year - 1, year, year + 1]
-                    )
+                country_alpha_2, years=[year - 1, year, year + 1]
+            )
         except NotImplementedError as e:  # there are no holidays for some countries, but it's fine
             log.warning(e, exc_info=e)
         holidays_dict.update({country: country_holidays})
     return holidays_dict
+
+
+def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
+    to_encode = data.copy()
+    expire = datetime.datetime.now(datetime.timezone.utc) + (expires_delta or datetime.timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if not username:
+            raise credentials_exception
+        user = User.get_by_username(username)
+        if not user:
+            raise credentials_exception
+    except jwt.PyJWTError:
+        raise credentials_exception
+    return user
+
+
+def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+
+# Authentication
+@app.post("/token")
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> TokenDTO:
+    user = User.authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.auth_details.username}, expires_delta=access_token_expires
+    )
+    return TokenDTO(access_token=access_token, token_type="bearer")
+
+
+# Business Logic
+@app.get("/users/me/", response_model=UserDTO)
+async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
+    return current_user
+
+
+@app.get("/users/me/items/")
+async def read_own_items(current_user: Annotated[User, Depends(get_current_active_user)]):
+    return [{"item_id": "Foo", "owner": current_user.auth_details.username}]
 
 
 @app.get("/")
