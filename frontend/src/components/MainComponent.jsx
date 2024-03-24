@@ -5,14 +5,17 @@ import SettingsComponent from './SettingsComponent';
 import ReportFormModal from './ReportFormModal'; // Import the ReportFormModal component
 import './MainComponent.css';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCog, faFileExcel} from '@fortawesome/free-solid-svg-icons';
+import {faCog, faFileExcel, faSignOut} from '@fortawesome/free-solid-svg-icons';
 import {useApi} from '../hooks/useApi';
+import { useAuth } from '../contexts/AuthContext';
 
 const MainComponent = () => {
     const navigate = useNavigate();
     const [data, setData] = useState(null);
     const [showReportModal, setShowReportModal] = useState(false); // State to control the visibility of the ReportFormModal
     const {apiCall, isLoading} = useApi();
+    const { handleLogout } = useAuth();
+
     const abortControllerRef = useRef(null);
 
     const fetchData = async () => {
@@ -72,6 +75,9 @@ const MainComponent = () => {
                 </div>
                 <div className="settingsIcon" onClick={() => navigate('/main/settings')} title="Settings">
                     <FontAwesomeIcon icon={faCog}/>
+                </div>
+                <div className="settingsIcon" onClick={() => {handleLogout(); navigate('/')}} title="Logout">
+                    <FontAwesomeIcon icon={faSignOut}/>
                 </div>
             </div>
             <div className="content">

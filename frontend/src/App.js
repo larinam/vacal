@@ -6,13 +6,12 @@ import { useAuth } from './contexts/AuthContext';
 
 function App() {
   const { isAuthenticated } = useAuth();
-  const requiresBasicAuth = process.env.REACT_APP_REQUIRE_BASIC_AUTH === 'true';
 
   return (
     <Router>
       <Routes>
         <Route index element={
-          requiresBasicAuth && !isAuthenticated ?
+          !isAuthenticated ?
           <Navigate to="/login" /> :
           <Navigate to="/main" />
         } />

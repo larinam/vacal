@@ -11,10 +11,22 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("authHeader", authHeader);
     }, [isAuthenticated, authHeader]);
 
-    const handleLogin = (username, password) => {
-        const encodedCredentials = btoa(`${username}:${password}`);
-        setAuthHeader(`Basic ${encodedCredentials}`);
-        setIsAuthenticated(true);
+    const handleLogin = async (username, password) => {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/token`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            setAuthHeader(`Bearer ${data.access_token}`);
+            setIsAuthenticated(true);
+        } else {
+            alert('Authentication failed');
+            setIsAuthenticated(false);
+            setAuthHeader('');
+        }
     };
 
     const handleLogout = () => {
