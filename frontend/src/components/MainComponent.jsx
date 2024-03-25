@@ -91,7 +91,7 @@ const MainComponent = () => {
                             updateTeamData={fetchData}
                         />
                     } />
-                    <Route path="settings" element={<SettingsComponent onClose={() => {navigate("/main"); fetchData()}} />} />
+                    <Route path="settings/*" element={<SettingsComponent onClose={() => {navigate("/main"); fetchData()}} />} />
                     {/* You can add more nested routes here */}
                     <Route path="*" element={<Navigate to="/main" replace />} />
                 </Routes>
