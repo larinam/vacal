@@ -52,13 +52,13 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
     const saveToLocalStorage = (key, value) => {
         localStorage.setItem(key, value);
         setShowSaveIcon(true);
-        setTimeout(() => setShowSaveIcon(false), 2000); // Hide icon after 2 seconds
+        setTimeout(() => setShowSaveIcon(false), 1500); // Hide icon after 1.5 seconds
     };
 
     const removeFromLocalStorage = (key) => {
         localStorage.removeItem(key);
         setShowSaveIcon(true);
-        setTimeout(() => setShowSaveIcon(false), 2000); // Hide icon after 2 seconds
+        setTimeout(() => setShowSaveIcon(false), 1500); // Hide icon after 1.5 seconds
     };
 
     useEffect(() => {
