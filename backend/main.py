@@ -179,6 +179,7 @@ class UserDTO(BaseModel):
     email: str | None = None
     username: str
     disabled: bool | None = None
+    telegram_username: str | None = None
 
 
 class UserCreationModel(BaseModel):
@@ -186,6 +187,7 @@ class UserCreationModel(BaseModel):
     email: str
     username: str
     password: str
+    telegram_username: str | None = None
 
 
 class PasswordUpdateModel(BaseModel):
@@ -305,17 +307,40 @@ async def create_initial_user(user_creation: UserCreationModel):
     return {"message": "Initial user created successfully"}
 
 
-@app.post("/users/create")
+@app.post("/users/")
 async def create_user(user_creation: UserCreationModel,
                       current_user: Annotated[User, Depends(get_current_active_user)]):
     user = User()
     user.name = user_creation.name
     user.email = user_creation.email
-    user.auth_details = AuthDetails(username=user_creation.username)
+    user.auth_details = AuthDetails(username=user_creation.username,
+                                    telegram_username=user_creation.telegram_username)
     user.hash_password(user_creation.password)
     user.save()
 
     return {"message": "User created successfully"}
+
+
+@app.put("/users/{user_id}", response_model=UserDTO)
+async def update_user(user_id: str, user_update: UserCreationModel,
+                      current_user: Annotated[User, Depends(get_current_active_user)]) -> UserDTO:
+    user = User.objects(id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.name = user_update.name
+    user.email = user_update.email
+    if user_update.telegram_username:
+        user.auth_details.telegram_username = user_update.telegram_username
+
+    user.save()
+    return UserDTO(
+        name=user.name,
+        email=user.email,
+        username=user.auth_details.username,
+        disabled=user.disabled,
+        telegram_username=user.auth_details.telegram_username
+    )
 
 
 @app.post("/users/me/password")
@@ -350,6 +375,7 @@ async def read_users(current_user: Annotated[User, Depends(get_current_active_us
             "email": user.email,
             "username": user.auth_details.username,
             "disabled": user.disabled,
+            "telegram_username": user.auth_details.telegram_username,
         }
         for user in users
     ]
