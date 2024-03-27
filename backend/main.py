@@ -175,6 +175,7 @@ class TokenDataDTO(BaseModel):
 
 
 class UserDTO(BaseModel):
+    id: str
     name: str | None = None
     email: str | None = None
     username: str
@@ -187,6 +188,14 @@ class UserCreationModel(BaseModel):
     email: str
     username: str
     password: str
+    telegram_username: str | None = None
+
+
+class UserUpdateModel(BaseModel):
+    id: str
+    name: str
+    email: str
+    username: str
     telegram_username: str | None = None
 
 
@@ -321,6 +330,26 @@ async def create_user(user_creation: UserCreationModel,
     return {"message": "User created successfully"}
 
 
+@app.put("/users/{user_id}")
+async def update_user(user_id: str, user_update: UserUpdateModel,
+                      current_user: Annotated[User, Depends(get_current_active_user)]):
+    user = User.objects(id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.name = user_update.name
+    user.email = user_update.email
+    user.auth_details.username = user_update.username
+    if not user_update.telegram_username:
+        user.auth_details.telegram_username = None
+    else:
+        user.auth_details.telegram_username = user_update.telegram_username
+    # Don't update password here; handle password updates separately for security
+    user.save()
+
+    return {"message": "User updated successfully"}
+
+
 @app.put("/users/{user_id}", response_model=UserDTO)
 async def update_user(user_id: str, user_update: UserCreationModel,
                       current_user: Annotated[User, Depends(get_current_active_user)]) -> UserDTO:
@@ -341,6 +370,15 @@ async def update_user(user_id: str, user_update: UserCreationModel,
         disabled=user.disabled,
         telegram_username=user.auth_details.telegram_username
     )
+
+
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_current_active_user)]):
+    result = User.objects(id=user_id).delete()
+    if result == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"message": "User deleted successfully"}
 
 
 @app.post("/users/me/password")
@@ -371,6 +409,7 @@ async def read_users(current_user: Annotated[User, Depends(get_current_active_us
     users = User.objects.all()
     return [
         {
+            "id": str(user.id),
             "name": user.name,
             "email": user.email,
             "username": user.auth_details.username,

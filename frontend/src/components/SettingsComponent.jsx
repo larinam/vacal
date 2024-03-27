@@ -9,10 +9,10 @@ const SettingsComponent = ({ onClose }) => {
         <div className="settingsContainer">
             <div className="settingsNavigation">
                 <button onClick={onClose} className="closeButton">Close</button>
-                <NavLink to="daytypes" className="navItem" activeClassName="active">
+                <NavLink to="daytypes" className="navItem" activeclassname="active">
                     Day Types
                 </NavLink>
-                <NavLink to="usermanagement" className="navItem" activeClassName="active">
+                <NavLink to="usermanagement" className="navItem" activeclassname="active">
                     User Management
                 </NavLink>
             </div>
