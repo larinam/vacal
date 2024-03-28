@@ -34,6 +34,7 @@ origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://127.0.0.1",
+    "http://127.0.0.1:3000",
 ]
 
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
@@ -78,6 +79,10 @@ app.add_middleware(
 )
 
 log = logging.getLogger(__name__)
+
+
+class GeneralApplicationConfigDTO(BaseModel):
+    telegram_enabled: bool
 
 
 class DayTypeWriteDTO(BaseModel):
@@ -288,6 +293,12 @@ def get_current_active_user(current_user: Annotated[User, Depends(get_current_us
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+# General Application Cofiguration
+@app.get("/config", response_model=GeneralApplicationConfigDTO)
+async def get_config():
+    return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN)}
 
 
 # Authentication
