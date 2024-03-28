@@ -32,6 +32,7 @@ from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_
 origins = [
     "http://localhost",
     "http://localhost:3000",
+    "http://127.0.0.1",
 ]
 
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend

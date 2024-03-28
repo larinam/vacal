@@ -1,4 +1,6 @@
 import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
+import {ToastContainer} from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import MainComponent from './components/MainComponent';
 import Login from './components/login/Login';
 import './styles.css';
@@ -19,6 +21,7 @@ function App() {
         <Route path="/main/*" element={<MainComponent />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ToastContainer />
     </Router>
   );
 }

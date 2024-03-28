@@ -1,4 +1,5 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
+import {toast} from 'react-toastify';
 
 export const AuthContext = createContext();
 
@@ -30,7 +31,7 @@ export const AuthProvider = ({children}) => {
     };
 
     const handleTelegramLogin = async (telegramUser) => {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}telegram-login`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/telegram-login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -43,7 +44,7 @@ export const AuthProvider = ({children}) => {
             setAuthHeader(`Bearer ${data.access_token}`);
             setIsAuthenticated(true);
         } else {
-            alert('Authentication failed');
+            toast('Authentication failed');
             setIsAuthenticated(false);
             setAuthHeader('');
         }
