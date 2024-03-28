@@ -1,7 +1,7 @@
 import React from 'react';
 import SettingsDayTypes from './SettingsDayTypes';
 import SettingsUserManagement from './SettingsUserManagement';
-import { NavLink, Routes, Route } from 'react-router-dom';
+import {NavLink, Route, Routes} from 'react-router-dom';
 import './SettingsComponent.css';
 
 const SettingsComponent = ({ onClose }) => {

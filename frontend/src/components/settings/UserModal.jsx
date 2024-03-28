@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useApi } from '../hooks/useApi';
+import React, {useEffect, useRef, useState} from 'react';
+import {useApi} from '../../hooks/useApi';
 
 const UserModal = ({ isOpen, onClose, editingUser }) => {
     const [newUserData, setNewUserData] = useState({

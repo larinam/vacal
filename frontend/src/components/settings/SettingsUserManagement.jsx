@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useApi } from '../hooks/useApi';
+import React, {useEffect, useState} from 'react';
+import {useApi} from '../../hooks/useApi';
 import UserModal from './UserModal'; // Consider renaming to UserModal
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faEdit, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 
 const SettingsUserManagement = () => {
     const { apiCall } = useApi();

@@ -1,13 +1,13 @@
-import React, {useEffect, useState, useRef} from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, {useEffect, useRef, useState} from 'react';
+import {Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import CalendarComponent from './CalendarComponent';
-import SettingsComponent from './SettingsComponent';
+import SettingsComponent from './settings/SettingsComponent';
 import ReportFormModal from './ReportFormModal'; // Import the ReportFormModal component
 import './MainComponent.css';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faCog, faFileExcel, faSignOut} from '@fortawesome/free-solid-svg-icons';
 import {useApi} from '../hooks/useApi';
-import { useAuth } from '../contexts/AuthContext';
+import {useAuth} from '../contexts/AuthContext';
 
 const MainComponent = () => {
     const navigate = useNavigate();

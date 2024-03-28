@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrashAlt, faEdit } from '@fortawesome/free-solid-svg-icons';
+import React, {useEffect, useState} from 'react';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faEdit, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import './SettingsDayTypes.css';
-import { useApi } from '../hooks/useApi';
+import {useApi} from '../../hooks/useApi';
 
 const SettingsDayTypes = () => {
     const [dayTypes, setDayTypes] = useState([]);
