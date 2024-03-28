@@ -27,7 +27,7 @@ loggers:
     handlers: [default]
     propagate: no
 root:
-  level: DEBUG
+  level: INFO
   handlers:
     - default
   propagate: no

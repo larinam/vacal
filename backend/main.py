@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from collections import defaultdict
+from copy import deepcopy
 from io import BytesIO
 from typing import List, Dict, Optional, Annotated
 
@@ -309,9 +310,10 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 # noinspection PyNestedDecorators
 class TelegramAuthData(BaseModel):
     hash: str
+    id: int
     auth_date: int
-
-    # Additional fields are dynamically handled
+    username: str
+    # Additional fields should be added if necessary for further processing in the endpoint method
 
     @field_validator('auth_date')
     @classmethod
@@ -322,7 +324,8 @@ class TelegramAuthData(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def check_telegram_authorization(cls, values):
+    def check_telegram_authorization(cls, input_values):
+        values = deepcopy(input_values)
         telegram_hash = values.pop("hash")
         data_check_arr = ["{}={}".format(key, value) for key, value in values.items()]
         data_check_arr.sort()
@@ -334,7 +337,7 @@ class TelegramAuthData(BaseModel):
         if calculated_hash != telegram_hash:
             raise ValueError("Data is NOT from Telegram")
 
-        return values
+        return input_values
 
 
 @app.post("/telegram-login")
@@ -348,7 +351,10 @@ async def telegram_login(auth_data: TelegramAuthData):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"The user with your Telegram username: {username} is not found in our system"
         )
-
+    # update Telegram ID
+    if not user.auth_details.telegram_id:
+        user.auth_details.telegram_id = auth_data.dict().get("id")
+        user.save()
     access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.auth_details.username}, expires_delta=access_token_expires

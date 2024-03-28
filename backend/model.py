@@ -5,7 +5,8 @@ import uuid
 
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
-    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField
+    EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
+    LongField
 from passlib.context import CryptContext
 from pymongo import MongoClient
 
@@ -82,7 +83,7 @@ class Team(Document):
 
 class AuthDetails(EmbeddedDocument):
     # Stores various authentication details
-    telegram_id = StringField(unique=True, required=False, sparse=True)
+    telegram_id = LongField(unique=True, required=False, sparse=True)
     telegram_username = StringField(unique=True, required=False, sparse=True)
     # Fields for username/password authentication
     username = StringField(unique=True, required=True, sparse=True)

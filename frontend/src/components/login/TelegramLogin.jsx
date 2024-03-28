@@ -1,14 +1,18 @@
 import React, {useEffect, useRef} from 'react';
 import {useAuth} from "../../contexts/AuthContext";
+import {useNavigate} from "react-router-dom";
+
 
 const TelegramLogin = () => {
   const telegramWidgetRef = useRef(null);
   const { handleTelegramLogin } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Define the onTelegramAuth function
-    window.onTelegramAuth = (user) => {
-      handleTelegramLogin(user);
+    window.onTelegramAuth = async (user) => {
+      await handleTelegramLogin(user);
+      navigate('/');
     };
 
     const script = document.createElement('script');
