@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import './Login.css';
-import {useAuth} from "../contexts/AuthContext";
+import {useAuth} from "../../contexts/AuthContext";
 import {useNavigate} from "react-router-dom";
+import TelegramLogin from "./TelegramLogin";
 
 const Login = () => {
   const { handleLogin } = useAuth();
@@ -34,6 +35,7 @@ const Login = () => {
         />
         <button type="submit" className="buttonStyle">Login</button>
       </form>
+      <TelegramLogin />
     </div>
   );
 };

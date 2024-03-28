@@ -1,8 +1,8 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
 import MainComponent from './components/MainComponent';
-import Login from './components/Login';
+import Login from './components/login/Login';
 import './styles.css';
-import { useAuth } from './contexts/AuthContext';
+import {useAuth} from './contexts/AuthContext';
 
 function App() {
   const { isAuthenticated } = useAuth();

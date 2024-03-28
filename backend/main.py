@@ -96,6 +96,7 @@ class DayTypeReadDTO(DayTypeWriteDTO):
         return None
 
 
+# noinspection PyNestedDecorators
 class TeamMemberWriteDTO(BaseModel):
     name: str
     country: str
@@ -117,6 +118,7 @@ class TeamMemberWriteDTO(BaseModel):
         return None if v == "" else v
 
 
+# noinspection PyNestedDecorators
 class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
     days: Dict[str, List[DayTypeReadDTO]] = Field(default_factory=dict)
@@ -160,6 +162,7 @@ class TeamWriteDTO(BaseModel):
     available_day_types: List[DayTypeReadDTO] = []
 
 
+# noinspection PyNestedDecorators
 class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
@@ -204,6 +207,7 @@ class UserUpdateModel(BaseModel):
     telegram_username: str | None = None
 
 
+# noinspection PyNestedDecorators
 class PasswordUpdateModel(BaseModel):
     current_password: str
     new_password: str
