@@ -1,6 +1,9 @@
 import datetime
+import hashlib
+import hmac
 import logging
 import os
+import time
 from collections import defaultdict
 from io import BytesIO
 from typing import List, Dict, Optional, Annotated
@@ -22,7 +25,7 @@ from openpyxl.utils import get_column_letter
 from prometheus_fastapi_instrumentator import Instrumentator
 from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field
-from pydantic.functional_validators import field_validator
+from pydantic.functional_validators import field_validator, model_validator
 
 from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id, User, AuthDetails
 
@@ -38,6 +41,8 @@ if cors_origin:  # for production
 AUTHENTICATION_SECRET_KEY = os.getenv("AUTHENTICATION_SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 365
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -296,6 +301,58 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     return TokenDTO(access_token=access_token, token_type="bearer")
 
 
+# noinspection PyNestedDecorators
+class TelegramAuthData(BaseModel):
+    hash: str
+    auth_date: int
+
+    # Additional fields are dynamically handled
+
+    @field_validator('auth_date')
+    @classmethod
+    def check_auth_date(cls, auth_date):
+        if (time.time() - auth_date) > 86400:
+            raise ValueError("Data is outdated")
+        return auth_date
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_telegram_authorization(cls, values):
+        telegram_hash = values.pop("hash")
+        data_check_arr = ["{}={}".format(key, value) for key, value in values.items()]
+        data_check_arr.sort()
+        data_check_string = "\n".join(data_check_arr)
+
+        secret_key = hashlib.sha256(TELEGRAM_BOT_TOKEN.encode()).digest()
+        calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
+        if calculated_hash != telegram_hash:
+            raise ValueError("Data is NOT from Telegram")
+
+        return values
+
+
+@app.post("/telegram-login")
+async def telegram_login(auth_data: TelegramAuthData):
+    # At this point, auth_data is already validated by Pydantic
+    username = auth_data.dict().get("username").lower()  # Telegram sends the username in the auth data
+    user = User.get_by_telegram_username(username)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"The user with your Telegram username: {username} is not found in our system"
+        )
+
+    access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.auth_details.username}, expires_delta=access_token_expires
+    )
+
+    return TokenDTO(access_token=access_token, token_type="bearer")
+
+
+# User Management
 @app.post("/users/create-initial")
 async def create_initial_user(user_creation: UserCreationModel):
     # Check if there are any users in the system

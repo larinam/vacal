@@ -123,6 +123,11 @@ class User(Document):
             return False
         return user
 
+    @classmethod
+    def get_by_telegram_username(cls, username):
+        user = cls.objects(auth_details__telegram_username=username).first()
+        return user
+
 
 def get_unique_countries():
     unique_countries = set()

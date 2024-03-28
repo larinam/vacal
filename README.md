@@ -28,5 +28,9 @@ A modern tool to manage calendar scheduling business processes.
 * Build with `npm run build`. 
 * Use built static sources from the `build` folder.
 ### Authentication
+#### User/Password authentication
 * For USERNAME/PASSWORD AUTHENTICATION generate a string like this run: `openssl rand -hex 32` and set `AUTHENTICATION_SECRET_KEY` in the environment.
 * Create an initial user with the `/users/create-initial` method which can be reached through `/docs` URL.
+#### Telegram authentication
+* See https://core.telegram.org/widgets/login
+* Configure TELEGRAM_BOT_TOKEN in the backend .env
