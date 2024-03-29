@@ -1,12 +1,12 @@
-import os.path
-from typing import Optional
-
 import glob
+import importlib
+import logging
+import os.path
 import re
 from datetime import datetime
-from db_migrations import db_utils
-import logging
-import importlib
+from typing import Optional
+
+from .db_migrations import db_utils
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +18,8 @@ def parse_migration_filename(filename):
     """
     Parse the migration filename to extract the date, serial number, and name.
     """
-    filename = filename.replace("db_migrations/", "") if filename.startswith("db_migrations/") else filename
+    filename = filename.replace("backend/db_migrations/", "") \
+        if filename.startswith("backend/db_migrations/") else filename
     match = re.match(r"m(\d{4})_(\d{2})_(\d{2})_(\d{3})_(.+)", filename)
     if match:
         year, month, day, serial, name = match.groups()
@@ -45,14 +46,14 @@ def run_migrations():
     # Check if it's the first run
     if db_utils.db['day_type'].count_documents({}) == 0 and db_utils.db['team'].count_documents({}) == 0:
         # Handle the first run scenario
-        latest_migration = max(glob.glob('db_migrations/m*.py'), key=lambda x: (
+        latest_migration = max(glob.glob('backend/db_migrations/m*.py'), key=lambda x: (
             parse_migration_filename(x)['date'], parse_migration_filename(x)['serial']))
         migration_collection.insert_one({"filename": parse_migration_filename(latest_migration)['filename'],
                                          "applied": datetime.now()})
         return
 
     # Getting the list of migration files
-    migration_files = glob.glob('db_migrations/m*.py')
+    migration_files = glob.glob('backend/db_migrations/m*.py')
     migration_files.sort(key=lambda x: (parse_migration_filename(x)['date'], parse_migration_filename(x)['serial']))
 
     # Fetch the last applied migration

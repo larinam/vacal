@@ -1,0 +1,1 @@
+uvicorn backend.main:app --reload --log-config=backend/log_conf.yml

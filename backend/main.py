@@ -10,9 +10,7 @@ from io import BytesIO
 from typing import List, Dict, Optional, Annotated
 
 import holidays
-import jwt
 import pycountry
-import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
 from bson import ObjectId
 from fastapi import FastAPI, status, Body, Depends
@@ -20,7 +18,7 @@ from fastapi import Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.responses import StreamingResponse
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -28,7 +26,9 @@ from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field
 from pydantic.functional_validators import field_validator, model_validator
 
-from model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id, User, AuthDetails
+from .dependencies import create_access_token, get_current_active_user
+from .model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id, User
+from .routers import users
 
 origins = [
     "http://localhost",
@@ -41,15 +41,12 @@ cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of th
 if cors_origin:  # for production
     origins.append(cors_origin)
 
-AUTHENTICATION_SECRET_KEY = os.getenv("AUTHENTICATION_SECRET_KEY")
-ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 365
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 app = FastAPI()
+app.include_router(users.router)
 Instrumentator().instrument(app).expose(app)
 scheduler = BackgroundScheduler()
 
@@ -189,45 +186,6 @@ class TokenDataDTO(BaseModel):
     username: str | None = None
 
 
-class UserDTO(BaseModel):
-    id: str
-    name: str | None = None
-    email: str | None = None
-    username: str
-    disabled: bool | None = None
-    telegram_username: str | None = None
-
-
-class UserCreationModel(BaseModel):
-    name: str
-    email: str
-    username: str
-    password: str
-    telegram_username: str | None = None
-
-
-class UserUpdateModel(BaseModel):
-    id: str
-    name: str
-    email: str
-    username: str
-    telegram_username: str | None = None
-
-
-# noinspection PyNestedDecorators
-class PasswordUpdateModel(BaseModel):
-    current_password: str
-    new_password: str
-    confirm_password: str
-
-    @field_validator('confirm_password')
-    @classmethod
-    def passwords_match(cls, v, values, **kwargs):
-        if 'new_password' in values and v != values['new_password']:
-            raise ValueError("passwords do not match")
-        return v
-
-
 def validate_country_name(country_name):
     countries = pycountry.countries.search_fuzzy(country_name)
     if countries:
@@ -262,39 +220,6 @@ def get_holidays(year: int = datetime.datetime.now().year) -> dict:
     return holidays_dict
 
 
-def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
-    to_encode = data.copy()
-    expire = datetime.datetime.now(datetime.timezone.utc) + (expires_delta or datetime.timedelta(minutes=15))
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, AUTHENTICATION_SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, AUTHENTICATION_SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if not username:
-            raise credentials_exception
-        user = User.get_by_username(username)
-        if not user:
-            raise credentials_exception
-    except jwt.PyJWTError:
-        raise credentials_exception
-    return user
-
-
-def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
-    if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-
 # General Application Cofiguration
 @app.get("/config", response_model=GeneralApplicationConfigDTO)
 async def get_config():
@@ -324,6 +249,7 @@ class TelegramAuthData(BaseModel):
     id: int
     auth_date: int
     username: str
+
     # Additional fields should be added if necessary for further processing in the endpoint method
 
     @field_validator('auth_date')
@@ -374,142 +300,7 @@ async def telegram_login(auth_data: TelegramAuthData):
     return TokenDTO(access_token=access_token, token_type="bearer")
 
 
-# User Management
-@app.post("/users/create-initial")
-async def create_initial_user(user_creation: UserCreationModel):
-    # Check if there are any users in the system
-    existing_users = User.objects.count()
-    if existing_users > 0:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="An initial user already exists."
-        )
-
-    user = User()
-    user.name = user_creation.name
-    user.email = user_creation.email
-    user.auth_details = AuthDetails(username=user_creation.username)
-    user.hash_password(user_creation.password)
-    user.save()
-
-    return {"message": "Initial user created successfully"}
-
-
-@app.post("/users/")
-async def create_user(user_creation: UserCreationModel,
-                      current_user: Annotated[User, Depends(get_current_active_user)]):
-    user = User()
-    user.name = user_creation.name
-    user.email = user_creation.email
-    user.auth_details = AuthDetails(username=user_creation.username,
-                                    telegram_username=user_creation.telegram_username)
-    user.hash_password(user_creation.password)
-    user.save()
-
-    return {"message": "User created successfully"}
-
-
-@app.put("/users/{user_id}")
-async def update_user(user_id: str, user_update: UserUpdateModel,
-                      current_user: Annotated[User, Depends(get_current_active_user)]):
-    user = User.objects(id=user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user.name = user_update.name
-    user.email = user_update.email
-    user.auth_details.username = user_update.username
-    if not user_update.telegram_username:
-        user.auth_details.telegram_username = None
-    else:
-        user.auth_details.telegram_username = user_update.telegram_username
-    # Don't update password here; handle password updates separately for security
-    user.save()
-
-    return {"message": "User updated successfully"}
-
-
-@app.put("/users/{user_id}", response_model=UserDTO)
-async def update_user(user_id: str, user_update: UserCreationModel,
-                      current_user: Annotated[User, Depends(get_current_active_user)]) -> UserDTO:
-    user = User.objects(id=user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user.name = user_update.name
-    user.email = user_update.email
-    if user_update.telegram_username:
-        user.auth_details.telegram_username = user_update.telegram_username
-
-    user.save()
-    return UserDTO(
-        name=user.name,
-        email=user.email,
-        username=user.auth_details.username,
-        disabled=user.disabled,
-        telegram_username=user.auth_details.telegram_username
-    )
-
-
-@app.delete("/users/{user_id}")
-async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_current_active_user)]):
-    result = User.objects(id=user_id).delete()
-    if result == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return {"message": "User deleted successfully"}
-
-
-@app.post("/users/me/password")
-async def update_password(password_update: PasswordUpdateModel,
-                          current_user: Annotated[User, Depends(get_current_active_user)]):
-    # Verify current password
-    if not current_user.verify_password(password_update.current_password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password."
-        )
-
-    # Check if the new password is different from the old password
-    if password_update.current_password == password_update.new_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New password must be different from the current password."
-        )
-
-    # Update to the new password
-    current_user.hash_password(password_update.new_password)
-    current_user.save()
-    return {"message": "Password updated successfully"}
-
-
-@app.get("/users/", response_model=List[UserDTO])
-async def read_users(current_user: Annotated[User, Depends(get_current_active_user)]):
-    users = User.objects.all()
-    return [
-        {
-            "id": str(user.id),
-            "name": user.name,
-            "email": user.email,
-            "username": user.auth_details.username,
-            "disabled": user.disabled,
-            "telegram_username": user.auth_details.telegram_username,
-        }
-        for user in users
-    ]
-
-
 # Business Logic
-@app.get("/users/me/", response_model=UserDTO)
-async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
-    return current_user
-
-
-@app.get("/users/me/items/")
-async def read_own_items(current_user: Annotated[User, Depends(get_current_active_user)]):
-    return [{"item_id": "Foo", "owner": current_user.auth_details.username}]
-
-
 @app.get("/")
 def read_root(current_user: Annotated[User, Depends(get_current_active_user)]):
     return {"teams": list(map(lambda x: mongo_to_pydantic(x, TeamReadDTO), Team.objects.order_by("name"))),
@@ -791,6 +582,3 @@ def delete_day_type(day_type_id: str,
 
     return {"message": "DayType deleted successfully"}
 
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)

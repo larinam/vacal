@@ -10,7 +10,7 @@ from mongoengine import StringField, ListField, connect, Document, EmbeddedDocum
 from passlib.context import CryptContext
 from pymongo import MongoClient
 
-from mongodb_migration_engine import run_migrations
+from .mongodb_migration_engine import run_migrations
 
 log = logging.getLogger(__name__)
 
