@@ -34,3 +34,4 @@ A modern tool to manage calendar scheduling business processes.
 #### Telegram authentication
 * See https://core.telegram.org/widgets/login
 * Configure TELEGRAM_BOT_TOKEN in the backend .env
+* Tip for local testing: https://stackoverflow.com/questions/61964889/testing-telegram-login-widget-locally
