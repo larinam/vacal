@@ -80,6 +80,7 @@ log = logging.getLogger(__name__)
 
 class GeneralApplicationConfigDTO(BaseModel):
     telegram_enabled: bool
+    user_initiated: bool
 
 
 class DayTypeWriteDTO(BaseModel):
@@ -223,7 +224,7 @@ def get_holidays(year: int = datetime.datetime.now().year) -> dict:
 # General Application Cofiguration
 @app.get("/config", response_model=GeneralApplicationConfigDTO)
 async def get_config():
-    return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN)}
+    return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN), "user_initiated": User.objects.count() > 0}
 
 
 # Authentication
@@ -581,4 +582,3 @@ def delete_day_type(day_type_id: str,
         raise HTTPException(status_code=404, detail="DayType not found")
 
     return {"message": "DayType deleted successfully"}
-

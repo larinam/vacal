@@ -3,6 +3,7 @@ import {ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MainComponent from './components/MainComponent';
 import Login from './components/login/Login';
+import InitialUserCreation from './components/login/InitialUserCreation';
 import './styles.css';
 import {useAuth} from './contexts/AuthContext';
 
@@ -15,9 +16,10 @@ function App() {
         <Route index element={
           !isAuthenticated ?
           <Navigate to="/login" /> :
-          <Navigate to="/main" />
+            <Navigate to="/main" />
         } />
         <Route path="/login" element={<Login />} />
+        <Route path="/create-initial-user" element={<InitialUserCreation />} />
         <Route path="/main/*" element={<MainComponent />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

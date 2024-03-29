@@ -12,6 +12,7 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isTelegramEnabled, setIsTelegramEnabled] = useState(false);
+  const [isUserInitiated, setIsUserInitiated] = useState(true);
 
 
   useEffect(() => {
@@ -19,13 +20,17 @@ const Login = () => {
       try {
         const config = await apiCall('/config');
         setIsTelegramEnabled(config.telegram_enabled);
+        setIsUserInitiated(config.user_initialted);
+        if (!isUserInitiated) {
+          navigate('/create-initial-user')
+        }
       } catch (error) {
         console.error('Error fetching configuration:', error);
       }
     };
 
     fetchConfig();
-  }, [apiCall]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
