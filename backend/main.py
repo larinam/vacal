@@ -25,6 +25,9 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field
 from pydantic.functional_validators import field_validator, model_validator
+from saml2 import config, BINDING_HTTP_POST
+from saml2.client import Saml2Client
+from starlette.requests import Request
 
 from .dependencies import create_access_token, get_current_active_user
 from .model import Team, TeamMember, get_unique_countries, DayType, get_vacation_date_type_id, User
@@ -299,6 +302,80 @@ async def telegram_login(auth_data: TelegramAuthData):
     )
 
     return TokenDTO(access_token=access_token, token_type="bearer")
+
+
+# SAML
+SAML_SSO_URL = os.getenv('SAML_SSO_URL')
+CERTIFICATE_FINGERPRINT = os.getenv('CERTIFICATE_FINGERPRINT')
+REMOTE_LOGOUT_URL = os.getenv('REMOTE_LOGOUT_URL')
+
+if SAML_SSO_URL and CERTIFICATE_FINGERPRINT and REMOTE_LOGOUT_URL:
+
+    saml_config = {
+        'entityid': 'your-sp-entity-id',
+        'metadata': {
+            'remote': [{
+                "url": SAML_SSO_URL,
+                "cert_fingerprint": CERTIFICATE_FINGERPRINT,
+            }],
+        },
+        'service': {
+            'sp': {
+                'endpoints': {
+                    'assertion_consumer_service': [
+                        ('your-acs-url', 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'),
+                    ],
+                    'single_logout_service': [
+                        (REMOTE_LOGOUT_URL, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'),
+                    ],
+                },
+                'allow_unsolicited': True,
+                'authn_requests_signed': False,
+                'logout_requests_signed': True,
+                'want_assertions_signed': True,
+                'want_response_signed': False,
+            },
+        },
+    }
+
+    sp_client = Saml2Client(config.SPConfig().load(saml_config))
+
+
+    @app.get("/saml/login")
+    async def saml_login():
+        (session_id, result) = sp_client.prepare_for_authenticate()
+        redirect_url = None
+        for key, value in result.items():
+            if key == 'headers':
+                for item in value:
+                    if item[0] == 'Location':
+                        redirect_url = item[1]
+        if not redirect_url:
+            raise HTTPException(status_code=500, detail="Failed to generate SAML login request")
+        return RedirectResponse(redirect_url)
+
+
+    @app.post("/saml/acs")
+    async def saml_acs(request: Request):
+        """
+        Example response from Auth0
+        {
+          "sub": "auth0|6606eadef6a6cabe31123a25",
+          "nickname": "user",
+          "name": "user@example.com",
+          "picture": "https://s.gravatar.com/avatar/5ac19eaesdf7766fda83bd0f48sdf573?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fla.png",
+          "updated_at": "2024-03-29T16:23:49.626Z"
+        }
+        """
+        form_data = await request.form()
+        saml_response = form_data.get('SAMLResponse')
+        authn_response = sp_client.parse_authn_request_response(saml_response, BINDING_HTTP_POST)
+        user_info = authn_response.get_identity()
+
+        # Here you should implement the logic to handle the authenticated user,
+        # such as creating a session or token, depending on your application's needs.
+        print(user_info)
+        return {"user_info": user_info}
 
 
 # Business Logic
