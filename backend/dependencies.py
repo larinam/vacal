@@ -56,6 +56,14 @@ async def get_tenant(tenant_id: str = Header(None, alias="Tenant-ID")) -> Tenant
     return tenant
 
 
+def get_current_active_user_check_tenant(current_user: Annotated[User, Depends(get_current_active_user)],
+                                         tenant: Annotated[Tenant, Depends(get_tenant)]):
+    print(tenant.to_json())
+    if tenant not in current_user.tenants:
+        raise HTTPException(status_code=400, detail="User tenant mismatch with current")
+    return current_user
+
+
 def mongo_to_pydantic(mongo_document, pydantic_model):
     # Convert MongoEngine Document to a dictionary
     document_dict = mongo_document.to_mongo().to_dict()

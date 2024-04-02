@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import field_validator, BaseModel, Field, computed_field
 from starlette import status
 
-from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic
+from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant
 from ..model import User, AuthDetails, Tenant
 
 router = APIRouter()
@@ -122,7 +122,7 @@ async def create_initial_user(user_creation: UserCreationModel):
 
 @router.post("/users/")
 async def create_user(user_creation: UserCreationModel,
-                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
     user = User()
     user.tenants = [tenant]
@@ -138,7 +138,7 @@ async def create_user(user_creation: UserCreationModel,
 
 @router.put("/users/{user_id}")
 async def update_user(user_id: str, user_update: UserUpdateModel,
-                      current_user: Annotated[User, Depends(get_current_active_user)],
+                      current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
     user = User.objects(tenants__in=[tenant], id=user_id).first()
     if not user:
@@ -158,7 +158,7 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
 
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_current_active_user)],
+async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
     result = User.objects(tenants__in=[tenant], id=user_id).delete()
     if result == 0:
@@ -191,7 +191,7 @@ async def update_password(password_update: PasswordUpdateModel,
 
 
 @router.get("/users/")
-async def read_users(current_user: Annotated[User, Depends(get_current_active_user)],
+async def read_users(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                      tenant: Annotated[Tenant, Depends(get_tenant)]):
     users = User.objects(tenants__in=[tenant]).all()
     return [mongo_to_pydantic(user, UserDTO) for user in users]

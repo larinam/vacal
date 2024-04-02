@@ -29,7 +29,7 @@ from pydantic.functional_validators import field_validator, model_validator
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from .dependencies import create_access_token, get_current_active_user, get_tenant, mongo_to_pydantic
+from .dependencies import create_access_token, get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic
 from .model import Team, TeamMember, get_unique_countries, DayType, get_vacation_day_type_id, User, Tenant
 from .routers import users
 
@@ -313,7 +313,7 @@ async def telegram_login(auth_data: TelegramAuthData):
 
 # Business Logic
 @app.get("/")
-def read_root(current_user: Annotated[User, Depends(get_current_active_user)],
+def read_root(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
               tenant: Annotated[Tenant, Depends(get_tenant)]):
     return {
         "teams": list(map(lambda x: mongo_to_pydantic(x, TeamReadDTO), Team.objects(tenant=tenant).order_by("name"))),
@@ -322,7 +322,7 @@ def read_root(current_user: Annotated[User, Depends(get_current_active_user)],
 
 @app.post("/teams/{team_id}/members/")
 def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
-                    current_user: Annotated[User, Depends(get_current_active_user)],
+                    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                     tenant: Annotated[Tenant, Depends(get_tenant)]):
     team_member_data = team_member_dto.model_dump()
     team_member = TeamMember(**team_member_data)
@@ -333,7 +333,7 @@ def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
 
 
 @app.post("/teams/")
-def add_team(team_dto: TeamWriteDTO, current_user: Annotated[User, Depends(get_current_active_user)],
+def add_team(team_dto: TeamWriteDTO, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
              tenant: Annotated[Tenant, Depends(get_tenant)]):
     team_data = team_dto.model_dump()
     team_data.update({"tenant": tenant})
@@ -342,7 +342,7 @@ def add_team(team_dto: TeamWriteDTO, current_user: Annotated[User, Depends(get_c
 
 
 @app.delete("/teams/{team_id}")
-def delete_team(team_id: str, current_user: Annotated[User, Depends(get_current_active_user)],
+def delete_team(team_id: str, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                 tenant: Annotated[Tenant, Depends(get_tenant)]):
     Team.objects(tenant=tenant, id=team_id).delete()
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
@@ -350,7 +350,7 @@ def delete_team(team_id: str, current_user: Annotated[User, Depends(get_current_
 
 @app.delete("/teams/{team_id}/members/{team_member_id}")
 def delete_team_member(team_id: str, team_member_id: str,
-                       current_user: Annotated[User, Depends(get_current_active_user)],
+                       current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                        tenant: Annotated[Tenant, Depends(get_tenant)]):
     team = Team.objects(tenant=tenant, id=team_id).first()
     team_members = team.team_members
@@ -362,7 +362,7 @@ def delete_team_member(team_id: str, team_member_id: str,
 
 @app.put("/teams/{team_id}")
 def update_team(team_id: str, team_dto: TeamWriteDTO,
-                current_user: Annotated[User, Depends(get_current_active_user)],
+                current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                 tenant: Annotated[Tenant, Depends(get_tenant)]):
     team = Team.objects(tenant=tenant, id=team_id).first()
     if team:
@@ -376,7 +376,7 @@ def update_team(team_id: str, team_dto: TeamWriteDTO,
 
 @app.put("/teams/{team_id}/members/{team_member_id}")
 def update_team_member(team_id: str, team_member_id: str, team_member_dto: TeamMemberWriteDTO,
-                       current_user: Annotated[User, Depends(get_current_active_user)],
+                       current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                        tenant: Annotated[Tenant, Depends(get_tenant)]):
     team = Team.objects(tenant=tenant, id=team_id).first()
     if not team:
@@ -397,7 +397,7 @@ def update_team_member(team_id: str, team_member_id: str, team_member_dto: TeamM
 
 
 @app.post("/move-team-member/{team_member_uid}")
-def move_team_member(current_user: Annotated[User, Depends(get_current_active_user)],
+def move_team_member(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                      tenant: Annotated[Tenant, Depends(get_tenant)],
                      team_member_uid: str,
                      target_team_id: str = Body(...),
@@ -455,7 +455,7 @@ def auto_adjust_column_width(ws):
 
 
 @app.get("/export-vacations/")
-def export_vacations(current_user: Annotated[User, Depends(get_current_active_user)],
+def export_vacations(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                      tenant: Annotated[Tenant, Depends(get_tenant)],
                      start_date: datetime.date = Query(...), end_date: datetime.date = Query(...)):
     wb = Workbook()
@@ -505,7 +505,7 @@ def export_vacations(current_user: Annotated[User, Depends(get_current_active_us
 
 @app.post("/teams/{team_id}/members/{team_member_id}/days")
 def add_days(team_id: str, team_member_id: str, new_days: Dict[str, List[str]],
-             current_user: Annotated[User, Depends(get_current_active_user)],
+             current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
              tenant: Annotated[Tenant, Depends(get_tenant)]):
     team: Team = Team.objects(tenant=tenant, id=team_id).first()
     if not team:
@@ -531,7 +531,7 @@ def add_days(team_id: str, team_member_id: str, new_days: Dict[str, List[str]],
 
 @app.put("/teams/{team_id}/members/{team_member_id}/days")
 def update_days(team_id: str, team_member_id: str, days: Dict[str, List[str]],
-                current_user: Annotated[User, Depends(get_current_active_user)],
+                current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                 tenant: Annotated[Tenant, Depends(get_tenant)]):
     """Assume it is an update for only one day"""
     team: Team = Team.objects(tenant=tenant, id=team_id).first()
@@ -554,7 +554,7 @@ def update_days(team_id: str, team_member_id: str, days: Dict[str, List[str]],
 
 
 @app.get("/daytypes/")
-def get_all_day_types(current_user: Annotated[User, Depends(get_current_active_user)],
+def get_all_day_types(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
     vacation = DayType.objects(tenant=tenant, name="Vacation").first()
     other_day_types = DayType.objects(tenant=tenant, name__ne="Vacation").order_by("name")
@@ -565,7 +565,7 @@ def get_all_day_types(current_user: Annotated[User, Depends(get_current_active_u
 
 @app.post("/daytypes/")
 def create_day_type(day_type_dto: DayTypeWriteDTO,
-                    current_user: Annotated[User, Depends(get_current_active_user)],
+                    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                     tenant: Annotated[Tenant, Depends(get_tenant)]):
     if not day_type_dto.color:
         day_type_dto.color = None
@@ -578,7 +578,7 @@ def create_day_type(day_type_dto: DayTypeWriteDTO,
 
 @app.put("/daytypes/{day_type_id}")
 def update_day_type(day_type_id: str, day_type_dto: DayTypeWriteDTO,
-                    current_user: Annotated[User, Depends(get_current_active_user)],
+                    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                     tenant: Annotated[Tenant, Depends(get_tenant)]):
     day_type = DayType.objects(tenant=tenant, id=day_type_id).first()
     if not day_type:
@@ -597,7 +597,7 @@ def flatten_list(list_of_lists):
 
 @app.delete("/daytypes/{day_type_id}")
 def delete_day_type(day_type_id: str,
-                    current_user: Annotated[User, Depends(get_current_active_user)],
+                    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                     tenant: Annotated[Tenant, Depends(get_tenant)]):
     # Check if DayType is used in any TeamMember's days or available_day_types, or in any Team's available_day_types
     if any(
