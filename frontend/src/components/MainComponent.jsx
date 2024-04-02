@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import CalendarComponent from './CalendarComponent';
 import SettingsComponent from './settings/SettingsComponent';
-import ReportFormModal from './ReportFormModal'; // Import the ReportFormModal component
+import ReportFormModal from './ReportFormModal';
 import './MainComponent.css';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faCog, faFileExcel, faSignOut} from '@fortawesome/free-solid-svg-icons';

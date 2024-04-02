@@ -6,10 +6,43 @@ export const AuthContext = createContext();
 export const AuthProvider = ({children}) => {
     const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem("isAuthenticated") === "true");
     const [authHeader, setAuthHeader] = useState(localStorage.getItem("authHeader") || '');
+    const [currentTenant, setCurrentTenant] = useState(localStorage.getItem("currentTenant") || '');
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
         localStorage.setItem("isAuthenticated", isAuthenticated);
         localStorage.setItem("authHeader", authHeader);
+        if (currentTenant) {
+            localStorage.setItem("currentTenant", currentTenant);
+        }
+    }, [isAuthenticated, authHeader, currentTenant]);
+
+    const fetchCurrentUser = async () => {
+        if (isAuthenticated) {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/users/me/`, {
+                headers: {
+                    'Authorization': authHeader
+                }
+            });
+
+            if (response.ok) {
+                const userData = await response.json();
+                setUser(userData);
+
+                const tenantIdentifiers = userData.tenants.map(tenant => tenant.identifier);
+                if (!currentTenant || !tenantIdentifiers.includes(currentTenant)) {
+                    setCurrentTenant(userData.tenants[0].identifier);
+                }
+            } else {
+                console.error('Failed to fetch user data');
+                handleLogout();
+            }
+        }
+    };
+
+
+    useEffect(() => {
+        fetchCurrentUser();
     }, [isAuthenticated, authHeader]);
 
     const handleLogin = async (username, password) => {
@@ -53,10 +86,11 @@ export const AuthProvider = ({children}) => {
     const handleLogout = () => {
         setIsAuthenticated(false);
         setAuthHeader('');
+        setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{isAuthenticated, authHeader, handleLogin, handleTelegramLogin, handleLogout}}>
+        <AuthContext.Provider value={{isAuthenticated, authHeader, currentTenant, handleLogin, handleTelegramLogin, handleLogout, setCurrentTenant, user}}>
             {children}
         </AuthContext.Provider>
     );
