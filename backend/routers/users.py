@@ -5,7 +5,7 @@ from pydantic import field_validator, BaseModel, Field, computed_field
 from starlette import status
 
 from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant
-from ..model import User, AuthDetails, Tenant
+from ..model import User, AuthDetails, Tenant, DayType
 
 router = APIRouter()
 
@@ -31,19 +31,12 @@ class AuthDetailsDTO(BaseModel):
     username: str
 
 
-class UserDTO(BaseModel):
+class UserWithoutTenantsDTO(BaseModel):
     id: str = Field(alias="_id", default=None)
-    tenants: List[TenantDTO]
     name: str | None = None
     email: str | None = None
     disabled: bool | None = None
     auth_details: AuthDetailsDTO
-
-    @field_validator('tenants', mode="before")
-    @classmethod
-    def convert_tenants(cls, v):
-        if v and isinstance(v, list):
-            return [TenantDTO.from_mongo_reference_field(ref) for ref in v]
 
     @computed_field
     @property
@@ -54,6 +47,16 @@ class UserDTO(BaseModel):
     @property
     def telegram_username(self) -> str | None:
         return self.auth_details.telegram_username
+
+
+class UserDTO(UserWithoutTenantsDTO):
+    tenants: List[TenantDTO]
+
+    @field_validator('tenants', mode="before")
+    @classmethod
+    def convert_tenants(cls, v):
+        if v and isinstance(v, list):
+            return [TenantDTO.from_mongo_reference_field(ref) for ref in v]
 
 
 class TenantCreationModel(BaseModel):
@@ -101,12 +104,15 @@ async def create_initial_user(user_creation: UserCreationModel):
         tenant = Tenant(name=tenant_data.name, identifier=tenant_data.identifier)
         tenant.save()
 
+    # Add Vacation Day Type
+    DayType.init_vacation_day_type(tenant)
+
     # Check if there are any users associated with this tenant
     existing_users = User.objects(tenants__in=[tenant]).count()
     if existing_users > 0:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="An initial user already exists."
+            detail="Tenant already exists."
         )
 
     user = User()
@@ -194,7 +200,7 @@ async def update_password(password_update: PasswordUpdateModel,
 async def read_users(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                      tenant: Annotated[Tenant, Depends(get_tenant)]):
     users = User.objects(tenants__in=[tenant]).all()
-    return [mongo_to_pydantic(user, UserDTO) for user in users]
+    return [mongo_to_pydantic(user, UserWithoutTenantsDTO) for user in users]
 
 
 @router.get("/users/me/")

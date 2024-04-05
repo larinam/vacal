@@ -51,12 +51,12 @@ if mongo_username:  # connect to some external MongoDB
     connect(mongo_db_name, host=mongo_connection_string)
 else:  # just local MongoDB
     log.info("Connecting to local MongoDB")
-    connect("vacal")
+    connect("vacal1")
 
 
 class Tenant(Document):
-    name = StringField(required=True, unique=True, default="Company")
-    identifier = StringField(required=True, unique=True, default="main")
+    name = StringField(required=True, unique=True)
+    identifier = StringField(required=True, unique=True)
 
     meta = {
         "indexes": [
@@ -73,7 +73,7 @@ def generate_random_hex_color():
 
 class DayType(Document):
     tenant = ReferenceField(Tenant, required=True)
-    name = StringField(required=True)
+    name = StringField(required=True, unique_with="tenant")
     color = StringField(default=generate_random_hex_color)
 
     meta = {
@@ -82,6 +82,14 @@ class DayType(Document):
         ],
         "index_background": True
     }
+
+    @classmethod
+    def init_vacation_day_type(cls, tenant):
+        if cls.objects(tenant=tenant).count() == 0:
+            initial_day_types = [
+                cls(tenant=tenant, name='Vacation', color="#48BF91"),
+            ]
+            cls.objects.insert(initial_day_types, load_bulk=False)
 
 
 class TeamMember(EmbeddedDocument):
@@ -97,7 +105,7 @@ class TeamMember(EmbeddedDocument):
 
 class Team(Document):
     tenant = ReferenceField(Tenant, required=True)
-    name = StringField(required=True)
+    name = StringField(required=True, unique_with="tenant")
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
 
@@ -136,6 +144,10 @@ class User(Document):
         "index_background": True
     }
 
+    def __str__(self):
+        tenant_names = ', '.join(tenant.name for tenant in self.tenants)
+        return f"User(name='{self.name}', email='{self.email}', tenants=[{tenant_names}], disabled={self.disabled})"
+
     @classmethod
     def get_by_username(cls, username: str):
         user = cls.objects(auth_details__username=username).first()
@@ -168,21 +180,6 @@ def get_unique_countries(tenant):
     return list(unique_countries)
 
 
-def init_vacation_day_type(tenant):
-    if DayType.objects(tenant=tenant).count() == 0:
-        initial_day_types = [
-            DayType(tenant=tenant, name='Vacation', color="#48BF91"),
-        ]
-        DayType.objects.insert(initial_day_types, load_bulk=False)
-
-
-def initialize_database():
-    if Tenant.objects().count() == 0:
-        Tenant().save()
-    for tenant in Tenant.objects:
-        init_vacation_day_type(tenant)
-
-
 def get_team_id_and_member_uid_by_email(tenant, email):
     for team in Team.objects(tenant=tenant):
         for member in team.team_members:
@@ -196,4 +193,3 @@ def get_vacation_day_type_id(tenant):
 
 
 run_migrations()
-initialize_database()

@@ -58,7 +58,6 @@ async def get_tenant(tenant_id: str = Header(None, alias="Tenant-ID")) -> Tenant
 
 def get_current_active_user_check_tenant(current_user: Annotated[User, Depends(get_current_active_user)],
                                          tenant: Annotated[Tenant, Depends(get_tenant)]):
-    print(tenant.to_json())
     if tenant not in current_user.tenants:
         raise HTTPException(status_code=400, detail="User tenant mismatch with current")
     return current_user

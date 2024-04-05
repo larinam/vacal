@@ -29,7 +29,9 @@ export const useApi = () => {
                 return;
             }
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                const error = new Error(`HTTP error! Status: ${response.status}`);
+                error.data = await response.json();
+                throw error;
             }
 
             if (isBlob) {

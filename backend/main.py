@@ -230,11 +230,11 @@ def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
     return holidays_dict
 
 
-# General Application Cofiguration
+# General Application Configuration
 @app.get("/config", response_model=GeneralApplicationConfigDTO)
-async def get_config(tenant: Annotated[Tenant, Depends(get_tenant)]):
+async def get_config():
     return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN),
-            "user_initiated": User.objects(tenants__in=[tenant]).count() > 0}
+            "user_initiated": User.objects().count() > 0}
 
 
 # Authentication
