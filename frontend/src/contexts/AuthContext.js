@@ -15,6 +15,9 @@ export const AuthProvider = ({children}) => {
         if (currentTenant) {
             localStorage.setItem("currentTenant", currentTenant);
         }
+        if (authHeader) {
+            fetchCurrentUser();
+        }
     }, [isAuthenticated, authHeader, currentTenant]);
 
     const fetchCurrentUser = async (token) => {
