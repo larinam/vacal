@@ -51,7 +51,7 @@ if mongo_username:  # connect to some external MongoDB
     connect(mongo_db_name, host=mongo_connection_string)
 else:  # just local MongoDB
     log.info("Connecting to local MongoDB")
-    connect("vacal1")
+    connect("vacal")
 
 
 class Tenant(Document):
