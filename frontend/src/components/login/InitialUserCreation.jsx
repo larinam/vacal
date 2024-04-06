@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useApi} from '../../hooks/useApi';
 import {toast} from "react-toastify";
+import './InitialUserCreation.css';
 
 const InitialUserCreation = () => {
   const navigate = useNavigate();
@@ -32,12 +33,13 @@ const InitialUserCreation = () => {
   return (
     <div className="initialUserCreationContainer">
       <form onSubmit={handleSubmit} className="formStyle">
-        <input type="text" value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder="Tenant Name" required />
-        <input type="text" value={tenantIdentifier} onChange={(e) => setTenantIdentifier(e.target.value)} placeholder="Tenant Identifier" required />
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
-        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
+        <input type="text" className="inputStyle" value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder="Tenant Name" required />
+        <input type="text" className="inputStyle" value={tenantIdentifier} onChange={(e) => setTenantIdentifier(e.target.value)} placeholder="Tenant Identifier" required />
+        <hr width={"100%"}/>
+        <input type="text" className="inputStyle" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
+        <input type="email" className="inputStyle" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
+        <input type="text" className="inputStyle" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
+        <input type="password" className="inputStyle"value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
         <button type="submit" className="buttonStyle">Create Initial User</button>
       </form>
     </div>
