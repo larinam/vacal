@@ -29,7 +29,7 @@ const UserProfileMenu = ({ setShowDropdown }) => {
         <div className="dropdownItem" style={{cursor: 'default'}}>
           <span>{user.name} ({currentTenant})</span>
         </div>
-        <div className="dropdownItem" onClick={() => {
+        <div className="dropdownItem" style={{'user-select': 'none'}} onClick={() => {
           handleLogout();
           navigate('/');
         }}>

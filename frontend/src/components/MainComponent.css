@@ -53,4 +53,5 @@
     justify-content: center;
     /*font-size: 19px; !* Adjust font size as needed *!*/
     cursor: pointer;
+    user-select: none;
 }
