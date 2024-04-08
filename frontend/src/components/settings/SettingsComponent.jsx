@@ -1,6 +1,6 @@
 import React from 'react';
-import SettingsDayTypes from './SettingsDayTypes';
-import SettingsUserManagement from './SettingsUserManagement';
+import DayTypes from './DayTypes';
+import UserManagement from './UserManagement';
 import {NavLink, Route, Routes} from 'react-router-dom';
 import './SettingsComponent.css';
 
@@ -18,10 +18,10 @@ const SettingsComponent = ({ onClose }) => {
             </div>
             <div className="settingsContent">
                 <Routes>
-                    <Route path="daytypes" element={<SettingsDayTypes />} />
-                    <Route path="usermanagement" element={<SettingsUserManagement />} />
+                    <Route path="daytypes" element={<DayTypes />} />
+                    <Route path="usermanagement" element={<UserManagement />} />
                     {/* Redirect to default tab */}
-                    <Route path="/" element={<SettingsDayTypes />} />
+                    <Route path="/" element={<DayTypes />} />
                 </Routes>
             </div>
         </div>

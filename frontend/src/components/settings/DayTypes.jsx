@@ -1,10 +1,10 @@
 import React, {useEffect, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEdit, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
-import './SettingsDayTypes.css';
+import './DayTypes.css';
 import {useApi} from '../../hooks/useApi';
 
-const SettingsDayTypes = () => {
+const DayTypes = () => {
     const [dayTypes, setDayTypes] = useState([]);
     const [newDayType, setNewDayType] = useState({ name: '', color: '' });
     const [editingDayType, setEditingDayType] = useState(null);
@@ -103,4 +103,4 @@ const SettingsDayTypes = () => {
     );
 };
 
-export default SettingsDayTypes;
+export default DayTypes;

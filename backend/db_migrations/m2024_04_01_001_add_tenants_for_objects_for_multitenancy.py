@@ -1,7 +1,10 @@
-from .db_utils import db
+from .db_utils import db, SkipActionException
 
 # Fetch the single tenant
 tenants = list(db['tenant'].find())
+if len(tenants) == 0:
+    raise SkipActionException("No tenants found, the migration will run next time again.")
+
 if len(tenants) == 1:
     tenant_id = tenants[0]['_id']
 else:

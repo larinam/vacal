@@ -17,3 +17,8 @@ else:
     client = MongoClient()
 
 db = client[mongo_db_name]
+
+
+class SkipActionException(Exception):
+    """Exception raised to skip an action at a higher level without rethrowing."""
+    pass

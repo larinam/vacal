@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY ./package*.json ./
 
 # Install any needed packages
-RUN npm install
+RUN npm install --verbose
 
 # Copy the rest of your app's source code from your host to your image filesystem.
 COPY . .

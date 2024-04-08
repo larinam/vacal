@@ -11,6 +11,9 @@ from .model import User, Tenant
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 AUTHENTICATION_SECRET_KEY = os.getenv("AUTHENTICATION_SECRET_KEY")
+if AUTHENTICATION_SECRET_KEY is None:
+    raise EnvironmentError("Required environment variable 'AUTHENTICATION_SECRET_KEY' is not set.")
+
 ALGORITHM = "HS256"
 
 

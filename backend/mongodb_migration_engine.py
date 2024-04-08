@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 from typing import Optional
 
+from backend.db_migrations.db_utils import SkipActionException
 from .db_migrations import db_utils
 
 log = logging.getLogger(__name__)
@@ -65,8 +66,11 @@ def run_migrations():
         migration_info = parse_migration_filename(migration_file)
         if last_migration is None or (migration_info['date'], migration_info['serial']) > (
                 last_migration_info['date'], last_migration_info['serial']):
-            apply_migration(migration_file)
-            migration_collection.insert_one({"filename": migration_info['filename'], "applied": datetime.now()})
+            try:
+                apply_migration(migration_file)
+                migration_collection.insert_one({"filename": migration_info['filename'], "applied": datetime.now()})
+            except SkipActionException as e:
+                log.warning(e)
 
 
 if __name__ == "__main__":

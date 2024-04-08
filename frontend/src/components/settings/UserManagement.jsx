@@ -4,7 +4,7 @@ import UserModal from './UserModal'; // Consider renaming to UserModal
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEdit, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 
-const SettingsUserManagement = () => {
+const UserManagement = () => {
     const { apiCall } = useApi();
     const [users, setUsers] = useState([]);
     const [showUserModal, setShowUserModal] = useState(false);
@@ -93,4 +93,4 @@ const SettingsUserManagement = () => {
     );
 };
 
-export default SettingsUserManagement;
+export default UserManagement;
