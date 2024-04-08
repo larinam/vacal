@@ -2,21 +2,33 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import CalendarComponent from './CalendarComponent';
 import SettingsComponent from './settings/SettingsComponent';
-import ReportFormModal from './ReportFormModal'; // Import the ReportFormModal component
+import ReportFormModal from './ReportFormModal';
 import './MainComponent.css';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCog, faFileExcel, faSignOut} from '@fortawesome/free-solid-svg-icons';
+import {faCog, faFileExcel, faUserCircle} from '@fortawesome/free-solid-svg-icons';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
+import UserProfileMenu from "./UserProfileMenu";
 
 const MainComponent = () => {
     const navigate = useNavigate();
+    const {apiCall, isLoading} = useApi();
+    const { user } = useAuth();
     const [data, setData] = useState(null);
     const [showReportModal, setShowReportModal] = useState(false); // State to control the visibility of the ReportFormModal
-    const {apiCall, isLoading} = useApi();
-    const { handleLogout } = useAuth();
+    const [showDropdown, setShowDropdown] = useState(false);
 
     const abortControllerRef = useRef(null);
+
+    const toggleDropdown = () => setShowDropdown(!showDropdown);
+
+    const getUserInitials = () => {
+        const splitName = user?.name?.toUpperCase().split(' ');
+        if (splitName?.length > 1) {
+            return `${splitName[0][0]}${splitName[1][0]}`;
+        }
+        return splitName?.[0]?.[0] ?? <FontAwesomeIcon icon={faUserCircle} />;
+    };
 
     const fetchData = async () => {
         if (abortControllerRef.current) {
@@ -76,9 +88,10 @@ const MainComponent = () => {
                 <div className="settingsIcon" onClick={() => navigate('/main/settings')} title="Settings">
                     <FontAwesomeIcon icon={faCog}/>
                 </div>
-                <div className="settingsIcon" onClick={() => {handleLogout(); navigate('/')}} title="Logout">
-                    <FontAwesomeIcon icon={faSignOut}/>
+                <div className="userIcon" onClick={toggleDropdown}>
+                    {getUserInitials() || <FontAwesomeIcon icon={faUserCircle} />}
                 </div>
+                {showDropdown && <UserProfileMenu setShowDropdown={setShowDropdown} />}
             </div>
             <div className="content">
                 <Routes>

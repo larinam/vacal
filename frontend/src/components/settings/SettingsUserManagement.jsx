@@ -76,7 +76,7 @@ const SettingsUserManagement = () => {
                             <td>{user.disabled ? 'Disabled' : 'Active'}</td>
                             <td>
                                 <FontAwesomeIcon icon={faEdit} onClick={() => handleEditUserClick(user)}/>
-                                <FontAwesomeIcon icon={faTrashAlt} onClick={() => handleDeleteUser(user.id, user.name)} />
+                                <FontAwesomeIcon icon={faTrashAlt} onClick={() => handleDeleteUser(user._id, user.name)} />
                             </td>
                         </tr>
                     ))}

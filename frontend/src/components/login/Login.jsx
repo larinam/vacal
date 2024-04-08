@@ -12,7 +12,6 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isTelegramEnabled, setIsTelegramEnabled] = useState(false);
-  const [isUserInitiated, setIsUserInitiated] = useState(true);
 
 
   useEffect(() => {
@@ -20,8 +19,7 @@ const Login = () => {
       try {
         const config = await apiCall('/config');
         setIsTelegramEnabled(config.telegram_enabled);
-        setIsUserInitiated(config.user_initialted);
-        if (!isUserInitiated) {
+        if (!config.user_initiated) {
           navigate('/create-initial-user')
         }
       } catch (error) {

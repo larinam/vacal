@@ -18,7 +18,7 @@
 .iconContainer {
     position: fixed;
     top: 10px;
-    right: 10px;
+    right: 20px;
     z-index: 5000;
     display: flex;
     gap: 20px; /* Adjust this value based on desired spacing between icons */
@@ -41,4 +41,17 @@
 
 .loadingIndicator:not(:empty) {
     opacity: 1;
+}
+
+.userIcon {
+    /*width: 30px; !* Adjust size as needed *!*/
+    /*height: 30px; !* Adjust size as needed *!*/
+    background-color: #f0f0f0; /* Background color for the icon */
+    border-radius: 30px; /* Makes it circular */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /*font-size: 19px; !* Adjust font size as needed *!*/
+    cursor: pointer;
+    user-select: none;
 }

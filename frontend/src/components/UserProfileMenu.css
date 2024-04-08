@@ -1,0 +1,32 @@
+.dropdownMenu {
+    position: absolute;
+    right: 0;
+    top: 30px; /* Position below the user icon */
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    width: 200px; /* Adjust width as needed */
+    z-index: 5001; /* Above the userIcon */
+}
+
+.dropdownItem {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between icon and text */
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dropdownItem:hover {
+    background-color: #f7f7f7; /* Light grey background on hover */
+}
+
+.dropdownItem span {
+    flex-grow: 1;
+}
+
+.dropdownItem FontAwesomeIcon {
+    min-width: 20px; /* Ensure icons align */
+}

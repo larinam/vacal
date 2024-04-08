@@ -1,10 +1,10 @@
-import { useAuth } from '../contexts/AuthContext';
-import { useLoading } from './useLoading';
+import {useAuth} from '../contexts/AuthContext';
+import {useLoading} from './useLoading';
 import {useNavigate} from "react-router-dom";
 
 export const useApi = () => {
     const [isLoading, startLoading, stopLoading] = useLoading();
-    const { authHeader, handleLogout } = useAuth();
+    const { authHeader, handleLogout, currentTenant } = useAuth();
     const navigate = useNavigate();
 
     const apiCall = async (url, method = 'GET', body = null, isBlob = false, signal = null) => {
@@ -15,6 +15,7 @@ export const useApi = () => {
             headers: {
                 ...(authHeader ? { 'Authorization': authHeader } : {}),
                 ...(!isBlob && { 'Content-Type': 'application/json' }), // Set content type to JSON unless it's a blob
+                ...(currentTenant ? { 'Tenant-ID': currentTenant } : {}),
             },
             ...(body && { body: JSON.stringify(body) }),
             signal,
@@ -28,7 +29,9 @@ export const useApi = () => {
                 return;
             }
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                const error = new Error(`HTTP error! Status: ${response.status}`);
+                error.data = await response.json();
+                throw error;
             }
 
             if (isBlob) {

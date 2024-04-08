@@ -1,10 +1,11 @@
 # vacal - Vacation Calendar
 
-A modern tool to manage calendar scheduling business processes.
+A modern tool for managing calendar-based scheduling processes.
 
-* Manage teams and team members.
-* Manage vacation days.
-* Visualize vacation days, weekends and public holidays.
+* Manage teams and team members effectively.
+* Organize and track vacation days.
+* Visualize vacation days, weekends, and public holidays in an intuitive interface.
+* Ideal for both local and distributed teams, enhancing team coordination and planning.
 
 ## Technologies
 * Uses Python [FastAPI](https://github.com/tiangolo/fastapi) on the backend and [MongoDB](https://github.com/mongodb/mongo) as a storage.

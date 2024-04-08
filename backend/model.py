@@ -54,14 +54,42 @@ else:  # just local MongoDB
     connect("vacal")
 
 
+class Tenant(Document):
+    name = StringField(required=True, unique=True)
+    identifier = StringField(required=True, unique=True)
+
+    meta = {
+        "indexes": [
+            "identifier",
+        ],
+        "index_background": True
+    }
+
+
 def generate_random_hex_color():
     """Generate a random hex color code."""
     return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
 
 class DayType(Document):
-    name = StringField(required=True)
+    tenant = ReferenceField(Tenant, required=True)
+    name = StringField(required=True, unique_with="tenant")
     color = StringField(default=generate_random_hex_color)
+
+    meta = {
+        "indexes": [
+            "tenant",
+        ],
+        "index_background": True
+    }
+
+    @classmethod
+    def init_vacation_day_type(cls, tenant):
+        if cls.objects(tenant=tenant).count() == 0:
+            initial_day_types = [
+                cls(tenant=tenant, name='Vacation', color="#48BF91"),
+            ]
+            cls.objects.insert(initial_day_types, load_bulk=False)
 
 
 class TeamMember(EmbeddedDocument):
@@ -76,9 +104,17 @@ class TeamMember(EmbeddedDocument):
 
 
 class Team(Document):
-    name = StringField(required=True)
+    tenant = ReferenceField(Tenant, required=True)
+    name = StringField(required=True, unique_with="tenant")
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
+
+    meta = {
+        "indexes": [
+            "tenant",
+        ],
+        "index_background": True
+    }
 
 
 class AuthDetails(EmbeddedDocument):
@@ -91,6 +127,7 @@ class AuthDetails(EmbeddedDocument):
 
 
 class User(Document):
+    tenants = ListField(ReferenceField(Tenant, required=True))
     name = StringField(required=True)
     email = EmailField(unique=True, required=False, sparse=True, default=None)
     auth_details = EmbeddedDocumentField(AuthDetails)
@@ -101,10 +138,15 @@ class User(Document):
             "email",
             "auth_details.telegram_id",
             "auth_details.telegram_username",
-            "auth_details.username"
+            "auth_details.username",
+            "tenants"
         ],
         "index_background": True
     }
+
+    def __str__(self):
+        tenant_names = ', '.join(tenant.name for tenant in self.tenants)
+        return f"User(name='{self.name}', email='{self.email}', tenants=[{tenant_names}], disabled={self.disabled})"
 
     @classmethod
     def get_by_username(cls, username: str):
@@ -130,33 +172,24 @@ class User(Document):
         return user
 
 
-def get_unique_countries():
+def get_unique_countries(tenant):
     unique_countries = set()
-    for team in Team.objects:
+    for team in Team.objects(tenant=tenant):
         for member in team.team_members:
             unique_countries.add(member.country)
     return list(unique_countries)
 
 
-def initialize_database():
-    if DayType.objects.count() == 0:
-        initial_day_types = [
-            DayType(name='Vacation', color="#48BF91"),
-        ]
-        DayType.objects.insert(initial_day_types, load_bulk=False)
-
-
-def get_team_id_and_member_uid_by_email(email):
-    for team in Team.objects:
+def get_team_id_and_member_uid_by_email(tenant, email):
+    for team in Team.objects(tenant=tenant):
         for member in team.team_members:
             if member.email == email:
                 return str(team.id), str(member.uid)
     return None, None
 
 
-def get_vacation_date_type_id():
-    return str(DayType.objects(name='Vacation').first().id)
+def get_vacation_day_type_id(tenant):
+    return str(DayType.objects(tenant=tenant, name='Vacation').first().id)
 
 
 run_migrations()
-initialize_database()
