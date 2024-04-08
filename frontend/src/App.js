@@ -2,8 +2,8 @@ import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom
 import {ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MainComponent from './components/MainComponent';
-import Login from './components/login/Login';
-import InitialUserCreation from './components/login/InitialUserCreation';
+import Login from './components/auth/Login';
+import InitialUserCreation from './components/auth/InitialUserCreation';
 import './styles.css';
 import {useAuth} from './contexts/AuthContext';
 
