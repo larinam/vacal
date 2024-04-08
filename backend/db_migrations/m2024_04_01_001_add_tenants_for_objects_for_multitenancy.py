@@ -10,6 +10,14 @@ if len(tenants) == 1:
 else:
     raise Exception("This migration is designed to work with exactly one tenant.")
 
+# The Vacation was created for the tenant automatically on the tenant creation, as this is
+# a migration of the existing setup, it already has Vacation DayType, so we need to remove newly created one.
+# Check and delete the existing 'Vacation' DayType for the specified tenant
+vacation_day_type = db['day_type'].find_one({'name': 'Vacation', 'tenant': tenant_id})
+if vacation_day_type:
+    db['day_type'].delete_one({'_id': vacation_day_type['_id']})
+    print(f"Deleted existing 'Vacation' DayType for tenant ID {tenant_id}")
+
 # Update DayTypes and Teams with the single tenant
 for collection_name in ['day_type', 'team']:
     result = db[collection_name].update_many(
