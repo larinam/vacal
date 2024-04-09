@@ -24,8 +24,11 @@ mongo_password = os.getenv("MONGO_PASSWORD")
 mongo_host = os.getenv("MONGO_HOST")
 mongo_port = os.getenv("MONGO_PORT")
 mongo_db_name = os.getenv("MONGO_DB_NAME")
+mongo_uri = os.getenv("MONGO_URI")
 
-if mongo_username:  # connect to some external MongoDB
+if mongo_uri:
+    connect(mongo_db_name, host=mongo_uri)
+elif mongo_username:  # connect to some external MongoDB
     if os.getenv("MONGO_INITDB_ROOT_USERNAME") and os.getenv("MONGO_INITDB_ROOT_PASSWORD"):
         log.info("Initiating MongoDB user")
         admin_db_uri = f"mongodb://{os.getenv('MONGO_INITDB_ROOT_USERNAME')}:{os.getenv('MONGO_INITDB_ROOT_PASSWORD')}@{mongo_host}:{mongo_port}/admin"
