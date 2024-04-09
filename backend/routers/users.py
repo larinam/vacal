@@ -166,6 +166,11 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
+    # One should not be able to delete the last user in the tenant.
+    # There should be another option to destroy the whole tenant with the last user.
+    if User.objects(tenants__in=[tenant]).count() == 1:
+        raise HTTPException(status_code=400, detail="Can't delete the last user in the workspace")
+
     result = User.objects(tenants__in=[tenant], id=user_id).delete()
     if result == 0:
         raise HTTPException(status_code=404, detail="User not found")
