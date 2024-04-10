@@ -36,10 +36,10 @@ const InitialUserCreation = () => {
         <input type="text" className="inputStyle" value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder="Workspace Name" required />
         <input type="text" className="inputStyle" value={tenantIdentifier} onChange={(e) => setTenantIdentifier(e.target.value)} placeholder="Workspace Code" required />
         <hr width={"100%"}/>
-        <input type="text" className="inputStyle" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
-        <input type="email" className="inputStyle" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
-        <input type="text" name="username" className="inputStyle" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
-        <input type="password" name="new-password" autocomplete="new-password" className="inputStyle" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
+        <input type="text" autoComplete={"name"} className="inputStyle" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
+        <input type="email" name="email" autoComplete={"work email"} className="inputStyle" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
+        <input type="text" name="username" autoComplete={"username"} className="inputStyle" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
+        <input type="password" name="new-password" autoComplete={"new-password"} className="inputStyle" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
         <button type="submit" className="buttonStyle">Create Your Workspace</button>
       </form>
     </div>
