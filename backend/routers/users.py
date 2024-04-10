@@ -7,7 +7,7 @@ from starlette import status
 from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant
 from ..model import User, AuthDetails, Tenant, DayType
 
-router = APIRouter()
+router = APIRouter(prefix="/users", tags=["User Operations"])
 
 
 class TenantDTO(BaseModel):
@@ -95,7 +95,7 @@ class PasswordUpdateModel(BaseModel):
 
 
 # User Management
-@router.post("/users/create-initial")
+@router.post("/create-initial")
 async def create_initial_user(user_creation: UserCreationModel):
     tenant_data = user_creation.tenant
     # Retrieve or create the tenant
@@ -126,7 +126,14 @@ async def create_initial_user(user_creation: UserCreationModel):
     return {"message": "Initial user created successfully"}
 
 
-@router.post("/users/")
+@router.get("/")
+async def read_users(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                     tenant: Annotated[Tenant, Depends(get_tenant)]):
+    users = User.objects(tenants__in=[tenant]).all()
+    return [mongo_to_pydantic(user, UserWithoutTenantsDTO) for user in users]
+
+
+@router.post("/")
 async def create_user(user_creation: UserCreationModel,
                       current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
@@ -142,7 +149,7 @@ async def create_user(user_creation: UserCreationModel,
     return {"message": "User created successfully"}
 
 
-@router.put("/users/{user_id}")
+@router.put("/{user_id}")
 async def update_user(user_id: str, user_update: UserUpdateModel,
                       current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
@@ -163,7 +170,7 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
     return {"message": "User updated successfully"}
 
 
-@router.delete("/users/{user_id}")
+@router.delete("/{user_id}")
 async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
     # One should not be able to delete the last user in the tenant.
@@ -178,7 +185,12 @@ async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_cu
     return {"message": "User deleted successfully"}
 
 
-@router.post("/users/me/password")
+@router.get("/me/")
+async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
+    return mongo_to_pydantic(current_user, UserDTO)
+
+
+@router.post("/me/password")
 async def update_password(password_update: PasswordUpdateModel,
                           current_user: Annotated[User, Depends(get_current_active_user)]):
     # Verify current password
@@ -199,15 +211,3 @@ async def update_password(password_update: PasswordUpdateModel,
     current_user.hash_password(password_update.new_password)
     current_user.save()
     return {"message": "Password updated successfully"}
-
-
-@router.get("/users/")
-async def read_users(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                     tenant: Annotated[Tenant, Depends(get_tenant)]):
-    users = User.objects(tenants__in=[tenant]).all()
-    return [mongo_to_pydantic(user, UserWithoutTenantsDTO) for user in users]
-
-
-@router.get("/users/me/")
-async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
-    return mongo_to_pydantic(current_user, UserDTO)
