@@ -98,6 +98,7 @@ log = logging.getLogger(__name__)
 class GeneralApplicationConfigDTO(BaseModel):
     telegram_enabled: bool
     user_initiated: bool
+    multitenancy_enabled: bool = False
 
 
 class DayTypeWriteDTO(BaseModel):
@@ -241,7 +242,8 @@ async def get_config():
     tenant_exists = Tenant.objects().first() is not None
     user_exists = User.objects().first() is not None
     return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN),
-            "user_initiated": tenant_exists and user_exists}
+            "user_initiated": tenant_exists and user_exists,
+            "multitenancy_enabled": os.getenv("MULTITENANCY_ENABLED", False)}
 
 
 # Authentication

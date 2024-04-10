@@ -6,11 +6,12 @@ import TelegramLogin from "./TelegramLogin";
 import {useApi} from "../../hooks/useApi";
 
 const Login = () => {
-  const { handleLogin } = useAuth();
+  const {handleLogin} = useAuth();
   const navigate = useNavigate();
-  const { apiCall } = useApi();
+  const {apiCall} = useApi();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isMultitenancyEnabled, setIsMultitenancyEnabled] = useState(false);
   const [isTelegramEnabled, setIsTelegramEnabled] = useState(false);
 
 
@@ -19,6 +20,7 @@ const Login = () => {
       try {
         const config = await apiCall('/config');
         setIsTelegramEnabled(config.telegram_enabled);
+        setIsMultitenancyEnabled(config.multitenancy_enabled);
         if (!config.user_initiated) {
           navigate('/create-initial-user')
         }
@@ -38,6 +40,14 @@ const Login = () => {
 
   return (
     <div className="loginContainer">
+      {isMultitenancyEnabled && (
+        <button
+          className="signUpButton"
+          onClick={() => navigate('/create-initial-user')}
+        >
+          Sign up
+        </button>
+      )}
       <form onSubmit={handleSubmit} className="formStyle">
         <input
           type="text"
@@ -55,9 +65,9 @@ const Login = () => {
           placeholder="Password"
           className="inputStyle"
         />
-        <button type="submit" className="buttonStyle">Login</button>
+        <button type="submit" className="buttonStyle">Log in</button>
       </form>
-      {isTelegramEnabled && <TelegramLogin />}
+      {isTelegramEnabled && <TelegramLogin/>}
     </div>
   );
 };
