@@ -221,9 +221,14 @@ def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
         country_holidays = {}
         country_alpha_2 = pycountry.countries.get(name=country).alpha_2
         try:
-            country_holidays = holidays.country_holidays(
+            country_holidays_obj = holidays.country_holidays(
                 country_alpha_2, years=[year - 1, year, year + 1]
             )
+            # Filtering out holidays with "Söndag" for Sweden
+            if country == "Sweden":
+                country_holidays = {date: name for date, name in country_holidays_obj.items() if "Söndag" != name}
+            else:
+                country_holidays = dict(country_holidays_obj)
         except NotImplementedError as e:  # there are no holidays for some countries, but it's fine
             log.warning(e, exc_info=e)
         holidays_dict.update({country: country_holidays})
