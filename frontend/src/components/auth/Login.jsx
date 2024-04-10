@@ -41,6 +41,7 @@ const Login = () => {
       <form onSubmit={handleSubmit} className="formStyle">
         <input
           type="text"
+          name="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Username"
@@ -48,6 +49,7 @@ const Login = () => {
         />
         <input
           type="password"
+          name="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
