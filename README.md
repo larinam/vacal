@@ -1,6 +1,6 @@
 # vacal - Vacation Calendar
 
-A modern tool for managing calendar-based scheduling processes.
+[Vacal](https://vacal.antonlarin.com) is a modern tool for managing calendar-based scheduling processes.
 
 * Manage teams and team members effectively.
 * Organize and track vacation days.
