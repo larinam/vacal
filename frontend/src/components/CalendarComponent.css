@@ -200,13 +200,11 @@
 .modal-content {
     background-color: white;
     padding: 20px;
-    border-radius: 5px;
     width: 300px; /* Adjust the width as needed */
 }
 
 .modal-content form input {
     padding: 8px;
-    border-radius: 4px;
     border: 1px solid #ccc;
 }
 
@@ -218,7 +216,6 @@
 
 .modal-content form button {
     padding: 8px 15px; /* Adjust padding as needed */
-    border-radius: 4px;
     border: none;
     cursor: pointer;
 }

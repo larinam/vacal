@@ -1,5 +1,8 @@
 button {
-  user-select: none;
+    user-select: none;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
 }
 
 form {
@@ -11,6 +14,7 @@ form {
 
 form input[type="text"], form input[type="password"], form input[type="email"] {
     padding: 8px;
+    border-radius: 6px;
 }
 
 form button {
@@ -20,6 +24,7 @@ form button {
     color: white;
     border: none;
     cursor: pointer;
+    border-radius: 6px;
 }
 
 form button:hover {

@@ -56,6 +56,7 @@ const Login = () => {
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Username"
           className="inputStyle"
+          autoFocus={true}
         />
         <input
           type="password"

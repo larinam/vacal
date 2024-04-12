@@ -30,3 +30,26 @@
 .buttonStyle {
     margin-top: 20px; /* Increased top margin for separation from inputs */
 }
+
+.logInButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.logInButton:hover {
+  background-color: #45a049;
+}
+
+.createWorkspaceButton {
+    background-color: #007bff;
+}
+
+.createWorkspaceButton:hover {
+  background-color: #0056b3;
+}

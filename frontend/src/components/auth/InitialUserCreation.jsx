@@ -6,7 +6,7 @@ import './InitialUserCreation.css';
 
 const InitialUserCreation = () => {
   const navigate = useNavigate();
-  const { apiCall } = useApi();
+  const {apiCall} = useApi();
   const [tenantName, setTenantName] = useState('');
   const [tenantIdentifier, setTenantIdentifier] = useState('');
   const [name, setName] = useState('');
@@ -16,9 +16,9 @@ const InitialUserCreation = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const tenant = { name: tenantName, identifier: tenantIdentifier };
+    const tenant = {name: tenantName, identifier: tenantIdentifier};
     try {
-      await apiCall('/users/create-initial', 'POST', { tenant, name, email, username, password });
+      await apiCall('/users/create-initial', 'POST', {tenant, name, email, username, password});
       navigate('/login');
     } catch (error) {
       console.error('Error creating initial user:', error);
@@ -32,15 +32,27 @@ const InitialUserCreation = () => {
 
   return (
     <div className="initialUserCreationContainer">
+      <button
+        className="logInButton"
+        onClick={() => navigate('/login')}
+      >
+        Log in
+      </button>
       <form onSubmit={handleSubmit} className="formStyle">
-        <input type="text" className="inputStyle" value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder="Workspace Name" required />
-        <input type="text" className="inputStyle" value={tenantIdentifier} onChange={(e) => setTenantIdentifier(e.target.value)} placeholder="Workspace Code" required />
+        <input type="text" className="inputStyle" value={tenantName} onChange={(e) => setTenantName(e.target.value)}
+               placeholder="Workspace Name" required autoFocus={true}/>
+        <input type="text" className="inputStyle" value={tenantIdentifier}
+               onChange={(e) => setTenantIdentifier(e.target.value)} placeholder="Workspace Code" required/>
         <hr width={"100%"}/>
-        <input type="text" autoComplete={"name"} className="inputStyle" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
-        <input type="email" name="email" autoComplete={"work email"} className="inputStyle" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
-        <input type="text" name="username" autoComplete={"username"} className="inputStyle" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
-        <input type="password" name="new-password" autoComplete={"new-password"} className="inputStyle" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
-        <button type="submit" className="buttonStyle">Create Your Workspace</button>
+        <input type="text" autoComplete={"name"} className="inputStyle" value={name}
+               onChange={(e) => setName(e.target.value)} placeholder="Name" required/>
+        <input type="email" name="email" autoComplete={"work email"} className="inputStyle" value={email}
+               onChange={(e) => setEmail(e.target.value)} placeholder="Email" required/>
+        <input type="text" name="username" autoComplete={"username"} className="inputStyle" value={username}
+               onChange={(e) => setUsername(e.target.value)} placeholder="Username" required/>
+        <input type="password" name="new-password" autoComplete={"new-password"} className="inputStyle" value={password}
+               onChange={(e) => setPassword(e.target.value)} placeholder="Password" required/>
+        <button type="submit" className="buttonStyle createWorkspaceButton">Create Workspace</button>
       </form>
     </div>
   );
