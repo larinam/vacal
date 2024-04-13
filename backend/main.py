@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import hashlib
 import hmac
@@ -26,6 +27,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field
 from pydantic.functional_validators import field_validator, model_validator
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
@@ -324,9 +326,12 @@ async def telegram_login(auth_data: TelegramAuthData):
 @app.get("/")
 async def read_root(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                     tenant: Annotated[Tenant, Depends(get_tenant)]):
-    return {
-        "teams": list(map(lambda x: mongo_to_pydantic(x, TeamReadDTO), Team.objects(tenant=tenant).order_by("name"))),
-        "holidays": get_holidays(tenant)} | await get_all_day_types(current_user, tenant)
+    start_time = time.perf_counter()
+    teams_list = Team.objects(tenant=tenant).order_by("name")
+    teams = {"teams": await asyncio.gather(
+        *(run_in_threadpool(mongo_to_pydantic, team, TeamReadDTO) for team in teams_list))}
+    print("teams preparation " + str(time.perf_counter() - start_time))
+    return teams | {"holidays": get_holidays(tenant)} | await get_all_day_types(current_user, tenant)
 
 
 @app.post("/teams/{team_id}/members/")
