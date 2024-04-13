@@ -185,7 +185,7 @@ async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_cu
     return {"message": "User deleted successfully"}
 
 
-@router.get("/me/")
+@router.get("/me")
 async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
     return mongo_to_pydantic(current_user, UserDTO)
 
@@ -211,3 +211,15 @@ async def update_password(password_update: PasswordUpdateModel,
     current_user.hash_password(password_update.new_password)
     current_user.save()
     return {"message": "Password updated successfully"}
+
+
+@router.get("/me/remove tenant/{tenant_id}")
+async def remove_tenant(tenant_id: str, current_user: Annotated[User, Depends(get_current_active_user)]):
+    try:
+        current_user.remove_tenant(Tenant.objects(identifier=tenant_id).first())
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    return {"message": "Tenant removed."}

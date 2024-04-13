@@ -174,6 +174,13 @@ class User(Document):
         user = cls.objects(auth_details__telegram_username=username).first()
         return user
 
+    def remove_tenant(self, tenant):
+        if len(self.tenants) <= 1:
+            raise RuntimeError("The last tenant can't be removed from the user. User should have at least one attached "
+                               "tenant.")
+        self.tenants.remove(tenant)
+        self.save()
+
 
 def get_unique_countries(tenant):
     unique_countries = set()
