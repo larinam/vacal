@@ -1,11 +1,14 @@
 import datetime
 import os
+from contextvars import ContextVar
 from typing import Annotated
 
 import jwt
 from fastapi import HTTPException, Depends, Header
 from fastapi.security import OAuth2PasswordBearer
 from starlette import status
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 from .model import User, Tenant
 
@@ -73,3 +76,16 @@ def mongo_to_pydantic(mongo_document, pydantic_model):
         document_dict['_id'] = str(document_dict['_id'])
     # Create a Pydantic model instance from the dictionary
     return pydantic_model(**document_dict)
+
+
+tenant_var: ContextVar[Tenant] = ContextVar("tenant_var")
+
+
+class TenantMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        tenant_identifier = request.headers.get("Tenant-ID")
+        tenant = Tenant.objects(identifier=tenant_identifier).first()
+        token = tenant_var.set(tenant)
+        response = await call_next(request)
+        tenant_var.reset(token)
+        return response
