@@ -10,6 +10,8 @@ form {
     display: flex;
     flex-direction: column;
     gap: 10px; /* Spacing between form elements */
+    background-color: white;
+    border-radius: 5px;
 }
 
 form input[type="text"], form input[type="password"], form input[type="email"] {

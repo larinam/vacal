@@ -201,6 +201,7 @@
     background-color: white;
     padding: 20px;
     width: 300px; /* Adjust the width as needed */
+    border-radius: 5px;
 }
 
 .modal-content form input {

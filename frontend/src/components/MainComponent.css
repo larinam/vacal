@@ -46,7 +46,7 @@
 .userIcon {
     /*width: 30px; !* Adjust size as needed *!*/
     /*height: 30px; !* Adjust size as needed *!*/
-    background-color: #f0f0f0; /* Background color for the icon */
+    background-color: #f0f0f0;
     border-radius: 30px; /* Makes it circular */
     display: flex;
     align-items: center;
