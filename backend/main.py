@@ -303,7 +303,7 @@ async def read_root(current_user: Annotated[User, Depends(get_current_active_use
     return teams | {"holidays": get_holidays(tenant)} | await get_all_day_types(current_user, tenant)
 
 
-@app.post("/teams/{team_id}/members/")
+@app.post("/teams/{team_id}/members")
 async def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
                           current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                           tenant: Annotated[Tenant, Depends(get_tenant)]):
@@ -315,7 +315,7 @@ async def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
     return {"message": "Team member created successfully"}
 
 
-@app.post("/teams/")
+@app.post("/teams")
 async def add_team(team_dto: TeamWriteDTO, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                    tenant: Annotated[Tenant, Depends(get_tenant)]):
     team_data = team_dto.model_dump()
@@ -437,7 +437,7 @@ def auto_adjust_column_width(ws):
         ws.column_dimensions[get_column_letter(column)].width = max_length
 
 
-@app.get("/export-vacations/")
+@app.get("/export-vacations")
 async def export_vacations(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                            tenant: Annotated[Tenant, Depends(get_tenant)],
                            start_date: datetime.date = Query(...), end_date: datetime.date = Query(...)):

@@ -49,7 +49,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
         e.preventDefault();
         console.log(editingUser)
         const method = editingUser ? 'PUT' : 'POST';
-        const url = editingUser ? `/users/${editingUser._id}` : '/users/';
+        const url = editingUser ? `/users/${editingUser._id}` : '/users';
         if (editingUser) {
             // Exclude password when editing
             delete newUserData.password;

@@ -21,7 +21,7 @@ export const AuthProvider = ({children}) => {
     }, [isAuthenticated, authHeader, currentTenant]);
 
     const fetchCurrentUser = async (token) => {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/users/me/`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/users/me`, {
             headers: {
                 'Authorization': token || authHeader  // Use the token if provided, otherwise fallback to authHeader
             }

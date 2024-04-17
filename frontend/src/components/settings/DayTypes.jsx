@@ -11,7 +11,7 @@ const DayTypes = () => {
     const { apiCall } = useApi();
 
     const refreshDayTypes = async () => {
-        const data = await apiCall('/daytypes/');
+        const data = await apiCall('/daytypes');
         setDayTypes(data.day_types);
     };
 

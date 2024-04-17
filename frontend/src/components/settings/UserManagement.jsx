@@ -12,7 +12,7 @@ const UserManagement = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await apiCall('/users/');
+            const response = await apiCall('/users');
             setUsers(response);
         } catch (error) {
             console.error('Error fetching users:', error);
