@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import HTTPException, APIRouter
@@ -20,6 +21,7 @@ class DayTypeReadDTO(DayTypeWriteDTO):
     id: str = Field(None, alias='_id')
 
     @classmethod
+    @lru_cache(maxsize=8192)
     def from_mongo_reference_field(cls, day_type_document_reference):
         if day_type_document_reference:
             day_type_document = DayType.objects.get(tenant=tenant_var.get(), id=day_type_document_reference)
@@ -63,6 +65,7 @@ async def update_day_type(day_type_id: str, day_type_dto: DayTypeWriteDTO,
     day_type.name = day_type_dto.name
     day_type.color = day_type_dto.color
     day_type.save()
+    DayTypeReadDTO.from_mongo_reference_field.cache_clear()
     return {"day_types": [mongo_to_pydantic(day_type, DayTypeReadDTO) for day_type in
                           DayType.objects(tenant=tenant).order_by("name")]}
 
@@ -89,5 +92,5 @@ async def delete_day_type(day_type_id: str,
     result = DayType.objects(tenant=tenant, id=day_type_id).delete()
     if result == 0:
         raise HTTPException(status_code=404, detail="DayType not found")
-
+    DayTypeReadDTO.from_mongo_reference_field.cache_clear()
     return {"message": "DayType deleted successfully"}
