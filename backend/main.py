@@ -512,6 +512,13 @@ async def add_days(team_id: str, team_member_id: str, new_days: Dict[str, List[s
     return {"message": "Days added successfully"}
 
 
+def validate_date(date_str):
+    try:
+        datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Can't parse date {date_str}")
+
+
 @app.put("/teams/{team_id}/members/{team_member_id}/days")
 async def update_days(team_id: str, team_member_id: str, days: Dict[str, List[str]],
                       current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
@@ -528,6 +535,7 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, List[st
     # Convert the day type IDs to DayType references
     updated_days = {}
     for date_str, day_type_ids in days.items():
+        validate_date(date_str)
         day_types = [DayType.objects(tenant=tenant, id=day_type_id).first() for day_type_id in day_type_ids]
         updated_days[date_str] = sorted(day_types, key=lambda day_type: day_type.name)
 
