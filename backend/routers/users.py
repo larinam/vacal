@@ -126,7 +126,7 @@ async def create_initial_user(user_creation: UserCreationModel):
     return {"message": "Initial user created successfully"}
 
 
-@router.get("/")
+@router.get("")
 async def read_users(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                      tenant: Annotated[Tenant, Depends(get_tenant)]):
     users = User.objects(tenants__in=[tenant]).all()

@@ -31,7 +31,7 @@ class DayTypeReadDTO(DayTypeWriteDTO):
         return None
 
 
-@router.get("/")
+@router.get("")
 async def get_all_day_types(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                             tenant: Annotated[Tenant, Depends(get_tenant)]):
     vacation = DayType.objects(tenant=tenant, name="Vacation").first()
