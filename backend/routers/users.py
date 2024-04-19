@@ -133,7 +133,7 @@ async def read_users(current_user: Annotated[User, Depends(get_current_active_us
     return [mongo_to_pydantic(user, UserWithoutTenantsDTO) for user in users]
 
 
-@router.post("/")
+@router.post("")
 async def create_user(user_creation: UserCreationModel,
                       current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
@@ -142,7 +142,7 @@ async def create_user(user_creation: UserCreationModel,
     user.name = user_creation.name
     user.email = user_creation.email
     user.auth_details = AuthDetails(username=user_creation.username,
-                                    telegram_username=user_creation.telegram_username)
+                                    telegram_username=user_creation.telegram_username if user_creation.telegram_username else None)
     user.hash_password(user_creation.password)
     user.save()
 

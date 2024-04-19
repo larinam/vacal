@@ -41,7 +41,7 @@ async def get_all_day_types(current_user: Annotated[User, Depends(get_current_ac
     return {"day_types": [mongo_to_pydantic(day_type, DayTypeReadDTO) for day_type in day_types]}
 
 
-@router.post("/")
+@router.post("")
 async def create_day_type(day_type_dto: DayTypeWriteDTO,
                           current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                           tenant: Annotated[Tenant, Depends(get_tenant)]):

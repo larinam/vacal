@@ -76,6 +76,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
             <div className="modal-content" ref={modalContentRef}>
                 <form onSubmit={handleUserFormSubmit}>
                     <input
+                        autoFocus={true}
                         type="text"
                         value={newUserData.name}
                         onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
@@ -99,6 +100,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                     { !editingUser && (
                         <input
                             type="password"
+                            autoComplete={"new-password"}
                             value={newUserData.password}
                             onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
                             placeholder="Password"
