@@ -56,7 +56,7 @@ export const AuthProvider = ({children}) => {
             setIsAuthenticated(true);
             await fetchCurrentUser(newAuthHeader);
         } else {
-            alert('Authentication failed');
+            toast('Authentication failed');
             setIsAuthenticated(false);
             setAuthHeader('');
         }
