@@ -76,7 +76,12 @@ export const AuthProvider = ({children}) => {
             setAuthHeader(`Bearer ${data.access_token}`);
             setIsAuthenticated(true);
         } else {
-            toast('Authentication failed');
+            if (response.status === 404) {
+                const errorData = await response.json();
+                toast(`Authentication failed: ${errorData.detail}`);
+            } else {
+                toast('Authentication failed');
+            }
             setIsAuthenticated(false);
             setAuthHeader('');
         }
