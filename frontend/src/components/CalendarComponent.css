@@ -173,6 +173,7 @@
 .current-day-number {
     filter: brightness(90%); /* Adjust brightness for darker effect */
     font-weight: bold;
+    user-select: none;
 }
 
 .dragging {
@@ -233,11 +234,15 @@
 th.week-number-header {
     font-weight: normal;
     font-size: 0.75em;
+    cursor: default;
+    user-select: none;
 }
 
 th.day-number-header {
     font-weight: normal;
     font-size: 0.9em;
+    cursor: default;
+    user-select: none;
 }
 
 .calendar-table thead tr th {
