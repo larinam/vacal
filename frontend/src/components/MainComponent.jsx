@@ -5,7 +5,7 @@ import SettingsComponent from './settings/SettingsComponent';
 import ReportFormModal from './ReportFormModal';
 import './MainComponent.css';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCog, faFileExcel, faUserCircle} from '@fortawesome/free-solid-svg-icons';
+import {faFileExcel, faUserCircle} from '@fortawesome/free-solid-svg-icons';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import UserProfileMenu from "./UserProfileMenu";
@@ -84,9 +84,6 @@ const MainComponent = () => {
             <div className="iconContainer">
                 <div className="reportIcon" onClick={openReportModal} title="Generate Report">
                     <FontAwesomeIcon icon={faFileExcel}/>
-                </div>
-                <div className="settingsIcon" onClick={() => navigate('/main/settings')} title="Settings">
-                    <FontAwesomeIcon icon={faCog}/>
                 </div>
                 <div className="userIcon" onClick={toggleDropdown}>
                     {getUserInitials() || <FontAwesomeIcon icon={faUserCircle} />}
