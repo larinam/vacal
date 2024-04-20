@@ -235,6 +235,11 @@ th.week-number-header {
     font-size: 0.75em;
 }
 
+th.day-number-header {
+    font-weight: normal;
+    font-size: 0.9em;
+}
+
 .calendar-table thead tr th {
     border-bottom: 0;
     border-top: 0;
