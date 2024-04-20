@@ -552,7 +552,7 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
                                                     return (
                                                         <td
                                                             key={day.day}
-                                                            onClick={(e) => handleDayClick(team._id, member.uid, day, e)}
+                                                            onClick={(e) => handleDayClick(team._id, member.uid, day.day, e)}
                                                             title={getCellTitle(member, day.day)}
                                                             className={isHolidayDay ? 'holiday-cell' : ''}
                                                             style={generateGradientStyle(dateDayTypes)}
