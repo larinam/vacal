@@ -1,3 +1,4 @@
+import {getISOWeek} from 'date-fns';
 import React, {useEffect, useRef, useState} from 'react';
 import {Tooltip} from 'react-tooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -110,7 +111,40 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
     }, [showContextMenu, contextMenuPosition]);
 
     const daysInMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0).getDate();
-    const daysHeader = Array.from({ length: daysInMonth }, (_, i) => i + 1); // [1, 2, ..., 30/31]
+    const daysHeader = Array.from({ length: daysInMonth }, (_, i) => {
+        const day = i + 1;
+        const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day);
+        return { day, week: getISOWeek(date) };
+    });
+
+    const weekDays = Array.from({ length: daysInMonth }, (_, i) => {
+        const day = i + 1;
+        const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day);
+        return { day, week: getISOWeek(date) };
+    });
+
+    let weekSpans = weekDays.reduce((acc, curr) => {
+        acc.set(curr.week, (acc.get(curr.week) || 0) + 1);
+        return acc;
+    }, new Map());
+
+    const isWeek1InDecember = weekDays.some(day => day.week === 1 && displayMonth.getMonth() === 11);
+
+    if (isWeek1InDecember) {
+        const sortedWeeks = Array.from(weekSpans.keys()).sort((a, b) => {
+            if (a === 1) return 1;  // Push week 1 to the end if it's part of the list
+            if (b === 1) return -1; // Push week 1 to the end
+            return a - b;
+        });
+
+        // Rebuild the weekSpans based on sorted weeks using a new Map
+        const sortedWeekSpans = new Map();
+        sortedWeeks.forEach(week => {
+            sortedWeekSpans.set(week, weekSpans.get(week));
+        });
+        weekSpans = sortedWeekSpans;
+    }
+
 
     const filterTeamsAndMembers = (data) => {
         if (!filterInput) return data; // If no filter, return all data
@@ -163,7 +197,7 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
     const getCellTitle = (member, day) => {
         const dateStr = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dayTypes = member.days[dateStr];
-    
+
         if (dayTypes && dayTypes.length > 0) {
             return dayTypes.map(dt => dt.name).join(', '); // Join multiple day types with a comma
         }
@@ -349,12 +383,11 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
                         target_team_id: targetTeamId,
                     });
                     updateTeamData();
-                    console.log('Move successful:', response);
                 } catch (error) {
                     console.error('Failed to move team member:', error);
                 }
             }
-        }   
+        }
         setDropTargetId(null); // Remove highlight when the dragged item leaves the row
         setDraggedMember({ memberId: null, originTeamId: null, memberName: '' }); // Reset drag state
     };
@@ -380,7 +413,7 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
             });
         });
     };
-    
+
 
     return (
         <div>
@@ -433,30 +466,38 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
                     <colgroup>
                         <col /> {/* This col is for the non-date column */}
                         {daysHeader.map((day, idx) => (
-                            <col key={idx} className={isWeekend(day) ? 'weekend-column' : ''} />
+                            <col key={idx} className={isWeekend(day.day) ? 'weekend-column' : ''} />
                         ))}
                     </colgroup>
                     <thead>
-                        <tr>
-                            <th>
-                                Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
-                                / Member
+                    <tr>
+                        <th></th>
+                        {Array.from(weekSpans).map(([week, span], idx) => (
+                            <th key={idx} colSpan={span} className="week-number-header">
+                                {span < 2 ? week : `Week ${week}`}
                             </th>
-                            {daysHeader.map(day => <th key={day} 
-                                className={
-                                    day === todayDay && 
-                                    displayMonth.getMonth() === todayMonth && 
-                                    displayMonth.getFullYear() === todayYear 
-                                    ? 'current-day-number' : ''}>{day}</th>)}
-                        </tr>
+                        ))}
+                    </tr>
+                    <tr>
+                        <th>
+                            Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
+                            / Member
+                        </th>
+                        {weekDays.map(({day}, idx) => (
+                          <th key={idx}
+                              className={day === todayDay && displayMonth.getMonth() === todayMonth && displayMonth.getFullYear() === todayYear ? 'current-day-number' : ''}>
+                              {day}
+                          </th>
+                        ))}
+                    </tr>
                     </thead>
                     <tbody>
-                        {filterTeamsAndMembers(teamData).map(team => (
-                            <React.Fragment key={team.id}>
-                                {(!focusedTeamId || focusedTeamId === team._id) && (
-                                    <>
-                                        <tr
-                                            className={`team-row ${dropTargetId === team._id ? 'drop-target' : ''}`}
+                    {filterTeamsAndMembers(teamData).map(team => (
+                      <React.Fragment key={team.id}>
+                      {(!focusedTeamId || focusedTeamId === team._id) && (
+                            <>
+                                <tr
+                                  className={`team-row ${dropTargetId === team._id ? 'drop-target' : ''}`}
                                             onDragOver={(e) => handleDragOver(e, team._id)}
                                             onDragLeave={(e) => handleDragLeave(e)}
                                             onDrop={(e) => handleDrop(e, team._id)}
@@ -478,7 +519,7 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
                                                     <FontAwesomeIcon icon={faPencilAlt} />
                                                 </span>
                                             </td>
-                                            {daysHeader.map(day => <td key={day}></td>)} {/* Empty cells for team row */}
+                                            {daysHeader.map(day => <td key={day.day}></td>)} {/* Empty cells for team row */}
                                         </tr>
                                         {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
                                             <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
@@ -504,15 +545,15 @@ const CalendarComponent = ({ serverTeamData, holidays, dayTypes, updateTeamData 
                                                     <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
                                                 </td>
                                                 {daysHeader.map(day => {
-                                                    const dateStr = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                                    const dateStr = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}-${String(day.day).padStart(2, '0')}`;
                                                     const dateDayTypes = member.days[dateStr] || [];
-                                                    const isHolidayDay = isHoliday(member.country, day);
+                                                    const isHolidayDay = isHoliday(member.country, day.day);
 
                                                     return (
                                                         <td
-                                                            key={day}
+                                                            key={day.day}
                                                             onClick={(e) => handleDayClick(team._id, member.uid, day, e)}
-                                                            title={getCellTitle(member, day)}
+                                                            title={getCellTitle(member, day.day)}
                                                             className={isHolidayDay ? 'holiday-cell' : ''}
                                                             style={generateGradientStyle(dateDayTypes)}
                                                         >

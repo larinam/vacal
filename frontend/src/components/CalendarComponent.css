@@ -38,7 +38,7 @@
     table-layout: fixed;
 }
 
-.calendar-table th {
+.calendar-table thead {
     position: sticky;
     top: 41px; /* Adjust this value to the height of your sticky header */
     background-color: white; /* To ensure the header is not transparent */
@@ -228,4 +228,15 @@
 
 .modal-content form button[type="button"] {
     background-color: #ccc; /* Light gray for the close button */
+}
+
+th.week-number-header {
+    font-weight: normal;
+    font-size: 0.75em;
+}
+
+.calendar-table thead tr th {
+    border-bottom: 0;
+    border-top: 0;
+    margin: 0
 }
