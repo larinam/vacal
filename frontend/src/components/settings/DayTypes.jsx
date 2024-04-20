@@ -20,7 +20,7 @@ const DayTypes = () => {
     }, []);
 
     const saveDayType = async () => {
-        const url = editingDayType ? `/daytypes/${editingDayType._id}` : `/daytypes/`;
+        const url = editingDayType ? `/daytypes/${editingDayType._id}` : `/daytypes`;
         const method = editingDayType ? 'PUT' : 'POST';
         try {
             await apiCall(url, method, newDayType);

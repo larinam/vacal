@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useApi } from '../hooks/useApi';
+import React, {useEffect, useRef, useState} from 'react';
+import {useApi} from '../hooks/useApi';
 
 const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, editingMember }) => {
     const [newMemberData, setNewMemberData] = useState({ name: '', country: '', email: '', phone: '', vac_days: [] });
@@ -30,7 +30,7 @@ const AddMemberModal = ({ isOpen, onClose, selectedTeamId, updateTeamData, editi
     const handleAddMemberFormSubmit = async (e) => {
         e.preventDefault();
         const method = editingMember ? 'PUT' : 'POST';
-        const url = editingMember ? `/teams/${selectedTeamId}/members/${editingMember.uid}` : `/teams/${selectedTeamId}/members/`;
+        const url = editingMember ? `/teams/${selectedTeamId}/members/${editingMember.uid}` : `/teams/${selectedTeamId}/members`;
         try {
             await apiCall(url, method, newMemberData);
 
