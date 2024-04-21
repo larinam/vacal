@@ -502,12 +502,23 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
               Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
               / Member
             </th>
-            {daysHeader.map(({day, date}, idx) => (
-              <th key={idx}
-                  className={formatDate(date) === formatDate(today) ? 'current-day-number' : 'day-number-header'}>
-                {day}
-              </th>
-            ))}
+            {daysHeader.map(({ day, date }, idx) => {
+              const isOutOfMonth = date.getMonth() !== displayMonth.getMonth();
+              return (
+                <th
+                  key={idx}
+                  className={
+                    formatDate(date) === formatDate(today)
+                      ? 'current-day-number'
+                      : isOutOfMonth
+                      ? 'out-of-month-day-number' // Assign a different class for out-of-month days
+                      : 'day-number-header'
+                  }
+                >
+                  {day}
+                </th>
+              );
+            })}
           </tr>
           </thead>
           <tbody>
