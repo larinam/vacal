@@ -58,7 +58,7 @@ const MainComponent = () => {
 
     const handleGenerateReport = async (startDate, endDate) => {
         setShowReportModal(false);
-        const reportUrl = `/export-vacations/?start_date=${startDate}&end_date=${endDate}`;
+        const reportUrl = `/export-vacations?start_date=${startDate}&end_date=${endDate}`;
 
         try {
             const blob = await apiCall(reportUrl, 'GET', null, true); // Set isBlob to true
