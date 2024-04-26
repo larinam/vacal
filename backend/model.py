@@ -77,6 +77,7 @@ def generate_random_hex_color():
 class DayType(Document):
     tenant = ReferenceField(Tenant, required=True)
     name = StringField(required=True, unique_with="tenant")
+    identifier = StringField(required=True, unique_with="tenant")
     color = StringField(default=generate_random_hex_color)
 
     meta = {
@@ -86,11 +87,15 @@ class DayType(Document):
         "index_background": True
     }
 
+    SYSTEM_DAY_TYPE_IDENTIFIERS = ['vacation', 'compensatory_leave', 'override']
+
     @classmethod
-    def init_vacation_day_type(cls, tenant):
+    def init_day_types(cls, tenant):
         if cls.objects(tenant=tenant).count() == 0:
             initial_day_types = [
-                cls(tenant=tenant, name='Vacation', color="#48BF91"),
+                cls(tenant=tenant, name='Vacation', identifier='vacation', color="#FF6666"),
+                cls(tenant=tenant, name='Compensatory leave', identifier='compensatory_leave', color="#CC99FF"),
+                cls(tenant=tenant, name='Holiday override', identifier='override', color="#000000"),
             ]
             cls.objects.insert(initial_day_types, load_bulk=False)
 

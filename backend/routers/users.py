@@ -105,7 +105,7 @@ async def create_initial_user(user_creation: UserCreationModel):
         tenant.save()
 
     # Add Vacation Day Type
-    DayType.init_vacation_day_type(tenant)
+    DayType.init_day_types(tenant)
 
     # Check if there are any users associated with this tenant
     existing_users = User.objects(tenants__in=[tenant]).count()
