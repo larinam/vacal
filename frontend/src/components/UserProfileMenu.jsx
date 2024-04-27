@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCog, faSignOut} from '@fortawesome/free-solid-svg-icons';
+import {faCog, faQuestion, faSignOut} from '@fortawesome/free-solid-svg-icons';
 import './UserProfileMenu.css';
 import {useAuth} from "../contexts/AuthContext";
 
@@ -35,6 +35,13 @@ const UserProfileMenu = ({setShowDropdown}) => {
       }}>
         <FontAwesomeIcon icon={faCog}/>
         <span>Settings</span>
+      </div>
+      <div className="dropdownItem" onClick={() => {
+        window.open('https://t.me/larinam', '_blank');
+        setShowDropdown(false); // This will close the dropdown menu when the item is clicked
+      }}>
+        <FontAwesomeIcon icon={faQuestion}/>
+        <span>Support</span>
       </div>
       <div className="dropdownItem" style={{'user-select': 'none'}} onClick={() => {
         handleLogout();
