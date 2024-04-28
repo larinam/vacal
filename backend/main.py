@@ -441,34 +441,55 @@ def auto_adjust_column_width(ws):
 async def export_vacations(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                            tenant: Annotated[Tenant, Depends(get_tenant)],
                            start_date: datetime.date = Query(...), end_date: datetime.date = Query(...)):
+    working_hours_in_a_day = 8
     wb = Workbook()
     ws = wb.active
     ws.title = "Vacations"
 
-    # Headers
-    headers = ["Team", "Team Member Name", "Country", "Vacation Days", "Working Days", "Days Worked", "Hours Worked"]
-    ws.append(headers)
+    body_rows = []
 
     vacation_day_type_id = get_vacation_day_type_id(tenant)
     country_holidays = get_holidays(tenant)
 
+    day_type_names = sorted(DayType.objects(tenant=tenant, identifier__ne="vacation").distinct("name"))
+
     # Query and process the data
     for team in Team.objects(tenant=tenant):
         for member in team.team_members:
+            day_type_counts = {}
             member_holidays = country_holidays.get(member.country, [])
             vac_days_count = 0
             for date_str, day_types in member.days.items():
                 # Convert the string to a date object to compare with the given date range
-                date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+                date = datetime.date.fromisoformat(date_str)
                 if start_date <= date <= end_date:
-                    # Count only if the day type list contains the 'Vacation' day type ID
-                    if any(vacation_day_type_id == str(day_type.id) for day_type in day_types):
-                        vac_days_count += 1
+                    for day_type in day_types:
+                        if vacation_day_type_id == str(day_type.id):
+                            # Count only if the day type list contains the 'Vacation' day type ID
+                            vac_days_count += 1
+                            continue
+
+                        # Get the name of the day type
+                        day_type_name = day_type.name
+
+                        # Increment the count for this day type
+                        if day_type_name in day_type_counts:
+                            day_type_counts[day_type_name] += 1
+                        else:
+                            day_type_counts[day_type_name] = 1
             # Calculate working days
             working_days = get_working_days(start_date, end_date, member_holidays)
-            ws.append(
+            body_rows.append(
                 [team.name, member.name, member.country, vac_days_count, working_days, working_days - vac_days_count,
-                 (working_days - vac_days_count) * 8])
+                 (working_days - vac_days_count) * working_hours_in_a_day] + [day_type_counts.get(n, 0) for n in
+                                                                              day_type_names])
+
+    headers = ["Team", "Team Member Name", "Country", "Vacation Days", "Working Days", "Days Worked",
+               "Hours Worked"] + day_type_names
+
+    ws.append(headers)
+    for r in body_rows:
+        ws.append(r)
 
     # Assuming you have added data below headers, now apply auto_filter
     last_column_letter = get_column_letter(len(headers))
