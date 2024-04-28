@@ -1,4 +1,4 @@
-import {eachDayOfInterval, endOfWeek, getISOWeek, startOfWeek} from 'date-fns';
+import {eachDayOfInterval, endOfWeek, getISOWeek, isWeekend, startOfWeek} from 'date-fns';
 import React, {useEffect, useRef, useState} from 'react';
 import {Tooltip} from 'react-tooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -190,11 +190,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
-  const isWeekend = (date) => {
-    const dayOfWeek = date.getDay();
-    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
-  };
-
   const isHoliday = (country, date) => {
     const dateStr = formatDate(date);
     if (holidays[country] && holidays[country][dateStr]) {
@@ -227,7 +222,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     return ''; // No special title for regular days
   };
 
-  const handleDayClick = (teamId, memberId, date, event) => {
+  const handleDayClick = (teamId, memberId, date, isHolidayDay, event) => {
     event.preventDefault();
 
     const team = teamData.find(t => t._id === teamId);
@@ -239,7 +234,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       teamId,
       memberId,
       date,
-      existingDayTypes
+      existingDayTypes,
+      isHolidayDay
     });
 
     const xPosition = event.clientX + window.scrollX;
@@ -585,7 +581,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         return (
                           <td
                             key={idx}
-                            onClick={(e) => handleDayClick(team._id, member.uid, date, e)}
+                            onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
                             title={getCellTitle(member, date)}
                             className={isHolidayDay ? 'holiday-cell' : ''}
                             style={generateGradientStyle(dateDayTypes)}

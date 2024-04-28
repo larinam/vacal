@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import './DayTypeContextMenu.css';
-import { useApi } from '../hooks/useApi';
+import {useApi} from '../hooks/useApi';
+import {isWeekend} from "date-fns";
 
 const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayTypes, selectedDayInfo, updateTeamData, updateLocalTeamData }) => {
     const [selectedDayTypes, setSelectedDayTypes] = useState([]);
@@ -39,7 +40,7 @@ const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayType
         setSelectedDayTypes(updatedDayTypes);
 
         const dateStr = formatDate(selectedDayInfo.date);
-        let dayTypeData = {[dateStr]: updatedDayTypes};
+        const dayTypeData = { [dateStr]: updatedDayTypes };
 
         const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
         try {
@@ -48,7 +49,13 @@ const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayType
         } catch (error) {
             console.error('Error updating day types:', error);
         }
-        updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, formatDate(selectedDayInfo.date), updatedDayTypes);
+
+        updateLocalTeamData(
+            selectedDayInfo.teamId,
+            selectedDayInfo.memberId,
+            formatDate(selectedDayInfo.date),
+            updatedDayTypes
+        );
         onClose();
     };
 
@@ -67,21 +74,28 @@ const DayTypeContextMenu = ({ contextMenuRef, isOpen, position, onClose, dayType
     return (
         <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
             <div className="close-button" onClick={onClose}>&times;</div>
-            {dayTypes.map(type => (
-                <div key={type._id} className="day-type-item">
-                    <input
-                        type="checkbox"
-                        id={`dayType-${type._id}`}
-                        value={type._id}
-                        onChange={handleCheckboxChange}
-                        checked={selectedDayTypes.includes(type._id)}
-                    />
-                    <label htmlFor={`dayType-${type._id}`}>
-                        <span className="color-indicator" style={{ backgroundColor: type.color }}></span>
-                        {type.name}
-                    </label>
-                </div>
-            ))}
+            {dayTypes.map(type => {
+                // If the DayType identifier is "override", only show it if it's a weekend or holiday
+                if (type.identifier === "override" && !isWeekend(selectedDayInfo.date) && !selectedDayInfo.isHolidayDay) {
+                    return null; // Skip this DayType
+                }
+
+                return (
+                    <div key={type._id} className="day-type-item">
+                        <input
+                            type="checkbox"
+                            id={`dayType-${type._id}`}
+                            value={type._id}
+                            onChange={handleCheckboxChange}
+                            checked={selectedDayTypes.includes(type._id)}
+                        />
+                        <label htmlFor={`dayType-${type._id}`}>
+                            <span className="color-indicator" style={{ backgroundColor: type.color }}></span>
+                            {type.name}
+                        </label>
+                    </div>
+                );
+            })}
         </div>
     );
 };
