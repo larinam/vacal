@@ -95,7 +95,7 @@ class DayType(Document):
             initial_day_types = [
                 cls(tenant=tenant, name='Vacation', identifier='vacation', color="#FF6666"),
                 cls(tenant=tenant, name='Compensatory leave', identifier='compensatory_leave', color="#CC99FF"),
-                cls(tenant=tenant, name='Holiday override', identifier='override', color="#000000"),
+                cls(tenant=tenant, name='Holiday override', identifier='override', color="#EEEEEE"),
             ]
             cls.objects.insert(initial_day_types, load_bulk=False)
 
@@ -123,6 +123,14 @@ class Team(Document):
         ],
         "index_background": True
     }
+
+    @classmethod
+    def init_team(cls, tenant, team_member):
+        if cls.objects(tenant=tenant).count() == 0:
+            initial_teams = [
+                cls(tenant=tenant, name='My Team', team_members = [team_member]),
+            ]
+            cls.objects.insert(initial_teams, load_bulk=False)
 
 
 class AuthDetails(EmbeddedDocument):

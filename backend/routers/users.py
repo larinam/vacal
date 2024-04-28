@@ -5,7 +5,7 @@ from pydantic import field_validator, BaseModel, Field, computed_field
 from starlette import status
 
 from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant
-from ..model import User, AuthDetails, Tenant, DayType
+from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember
 
 router = APIRouter(prefix="/users", tags=["User Operations"])
 
@@ -104,9 +104,6 @@ async def create_initial_user(user_creation: UserCreationModel):
         tenant = Tenant(name=tenant_data.name, identifier=tenant_data.identifier)
         tenant.save()
 
-    # Add Vacation Day Type
-    DayType.init_day_types(tenant)
-
     # Check if there are any users associated with this tenant
     existing_users = User.objects(tenants__in=[tenant]).count()
     if existing_users > 0:
@@ -123,7 +120,18 @@ async def create_initial_user(user_creation: UserCreationModel):
     user.hash_password(user_creation.password)
     user.save()
 
+    await init_business_objects(tenant, user_creation)
+
     return {"message": "Initial user created successfully"}
+
+
+async def init_business_objects(tenant, user_creation):
+    """Init business objects for the tenant"""
+    DayType.init_day_types(tenant)
+    team_member = TeamMember(name=user_creation.name,
+                             country="United States",
+                             email=user_creation.email)
+    Team.init_team(tenant, team_member)
 
 
 @router.get("")
