@@ -441,18 +441,41 @@ def auto_adjust_column_width(ws):
 async def export_vacations(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                            tenant: Annotated[Tenant, Depends(get_tenant)],
                            start_date: datetime.date = Query(...), end_date: datetime.date = Query(...)):
-    working_hours_in_a_day = 8
     wb = Workbook()
     ws = wb.active
-    ws.title = "Vacations"
-
-    body_rows = []
-
-    vacation_day_type_id = get_vacation_day_type_id(tenant)
-    country_holidays = get_holidays(tenant)
+    ws.title = "Day Type Report"
 
     day_type_names = sorted(DayType.objects(tenant=tenant, identifier__ne="vacation").distinct("name"))
 
+    headers = ["Team", "Team Member Name", "Country", "Vacation Days", "Working Days", "Days Worked",
+               "Hours Worked"] + day_type_names
+    ws.append(headers)
+
+    body_rows = await get_report_body_rows(tenant, start_date, end_date, day_type_names)
+    for r in body_rows:
+        ws.append(r)
+
+    # Assuming you have added data below headers, now apply auto_filter
+    last_column_letter = get_column_letter(len(headers))
+    ws.auto_filter.ref = f"A1:{last_column_letter}1"
+    auto_adjust_column_width(ws)
+
+    # Save the workbook to a BytesIO object
+    b_io = BytesIO()
+    wb.save(b_io)
+    b_io.seek(0)  # Go to the start of the BytesIO object
+
+    # Create and return the streaming response
+    return StreamingResponse(b_io, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={
+                                 "Content-Disposition": f"attachment; filename=vacations_{start_date}_{end_date}.xlsx"})
+
+
+async def get_report_body_rows(tenant, start_date, end_date, day_type_names):
+    body_rows = []
+    vacation_day_type_id = get_vacation_day_type_id(tenant)
+    country_holidays = get_holidays(tenant)
+    working_hours_in_a_day = 8
     # Query and process the data
     for team in Team.objects(tenant=tenant):
         for member in team.team_members:
@@ -483,28 +506,7 @@ async def export_vacations(current_user: Annotated[User, Depends(get_current_act
                 [team.name, member.name, member.country, vac_days_count, working_days, working_days - vac_days_count,
                  (working_days - vac_days_count) * working_hours_in_a_day] + [day_type_counts.get(n, 0) for n in
                                                                               day_type_names])
-
-    headers = ["Team", "Team Member Name", "Country", "Vacation Days", "Working Days", "Days Worked",
-               "Hours Worked"] + day_type_names
-
-    ws.append(headers)
-    for r in body_rows:
-        ws.append(r)
-
-    # Assuming you have added data below headers, now apply auto_filter
-    last_column_letter = get_column_letter(len(headers))
-    ws.auto_filter.ref = f"A1:{last_column_letter}1"
-    auto_adjust_column_width(ws)
-
-    # Save the workbook to a BytesIO object
-    b_io = BytesIO()
-    wb.save(b_io)
-    b_io.seek(0)  # Go to the start of the BytesIO object
-
-    # Create and return the streaming response
-    return StreamingResponse(b_io, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                             headers={
-                                 "Content-Disposition": f"attachment; filename=vacations_{start_date}_{end_date}.xlsx"})
+    return body_rows
 
 
 @app.post("/teams/{team_id}/members/{team_member_id}/days")
