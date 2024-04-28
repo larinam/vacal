@@ -30,16 +30,25 @@ const MainComponent = () => {
         return splitName?.[0]?.[0] ?? <FontAwesomeIcon icon={faUserCircle} />;
     };
 
-    const fetchData = async () => {
+    const fetchData = async (date) => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
+
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
+
+        // If the date parameter is undefined or empty, use the current date
+        const currentDate = new Date();
+        const formattedDate = date ? date.toISOString().split('T')[0] : currentDate.toISOString().split('T')[0];
+
+        // Construct the endpoint URL with the date
+        const endpoint = `/${formattedDate}`;
+
         try {
-            const data = await apiCall('/', 'GET', null, false, signal);
+            const data = await apiCall(endpoint, 'GET', null, false, signal);
             if (!signal.aborted) {
-                setData(data);
+                setData(data); // Update the state with the fetched data
             }
         } catch (error) {
             if (!signal.aborted) {

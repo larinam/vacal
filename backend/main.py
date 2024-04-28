@@ -6,6 +6,7 @@ import logging
 import os
 import time
 from collections import defaultdict
+from contextvars import ContextVar
 from copy import deepcopy
 from io import BytesIO
 from typing import List, Dict, Optional, Annotated
@@ -112,6 +113,9 @@ class TeamMemberWriteDTO(BaseModel):
         return None if v == "" else v
 
 
+display_month_var: ContextVar[datetime.date] = ContextVar("display_month_var")
+
+
 # noinspection PyNestedDecorators
 class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
@@ -132,14 +136,20 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     @field_validator('days', mode="before")
     @classmethod
     def convert_days(cls, v):
+        start_time = time.perf_counter()
         if v and isinstance(v, dict):
             converted_days = {}
+            month_minus = str(display_month_var.get() - datetime.timedelta(days=45))
+            month_plus = str(display_month_var.get() + datetime.timedelta(days=45))
             for date_str, day_type_ids in v.items():
+                if not (month_minus <= date_str <= month_plus):
+                    continue
                 converted_day_types = []
                 for day_type_id in day_type_ids:
                     if isinstance(day_type_id, ObjectId):
                         converted_day_types.append(DayTypeReadDTO.from_mongo_reference_field(day_type_id))
                 converted_days[date_str] = converted_day_types
+            log.debug("days conversion " + str(time.perf_counter() - start_time))
             return converted_days
         return v
 
@@ -292,14 +302,16 @@ async def telegram_login(auth_data: TelegramAuthData):
 
 
 # Business Logic
-@app.get("/")
-async def read_root(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+@app.get("/{display_month}")
+async def read_root(display_month: datetime.date, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                     tenant: Annotated[Tenant, Depends(get_tenant)]):
     start_time = time.perf_counter()
+    token = display_month_var.set(display_month)
     teams_list = Team.objects(tenant=tenant).order_by("name")
     teams = {"teams": await asyncio.gather(
         *(run_in_threadpool(mongo_to_pydantic, team, TeamReadDTO) for team in teams_list))}
-    print("teams preparation " + str(time.perf_counter() - start_time))
+    display_month_var.reset(token)
+    log.debug("teams preparation " + str(time.perf_counter() - start_time))
     return teams | {"holidays": get_holidays(tenant)} | await get_all_day_types(current_user, tenant)
 
 

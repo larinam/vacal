@@ -133,6 +133,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }));
 
     setDaysHeader(newDaysHeader); // Ensure you have a useState or similar to hold this value
+    updateTeamData(displayMonth);
   }, [displayMonth]);
 
   let weekSpans = daysHeader.reduce((acc, curr) => {
