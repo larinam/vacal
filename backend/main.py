@@ -8,7 +8,7 @@ import time
 from collections import defaultdict
 from copy import deepcopy
 from io import BytesIO
-from typing import List, Dict, Optional, Annotated
+from typing import List, Dict, Annotated
 
 import holidays
 import pycountry
@@ -137,8 +137,8 @@ class GeneralApplicationConfigDTO(BaseModel):
 class TeamMemberWriteDTO(BaseModel):
     name: str
     country: str
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
+    email: EmailStr | None = None
+    phone: str | None = None
     available_day_types: List[DayTypeReadDTO] = []
 
     @field_validator("country")
@@ -149,7 +149,7 @@ class TeamMemberWriteDTO(BaseModel):
             return country_name
         raise ValueError("Invalid country name")
 
-    @field_validator('email')
+    @field_validator('email', mode='before')
     @classmethod
     def empty_email_to_none(cls, v):
         return None if v == "" else v
