@@ -92,7 +92,7 @@ const AddTeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
               <button type="button" onClick={() => removeEmailField(index)}>Remove</button>
             </div>
           ))}
-          <button type="button" onClick={addEmailField}>Add Email</button>
+          <button type="button" onClick={addEmailField}>Add email to subscribe to notifications</button>
           <div className="button-container">
             <button type="submit">{editingTeam ? 'Update Team' : 'Add Team'}</button>
             <button type="button" onClick={onClose}>Close</button>
