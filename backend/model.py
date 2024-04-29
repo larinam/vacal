@@ -115,6 +115,7 @@ class Team(Document):
     tenant = ReferenceField(Tenant, required=True)
     name = StringField(required=True, unique_with="tenant")
     team_members = EmbeddedDocumentListField(TeamMember)
+    subscriber_emails = ListField(EmailField())
     available_day_types = ListField(ReferenceField(DayType))
 
     meta = {

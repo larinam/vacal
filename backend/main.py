@@ -24,12 +24,13 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from prometheus_fastapi_instrumentator import Instrumentator
 from pycountry.db import Country
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, EmailStr
 from pydantic.functional_validators import field_validator, model_validator
 from starlette.concurrency import run_in_threadpool
 
 from .dependencies import create_access_token, get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, \
     TenantMiddleware, tenant_var
+from .email_service import send_email
 from .model import Team, TeamMember, get_unique_countries, DayType, get_vacation_day_type_id, User, Tenant
 from .routers import users, daytypes
 from .routers.daytypes import DayTypeReadDTO, get_all_day_types
@@ -57,14 +58,56 @@ Instrumentator().instrument(app).expose(app)
 scheduler = BackgroundScheduler()
 
 
-def your_scheduled_task():
-    # Your task logic
-    print("Scheduled task executed")
+def find_vacation_periods(team, start_date=datetime.date.today()):
+    # Identify the vacation DayType ID for the tenant
+    vacation_day_type = DayType.objects(tenant=team.tenant, identifier="vacation").first()
+
+    vacation_starts = []
+
+    # Iterate over team members and check if the start_date is a vacation
+    for member in team.team_members:
+        if str(start_date) in member.days and vacation_day_type in member.days[str(start_date)]:
+            # Initialize the vacation start and end dates
+            start = start_date
+            end = start_date
+
+            # Extend the end date as long as consecutive vacation days are found
+            next_day = start + datetime.timedelta(days=1)
+            while str(next_day) in member.days and vacation_day_type in member.days[str(next_day)]:
+                end = next_day
+                next_day += datetime.timedelta(days=1)
+
+            vacation_starts.append({
+                'name': member.name,
+                'email': member.email,  # assuming you might need additional info
+                'start': start,
+                'end': end
+            })
+
+    return vacation_starts
+
+
+def generate_email_body(team):
+    body = ""
+    vacations = find_vacation_periods(team)
+    for v in vacations:
+        body += f"{v["name"]} is on vacation starting from {v["start"]} till {v["end"]}\n"
+    return body
+
+
+def send_vacation_email_updates():
+    log.debug("Start scheduled task send_vacation_email_updates")
+    for team in Team.objects():
+        email_body = generate_email_body(team)
+        for email in team.subscriber_emails:
+            send_email(f"Upcoming vacations {datetime.date.today()}",
+                       email_body, email)
+    log.debug("Stop scheduled task send_vacation_email_updates")
 
 
 @app.on_event("startup")
 def start_scheduler():
-    scheduler.add_job(your_scheduled_task, 'cron', hour=7, minute=0)
+    scheduler.add_job(send_vacation_email_updates, 'cron', hour=8, minute=0)
     scheduler.start()
 
 
@@ -94,7 +137,7 @@ class GeneralApplicationConfigDTO(BaseModel):
 class TeamMemberWriteDTO(BaseModel):
     name: str
     country: str
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     phone: Optional[str] = None
     available_day_types: List[DayTypeReadDTO] = []
 
@@ -154,6 +197,7 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
 
 class TeamWriteDTO(BaseModel):
     name: str
+    subscriber_emails: List[EmailStr] = []
     available_day_types: List[DayTypeReadDTO] = []
 
 
@@ -350,6 +394,7 @@ async def update_team(team_id: str, team_dto: TeamWriteDTO,
     team = Team.objects(tenant=tenant, id=team_id).first()
     if team:
         team.name = team_dto.name
+        team.subscriber_emails = team_dto.subscriber_emails
         team.available_day_types = team_dto.available_day_types
         team.save()
         return {"message": "Team modified successfully"}
