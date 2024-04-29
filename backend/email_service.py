@@ -1,4 +1,5 @@
 import os
+
 import boto3
 from botocore.exceptions import NoCredentialsError
 
@@ -31,4 +32,6 @@ def send_email(subject, body, to_addresses):
 
 
 if __name__ == "__main__":
+    import dotenv
+    dotenv.load_dotenv()
     send_email("Test Subject", "This is a test email.", ["recipient@example.com"])
