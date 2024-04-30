@@ -4,7 +4,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 
 
-def send_email_ses(subject, body, to_addresses):
+def send_email_ses(subject, body, to_addresses: list | tuple):
     source_email = os.environ.get("SES_SOURCE_EMAIL")
     if not source_email:
         raise ValueError("No source email address configured.")
@@ -20,7 +20,9 @@ def send_email_ses(subject, body, to_addresses):
     return response
 
 
-def send_email(subject, body, to_addresses):
+def send_email(subject, body, to_addresses: list | tuple | str):
+    if type(to_addresses) is str:
+        to_addresses = [to_addresses]
     # Check for token-based authentication (EKS IRSA)
     if os.environ.get("AWS_WEB_IDENTITY_TOKEN_FILE"):
         return send_email_ses(subject, body, to_addresses)
