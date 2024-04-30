@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
+import {toast} from "react-toastify";
 
 const UserModal = ({ isOpen, onClose, editingUser }) => {
     const [newUserData, setNewUserData] = useState({
@@ -66,6 +67,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
             onClose();
         } catch (error) {
             console.error('Error adding/updating user:', error);
+            toast.error(error);
         }
     };
 

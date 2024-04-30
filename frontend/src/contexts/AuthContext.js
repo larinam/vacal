@@ -78,9 +78,9 @@ export const AuthProvider = ({children}) => {
         } else {
             if (response.status === 404) {
                 const errorData = await response.json();
-                toast(`Authentication failed: ${errorData.detail}`);
+                toast.error(`Authentication failed: ${errorData.detail}`);
             } else {
-                toast('Authentication failed');
+                toast.error('Authentication failed');
             }
             setIsAuthenticated(false);
             setAuthHeader('');

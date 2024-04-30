@@ -1,13 +1,17 @@
 import React, {useEffect, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
-import UserModal from './UserModal'; // Consider renaming to UserModal
+import UserModal from './UserModal';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faEdit, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
+import {faEdit, faKey, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
+import {useAuth} from "../../contexts/AuthContext";
+import PasswordChangeModal from "./PasswordChangeModal";
 
 const UserManagement = () => {
     const { apiCall } = useApi();
+    const {user} = useAuth(); // this is a current user
     const [users, setUsers] = useState([]);
     const [showUserModal, setShowUserModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
 
     const fetchUsers = async () => {
@@ -50,6 +54,10 @@ const UserManagement = () => {
         }
     };
 
+    const handlePasswordChangeClick = () => {
+        setShowPasswordModal(true);
+    };
+
 
     return (
         <div className="settingsUserManagementContainer">
@@ -67,19 +75,23 @@ const UserManagement = () => {
                 </tr>
                 </thead>
                 <tbody>
-                    {users.map((user, index) => (
+                    {users.map((u, index) => (
                         <tr key={index}>
-                            <td>{user.name}</td>
-                            <td>{user.email}</td>
-                            <td>{user.username}</td>
-                            <td>{user.telegram_username || 'N/A'}</td>
-                            <td>{user.disabled ? 'Disabled' : 'Active'}</td>
+                            <td>{u.name}</td>
+                            <td>{u.email}</td>
+                            <td>{u.username}</td>
+                            <td>{u.telegram_username || 'N/A'}</td>
+                            <td>{u.disabled ? 'Disabled' : 'Active'}</td>
                             <td>
-                                <FontAwesomeIcon icon={faEdit} onClick={() => handleEditUserClick(user)}/>
-                                <FontAwesomeIcon icon={faTrashAlt} onClick={() => handleDeleteUser(user._id, user.name)} />
+                                <FontAwesomeIcon icon={faEdit} onClick={() => handleEditUserClick(u)} />
+                                <FontAwesomeIcon icon={faTrashAlt} onClick={() => handleDeleteUser(u._id, u.name)} />
+                                {u._id === user._id && (
+                                    <FontAwesomeIcon icon={faKey} onClick={() => handlePasswordChangeClick(u)} />
+                                )}
                             </td>
                         </tr>
                     ))}
+
                 </tbody>
             </table>
             {showUserModal && (
@@ -87,6 +99,12 @@ const UserManagement = () => {
                     isOpen={showUserModal}
                     onClose={handleModalClose}
                     editingUser={editingUser} // Pass editing user data to the modal
+                />
+            )}
+            {showPasswordModal && (
+                <PasswordChangeModal
+                    isOpen={showPasswordModal}
+                    onClose={() => setShowPasswordModal(false)}
                 />
             )}
         </div>

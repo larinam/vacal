@@ -23,9 +23,9 @@ const InitialUserCreation = () => {
     } catch (error) {
       console.error('Error creating initial user:', error);
       if (error.data && error.data.detail) {
-        toast(error.data.detail);
+        toast.error(error?.data?.detail);
       } else {
-        toast("An error occurred. Please try again.");
+        toast.error("An error occurred. Please try again.");
       }
     }
   };

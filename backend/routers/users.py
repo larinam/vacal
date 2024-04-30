@@ -89,7 +89,7 @@ class PasswordUpdateModel(BaseModel):
     @field_validator('confirm_password')
     @classmethod
     def passwords_match(cls, v, values, **kwargs):
-        if 'new_password' in values and v != values['new_password']:
+        if 'new_password' in values.data and v != values.data['new_password']:
             raise ValueError("passwords do not match")
         return v
 

@@ -30,7 +30,7 @@ const DayTypes = () => {
             refreshDayTypes();
         } catch (error) {
             console.error('Error saving day type:', error);
-            toast(error?.data?.detail);
+            toast.error(error?.data?.detail);
         }
     };
 
@@ -40,7 +40,7 @@ const DayTypes = () => {
             refreshDayTypes();
         } catch (error) {
             console.error('Error deleting day type:', error);
-            toast(error?.data?.detail);
+            toast.error(error?.data?.detail);
         }
     };
 
