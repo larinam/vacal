@@ -58,7 +58,7 @@ Instrumentator().instrument(app).expose(app)
 scheduler = BackgroundScheduler()
 
 
-def find_vacation_periods(team, start_date=datetime.date.today()):
+def find_vacation_periods(team, start_date):
     # Identify the vacation DayType ID for the tenant
     vacation_day_type = DayType.objects(tenant=team.tenant, identifier="vacation").first()
 
@@ -88,7 +88,8 @@ def find_vacation_periods(team, start_date=datetime.date.today()):
 
 
 def generate_email_body(team):
-    vacations = find_vacation_periods(team)
+    today = datetime.date.today()
+    vacations = find_vacation_periods(team, today)
     if not vacations:
         return ""
     body = "Hi there!\n\n"
