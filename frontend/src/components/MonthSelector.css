@@ -1,5 +1,6 @@
 .monthSelector {
     margin: 0px 10px;
+    justify-content: left;
 }
 
 .monthDisplay {

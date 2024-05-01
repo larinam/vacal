@@ -457,22 +457,27 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       />
 
       <div className="stickyHeader">
+        <div className="filter-wrapper">
+          <input
+            type="text"
+            ref={filterInputRef}
+            value={filterInput}
+            onChange={(e) => setFilterInput(e.target.value)}
+            placeholder="Filter by team or member name"
+          />
+          <button
+            onClick={clearFilter}
+            style={{visibility: filterInput ? 'visible' : 'hidden'}}
+          >
+            Clear
+          </button>
+        </div>
         <MonthSelector
           displayMonth={displayMonth}
           setDisplayMonth={setDisplayMonth}
           todayYear={todayYear}
           todayMonth={todayMonth}
         />
-        <input
-          type="text"
-          ref={filterInputRef}
-          value={filterInput}
-          onChange={(e) => setFilterInput(e.target.value)}
-          placeholder="Filter by team or member name"
-        />
-        {filterInput && (
-          <button onClick={clearFilter}>Clear</button>
-        )}
         {showSaveIcon && <FontAwesomeIcon icon={faSave} className="save-icon"/>}
       </div>
       <div className="contentBelowStickyHeader">

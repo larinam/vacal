@@ -1,12 +1,34 @@
 .stickyHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* This line will space out the header items */
     position: fixed;
     top: 0;
     width: 100%;
     background-color: white;
-    z-index: 1000; /* Make sure it stays on top of other content */
-    padding: 10px 0; /* Add some padding for aesthetics */
-    display: flex; /* Enable flexbox */
-    align-items: center; /* Align items vertically in the center */
+    z-index: 1000;
+    padding: 10px;
+}
+
+/* Additional styles to ensure other elements (like buttons or icons) are properly aligned */
+.stickyHeader > * {
+    flex: 1; /* Gives an equal opportunity for each element to expand */
+    display: flex;
+    justify-content: center; /* Centers content of each flex item */
+}
+
+.filter-wrapper {
+    flex: 0 0 40%;  /* Allocate space but allow it to shrink or grow as needed */
+    display: flex;
+    align-items: center;
+    justify-content: left;
+}
+
+/* Specific style for the Clear button */
+.stickyHeader button {
+    flex: 0 0 auto;  /* Do not grow, do not shrink, and 'auto' basis for content-based sizing */
+    margin: 0 10px;
+    white-space: nowrap; /* Ensure the button text does not wrap */
 }
 
 .stickyHeader::after {
@@ -21,7 +43,7 @@
 
 .stickyHeader .save-icon {
     position: absolute;
-    left: 50%;
+    right: 180px;
     transform: translateX(-50%);
     font-size: 24px;
     color: gray;
