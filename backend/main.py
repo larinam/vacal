@@ -88,10 +88,12 @@ def find_vacation_periods(team, start_date=datetime.date.today()):
 
 
 def generate_email_body(team):
-    body = ""
     vacations = find_vacation_periods(team)
+    if not vacations:
+        return ""
+    body = "Hi there!\n\n"
     for v in vacations:
-        body += f"{v["name"]} is on vacation starting from {v["start"]} till {v["end"]}\n"
+        body += f"{v["name"]} is on vacation starting from {v["start"]} till {v["end"]}.\n"
     return body
 
 
@@ -99,6 +101,8 @@ def send_vacation_email_updates():
     log.debug("Start scheduled task send_vacation_email_updates")
     for team in Team.objects():
         email_body = generate_email_body(team)
+        if not email_body:
+            continue
         for email in team.subscriber_emails:
             send_email(f"Upcoming vacations {datetime.date.today()}",
                        email_body, email)
