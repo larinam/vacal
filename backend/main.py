@@ -95,6 +95,9 @@ def generate_email_body(team):
     body = "Hi there!\n\n"
     for v in vacations:
         body += f"{v["name"]} is on vacation starting from {v["start"]} till {v["end"]}.\n"
+
+    body += f"\nTo find out more go to {cors_origin}."
+    body += "\n\nBest regards,\nVacation Calendar"
     return body
 
 
