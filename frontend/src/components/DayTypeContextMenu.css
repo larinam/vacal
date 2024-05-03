@@ -43,3 +43,15 @@
     width: 20px; /* Width of the close button */
     height: 20px; /* Height of the close button */
 }
+
+.display-date-info {
+    font-size: .8em;
+    padding: 4px;
+}
+
+
+.member-info {
+    font-size: .8em;
+    padding: 0 4px;
+}
+

@@ -1,4 +1,4 @@
-import {eachDayOfInterval, endOfWeek, getISOWeek, isWeekend, startOfWeek} from 'date-fns';
+import {eachDayOfInterval, endOfWeek, format, getISOWeek, isWeekend, startOfWeek} from 'date-fns';
 import React, {useEffect, useRef, useState} from 'react';
 import {Tooltip} from 'react-tooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -187,7 +187,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
   const formatDate = (date) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return format(date, 'yyyy-MM-dd');
   };
 
   const isHoliday = (country, date) => {
@@ -229,10 +229,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const member = team.team_members.find(m => m.uid === memberId);
     const dateStr = formatDate(date);
     const existingDayTypes = member.days[dateStr] || [];
+    const memberName = member.name;
 
     setSelectedDayInfo({
       teamId,
       memberId,
+      memberName,
       date,
       existingDayTypes,
       isHolidayDay
