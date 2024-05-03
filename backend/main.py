@@ -7,6 +7,7 @@ import os
 import time
 from collections import defaultdict
 from copy import deepcopy
+from datetime import timedelta
 from io import BytesIO
 from typing import List, Dict, Annotated
 
@@ -66,16 +67,20 @@ def find_vacation_periods(team, start_date):
 
     # Iterate over team members and check if the start_date is a vacation
     for member in team.team_members:
-        if str(start_date) in member.days and vacation_day_type in member.days[str(start_date)]:
+        day_before = start_date - timedelta(days=1)
+        start_day_vacation = str(start_date) in member.days and vacation_day_type in member.days[str(start_date)]
+        day_before_vacation = str(day_before) in member.days and vacation_day_type in member.days[str(day_before)]
+
+        if start_day_vacation and not day_before_vacation:
             # Initialize the vacation start and end dates
             start = start_date
             end = start_date
 
             # Extend the end date as long as consecutive vacation days are found
-            next_day = start + datetime.timedelta(days=1)
+            next_day = start + timedelta(days=1)
             while str(next_day) in member.days and vacation_day_type in member.days[str(next_day)]:
                 end = next_day
-                next_day += datetime.timedelta(days=1)
+                next_day += timedelta(days=1)
 
             vacation_starts.append({
                 'name': member.name,
@@ -94,9 +99,9 @@ def generate_email_body(team):
         return ""
     body = "Hi there!\n\n"
     for v in vacations:
-        body += f"{v["name"]} is on vacation starting from {v["start"]} till {v["end"]}.\n"
+        body += f"{v["name"]} is on vacation from {v["start"]} to {v["end"]}.\n"
 
-    body += f"\nTo find out more go to {cors_origin}."
+    body += f"\nFor details, visit {cors_origin}."
     body += "\n\nBest regards,\nVacation Calendar"
     return body
 
@@ -108,7 +113,7 @@ def send_vacation_email_updates():
         if not email_body:
             continue
         for email in team.subscriber_emails:
-            send_email(f"Upcoming vacations {datetime.date.today()}",
+            send_email(f"Upcoming vacations starting on {datetime.date.today()}",
                        email_body, email)
     log.debug("Stop scheduled task send_vacation_email_updates")
 
