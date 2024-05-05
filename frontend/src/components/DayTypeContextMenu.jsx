@@ -98,6 +98,9 @@ const DayTypeContextMenu = ({
         if (type.identifier === "override" && !isWeekend(selectedDayInfo.date) && !selectedDayInfo.isHolidayDay) {
           return null; // Skip this DayType
         }
+        if (type.identifier === "birthday") {
+          return null; // Skip this DayType
+        }
 
         return (
           <div key={type._id} className="day-type-item">

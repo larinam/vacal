@@ -87,7 +87,7 @@ class DayType(Document):
         "index_background": True
     }
 
-    SYSTEM_DAY_TYPE_IDENTIFIERS = ['vacation', 'compensatory_leave', 'override']
+    SYSTEM_DAY_TYPE_IDENTIFIERS = ['vacation', 'compensatory_leave', 'override', 'birthday']
 
     @classmethod
     def init_day_types(cls, tenant):
@@ -96,8 +96,17 @@ class DayType(Document):
                 cls(tenant=tenant, name='Vacation', identifier='vacation', color="#FF6666"),
                 cls(tenant=tenant, name='Compensatory leave', identifier='compensatory_leave', color="#CC99FF"),
                 cls(tenant=tenant, name='Holiday override', identifier='override', color="#EEEEEE"),
+                cls(tenant=tenant, name='Birthday', identifier='birthday', color="#FFC0CB"),
             ]
             cls.objects.insert(initial_day_types, load_bulk=False)
+
+    @classmethod
+    def get_vacation_day_type_id(cls, tenant):
+        return str(cls.objects(tenant=tenant, identifier='vacation').first().id)
+
+    @classmethod
+    def get_birthday_day_type_id(cls, tenant):
+        return str(cls.objects(tenant=tenant, identifier='birthday').first().id)
 
 
 class TeamMember(EmbeddedDocument):
@@ -109,6 +118,7 @@ class TeamMember(EmbeddedDocument):
     # {date_str1:[day_type1, day_type2, day_type3, ..., day_typeN, date_str2:[day_type3, ...]]
     days = MapField(ListField(ReferenceField(DayType)))
     available_day_types = ListField(ReferenceField(DayType))
+    birthday = StringField(regex='^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')  # only MM-DD
 
 
 class Team(Document):
@@ -129,7 +139,7 @@ class Team(Document):
     def init_team(cls, tenant, team_member):
         if cls.objects(tenant=tenant).count() == 0:
             initial_teams = [
-                cls(tenant=tenant, name='My Team', team_members = [team_member]),
+                cls(tenant=tenant, name='My Team', team_members=[team_member]),
             ]
             cls.objects.insert(initial_teams, load_bulk=False)
 
@@ -210,10 +220,6 @@ def get_team_id_and_member_uid_by_email(tenant, email):
             if member.email == email:
                 return str(team.id), str(member.uid)
     return None, None
-
-
-def get_vacation_day_type_id(tenant):
-    return str(DayType.objects(tenant=tenant, name='Vacation').first().id)
 
 
 run_migrations()

@@ -8,7 +8,7 @@ import time
 from collections import defaultdict
 from copy import deepcopy
 from io import BytesIO
-from typing import List, Dict, Annotated
+from typing import List, Dict, Annotated, Self
 
 import holidays
 import pycountry
@@ -30,9 +30,10 @@ from starlette.concurrency import run_in_threadpool
 
 from .dependencies import create_access_token, get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, \
     TenantMiddleware, tenant_var
-from .model import Team, TeamMember, get_unique_countries, DayType, get_vacation_day_type_id, User, Tenant
+from .model import Team, TeamMember, get_unique_countries, DayType, User, Tenant
 from .routers import users, daytypes
 from .routers.daytypes import DayTypeReadDTO, get_all_day_types
+from .sheduled.birthdays import send_birthday_email_updates
 from .sheduled.vacation_starts import send_vacation_email_updates
 
 origins = [
@@ -60,7 +61,8 @@ scheduler = BackgroundScheduler()
 
 @app.on_event("startup")
 def start_scheduler():
-    scheduler.add_job(send_vacation_email_updates, 'cron', hour=8, minute=0)
+    scheduler.add_job(send_vacation_email_updates, 'cron', hour=6, minute=0)
+    scheduler.add_job(send_birthday_email_updates, 'cron', hour=6, minute=5)
     scheduler.start()
 
 
@@ -93,6 +95,7 @@ class TeamMemberWriteDTO(BaseModel):
     email: EmailStr | None = None
     phone: str | None = None
     available_day_types: List[DayTypeReadDTO] = []
+    birthday: str | None = Field(None, pattern=r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
 
     @field_validator("country")
     @classmethod
@@ -105,6 +108,11 @@ class TeamMemberWriteDTO(BaseModel):
     @field_validator('email', mode='before')
     @classmethod
     def empty_email_to_none(cls, v):
+        return None if v == "" else v
+
+    @field_validator('birthday', mode='before')
+    @classmethod
+    def empty_birthday_to_none(cls, v):
         return None if v == "" else v
 
 
@@ -124,6 +132,22 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
             if vacation_day_type in day_types:
                 vac_days_count[date.year] += 1
         return dict(vac_days_count)
+
+    @model_validator(mode='after')
+    def include_birthday(self) -> Self:
+        def add_birthday(year):
+            birthday_date = f"{year}-{self.birthday}"
+            if birthday_date not in self.days:
+                self.days[birthday_date] = []
+            self.days[birthday_date].append(
+                DayTypeReadDTO.from_mongo_reference_field(DayType.get_birthday_day_type_id(tenant_var.get())))
+
+        if self.birthday:
+            current_year = datetime.datetime.now().year
+            add_birthday(current_year)  # Add for current year
+            add_birthday(current_year + 1)  # Add for next year
+
+        return self
 
     @field_validator('days', mode="before")
     @classmethod
@@ -371,6 +395,7 @@ async def update_team_member(team_id: str, team_member_id: str, team_member_dto:
     team_member.country = team_member_dto.country
     team_member.email = team_member_dto.email if team_member_dto.email else None
     team_member.phone = team_member_dto.phone
+    team_member.birthday = team_member_dto.birthday
     team_member.available_day_types = team_member_dto.available_day_types
 
     team.save()
@@ -471,7 +496,7 @@ async def export_vacations(current_user: Annotated[User, Depends(get_current_act
 
 async def get_report_body_rows(tenant, start_date, end_date, day_type_names):
     body_rows = []
-    vacation_day_type_id = get_vacation_day_type_id(tenant)
+    vacation_day_type_id = DayType.get_vacation_day_type_id(tenant)
     country_holidays = get_holidays(tenant)
     working_hours_in_a_day = 8
     # Query and process the data
