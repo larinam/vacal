@@ -32,7 +32,7 @@ def generate_birthday_email_body(team):
 
     body = "Hello Team,\n\nHere are the birthdays today:\n\n"
     for birthday in birthdays_today:
-        body += f"{birthday['name']} celebrates their birthday today ({birthday['birthday']}).\n"
+        body += f"{birthday['name']}\n"
 
     body += f"\nCheck out the team calendar for more details at {cors_origin}."
     body += "\n\nBest regards,\nVacation Calendar"
