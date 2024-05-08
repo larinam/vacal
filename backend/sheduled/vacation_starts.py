@@ -66,6 +66,6 @@ def send_vacation_email_updates():
         if not email_body:
             continue
         for email in team.subscriber_emails:
-            send_email(f"Upcoming vacations starting on {datetime.date.today()}",
+            send_email(f"Vacations Starting Today - {team.name} - {datetime.date.today().strftime('%B %d')}",
                        email_body, email)
     log.debug("Stop scheduled task send_vacation_email_updates")
