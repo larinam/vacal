@@ -18,7 +18,7 @@
 }
 
 .filter-wrapper {
-    flex: 0 0 40%;  /* Allocate space but allow it to shrink or grow as needed */
+    flex: 0 0 40%; /* Allocate space but allow it to shrink or grow as needed */
     display: flex;
     align-items: center;
     justify-content: left;
@@ -26,7 +26,7 @@
 
 /* Specific style for the Clear button */
 .stickyHeader button {
-    flex: 0 0 auto;  /* Do not grow, do not shrink, and 'auto' basis for content-based sizing */
+    flex: 0 0 auto; /* Do not grow, do not shrink, and 'auto' basis for content-based sizing */
     margin: 0 10px;
     white-space: nowrap; /* Ensure the button text does not wrap */
 }
@@ -197,6 +197,8 @@
     filter: brightness(90%); /* Adjust brightness for darker effect */
     font-weight: bold;
     user-select: none;
+    border-left: 1px solid rgba(0, 0, 0, 0.5); /* Darker left border */
+    border-right: 1px solid rgba(0, 0, 0, 0.5); /* Darker right border */
 }
 
 .out-of-month-day-number {
@@ -204,6 +206,11 @@
     color: gray;
     font-weight: normal;
     user-select: none;
+}
+
+.calendar-table .current-day {
+    border-left: 1px solid rgba(0, 0, 0, 0.4); /* Darker left border */
+    border-right: 1px solid rgba(0, 0, 0, 0.4); /* Darker right border */
 }
 
 .dragging {

@@ -505,7 +505,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
               Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
               / Member
             </th>
-            {daysHeader.map(({ day, date }, idx) => {
+            {daysHeader.map(({day, date}, idx) => {
               const isOutOfMonth = date.getMonth() !== displayMonth.getMonth();
               return (
                 <th
@@ -514,8 +514,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                     formatDate(date) === formatDate(today)
                       ? 'current-day-number'
                       : isOutOfMonth
-                      ? 'out-of-month-day-number' // Assign a different class for out-of-month days
-                      : 'day-number-header'
+                        ? 'out-of-month-day-number' // Assign a different class for out-of-month days
+                        : 'day-number-header'
                   }
                 >
                   {day}
@@ -555,7 +555,16 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                           <FontAwesomeIcon icon={faPencilAlt}/>
                       </span>
                     </td>
-                    {daysHeader.map((day, idx) =>  <td key={idx}></td>)} {/* Empty cells for team row */}
+                    {daysHeader.map(({date}, idx) => {
+                      const isToday = formatDate(date) === formatDate(new Date());
+                      return (<td
+                        key={idx}
+                        className={`${isToday ? 'current-day' : ''}`}
+                      >
+
+
+                      </td>)
+                    })}
                   </tr>
                   {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
                     <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
@@ -580,7 +589,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         </span>
                         <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
                       </td>
-                      {daysHeader.map(({date}, idx) =>  {
+                      {daysHeader.map(({date}, idx) => {
+                        const isToday = formatDate(date) === formatDate(new Date());
                         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                         const dateDayTypes = member.days[dateStr] || [];
                         const isHolidayDay = isHoliday(member.country, date);
@@ -590,7 +600,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             key={idx}
                             onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
                             title={getCellTitle(member, date)}
-                            className={isHolidayDay ? 'holiday-cell' : ''}
+                            className={`${isHolidayDay ? 'holiday-cell' : ''} ${isToday ? 'current-day' : ''}`}
                             style={generateGradientStyle(dateDayTypes)}
                           >
                           </td>
