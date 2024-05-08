@@ -27,6 +27,8 @@ mongo_db_name = os.getenv("MONGO_DB_NAME")
 mongo_uri = os.getenv("MONGO_URI")
 
 if mongo_uri:
+    if mongo_uri.startswith('"') and mongo_uri.endswith('"'):
+        mongo_uri = mongo_uri.strip('"')
     connect(mongo_db_name, host=mongo_uri)
 elif mongo_username:  # connect to some external MongoDB
     if os.getenv("MONGO_INITDB_ROOT_USERNAME") and os.getenv("MONGO_INITDB_ROOT_PASSWORD"):
