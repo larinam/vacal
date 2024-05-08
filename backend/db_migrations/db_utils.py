@@ -14,6 +14,8 @@ mongo_db_name = os.getenv("MONGO_DB_NAME", "vacal")
 mongo_uri = os.getenv("MONGO_URI")
 
 if mongo_uri:
+    if mongo_uri.startswith('"') and mongo_uri.endswith('"'):
+        mongo_uri = mongo_uri.strip('"')
     client = MongoClient(mongo_uri)
 elif mongo_username:  # connect to some external MongoDB
     client = MongoClient(f"mongodb://{mongo_username}:{mongo_password}@{mongo_host}:{mongo_port}/")
