@@ -1,25 +1,25 @@
 .loginContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    position: relative;
 }
 
 .loginContainer h1 {
-  margin-bottom: 20px;
-  position: absolute;
-  top: calc(50% - 230px);
-  font-weight:300;
+    margin-bottom: 20px;
+    position: absolute;
+    top: calc(50% - 230px);
+    font-weight: 300;
 }
 
 h2 {
-  font-weight:300;
+    font-weight: 300;
 }
 
 h3 {
-  font-weight:300;
+    font-weight: 300;
 }
 
 .formStyle {
@@ -28,7 +28,7 @@ h3 {
     align-items: center;
     padding: 20px;
     margin-bottom: 20px; /* Add some space between the form and the Telegram login button */
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.2);
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.2);
 }
 
 .inputStyle, .buttonStyle {
@@ -46,16 +46,16 @@ h3 {
 }
 
 .signUpButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 5px 10px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
 }
 
 .signUpButton:hover {
-  background-color: #0056b3;
+    background-color: #0056b3;
 }

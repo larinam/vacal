@@ -1,11 +1,12 @@
 import React, {useEffect, useRef} from 'react';
 import {useAuth} from "../../contexts/AuthContext";
 import {useNavigate} from "react-router-dom";
+import './TelegramLogin.css';
 
 
 const TelegramLogin = () => {
   const telegramWidgetRef = useRef(null);
-  const { handleTelegramLogin } = useAuth();
+  const {handleTelegramLogin} = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,7 +29,7 @@ const TelegramLogin = () => {
   }, []);
 
   return (
-    <div>
+    <div className="telegramLoginContainer">
       <h3>Log in to your existing account with Telegram</h3>
       <div ref={telegramWidgetRef}></div>
     </div>
