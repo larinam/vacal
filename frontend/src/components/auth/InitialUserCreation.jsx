@@ -32,6 +32,7 @@ const InitialUserCreation = () => {
 
   return (
     <div className="initialUserCreationContainer">
+      <h1>Create Your Workspace</h1>
       <button
         className="logInButton"
         onClick={() => navigate('/login')}

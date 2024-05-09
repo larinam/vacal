@@ -7,7 +7,7 @@
   position: relative;
 }
 
-h1 {
+.loginContainer h1 {
   margin-bottom: 20px;
   position: absolute;
   top: calc(50% - 230px);
