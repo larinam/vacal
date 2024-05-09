@@ -40,6 +40,7 @@ const Login = () => {
 
   return (
     <div className="loginContainer">
+      <h1>Log in to Vacal</h1>
       {isMultitenancyEnabled && (
         <button
           className="signUpButton"

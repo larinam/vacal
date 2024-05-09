@@ -4,6 +4,14 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  position: relative;
+}
+
+h1 {
+  margin-bottom: 20px;
+  position: absolute;
+  top: calc(50% - 200px);
+  font-weight:300;
 }
 
 .formStyle {
