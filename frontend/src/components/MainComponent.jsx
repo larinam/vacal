@@ -15,7 +15,8 @@ const MainComponent = () => {
     const {apiCall, isLoading} = useApi();
     const { user } = useAuth();
     const [data, setData] = useState(null);
-    const [showReportModal, setShowReportModal] = useState(false); // State to control the visibility of the ReportFormModal
+    const [lastCheckedDate, setLastCheckedDate] = useState(new Date().toDateString());
+    const [showReportModal, setShowReportModal] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
 
     const abortControllerRef = useRef(null);
@@ -50,7 +51,18 @@ const MainComponent = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+        const intervalId = setInterval(() => {
+            const currentDate = new Date().toDateString();
+            if (currentDate !== lastCheckedDate) {
+                fetchData();
+                setLastCheckedDate(currentDate);
+            }
+        }, 60000); // Check every minute
+
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, [lastCheckedDate]);
 
     const openReportModal = () => {
         setShowReportModal(true);
