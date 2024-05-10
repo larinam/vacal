@@ -30,7 +30,7 @@ const TelegramLogin = () => {
 
   return (
     <div className="telegramLoginContainer">
-      <h3>Log in to your existing account with Telegram</h3>
+      <h3>Log in to your existing Vacal account with Telegram</h3>
       <div ref={telegramWidgetRef}></div>
     </div>
   );
