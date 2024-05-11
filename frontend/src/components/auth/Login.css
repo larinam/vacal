@@ -7,10 +7,16 @@
     position: relative;
 }
 
-.loginContainer h1 {
-    margin-bottom: 20px;
+.loginCenter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     position: absolute;
-    top: calc(50% - 230px);
+    top: calc(20%);
+}
+
+.loginCenter h1 {
+    margin-bottom: 15px;
     font-weight: 300;
 }
 

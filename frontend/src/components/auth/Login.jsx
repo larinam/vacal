@@ -40,7 +40,6 @@ const Login = () => {
 
   return (
     <div className="loginContainer">
-      <h1>Log in to Vacal</h1>
       {isMultitenancyEnabled && (
         <button
           className="signUpButton"
@@ -49,27 +48,30 @@ const Login = () => {
           Sign up
         </button>
       )}
-      <form onSubmit={handleSubmit} className="formStyle">
-        <input
-          type="text"
-          name="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Username"
-          className="inputStyle"
-          autoFocus={true}
-        />
-        <input
-          type="password"
-          name="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          className="inputStyle"
-        />
-        <button type="submit" className="buttonStyle">Log in</button>
-      </form>
-      {isTelegramEnabled && <TelegramLogin/>}
+      <div className="loginCenter">
+        <h1>Log in to Vacal</h1>
+        <form onSubmit={handleSubmit} className="formStyle">
+          <input
+            type="text"
+            name="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+            className="inputStyle"
+            autoFocus={true}
+          />
+          <input
+            type="password"
+            name="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="inputStyle"
+          />
+          <button type="submit" className="buttonStyle">Log in</button>
+        </form>
+        {isTelegramEnabled && <TelegramLogin/>}
+      </div>
     </div>
   );
 };
