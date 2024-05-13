@@ -33,5 +33,5 @@
 * For USERNAME/PASSWORD AUTHENTICATION generate a string like this run: `openssl rand -hex 32` and set `AUTHENTICATION_SECRET_KEY` in the environment.
 #### Telegram authentication
 * See https://core.telegram.org/widgets/login
-* Configure TELEGRAM_BOT_TOKEN in the backend .env
+* Configure TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME in the backend .env
 * Tip for local testing: https://stackoverflow.com/questions/61964889/testing-telegram-login-widget-locally

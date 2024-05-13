@@ -13,6 +13,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isMultitenancyEnabled, setIsMultitenancyEnabled] = useState(false);
   const [isTelegramEnabled, setIsTelegramEnabled] = useState(false);
+  const [telegramBotUsername, setTelegramBotUsername] = useState('');
 
 
   useEffect(() => {
@@ -21,6 +22,7 @@ const Login = () => {
         const config = await apiCall('/config');
         setIsTelegramEnabled(config.telegram_enabled);
         setIsMultitenancyEnabled(config.multitenancy_enabled);
+        setTelegramBotUsername(config.telegram_bot_username)
         if (!config.user_initiated) {
           navigate('/create-initial-user')
         }
@@ -70,7 +72,7 @@ const Login = () => {
           />
           <button type="submit" className="buttonStyle">Log in</button>
         </form>
-        {isTelegramEnabled && <TelegramLogin/>}
+        {isTelegramEnabled && <TelegramLogin telegramBotUsername={telegramBotUsername}/>}
       </div>
     </div>
   );

@@ -50,6 +50,7 @@ if cors_origin:  # for production
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 365
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")
 
 app = FastAPI()
 app.add_middleware(TenantMiddleware)
@@ -233,7 +234,8 @@ def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
 async def get_config():
     tenant_exists = Tenant.objects().first() is not None
     user_exists = User.objects().first() is not None
-    return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN),
+    return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME),
+            "telegram_bot_username": TELEGRAM_BOT_USERNAME,
             "user_initiated": tenant_exists and user_exists,
             "multitenancy_enabled": os.getenv("MULTITENANCY_ENABLED", False)}
 
