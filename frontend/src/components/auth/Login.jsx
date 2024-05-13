@@ -22,7 +22,7 @@ const Login = () => {
         const config = await apiCall('/config');
         setIsTelegramEnabled(config.telegram_enabled);
         setIsMultitenancyEnabled(config.multitenancy_enabled);
-        setTelegramBotUsername(config.telegram_bot_username)
+        setTelegramBotUsername(config.telegram_bot_username);
         if (!config.user_initiated) {
           navigate('/create-initial-user')
         }

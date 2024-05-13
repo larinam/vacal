@@ -4,7 +4,7 @@ import {useNavigate} from "react-router-dom";
 import './TelegramLogin.css';
 
 
-const TelegramLogin = (telegramBotUsername) => {
+const TelegramLogin = ({telegramBotUsername}) => {
   const telegramWidgetRef = useRef(null);
   const {handleTelegramLogin} = useAuth();
   const navigate = useNavigate();
