@@ -85,6 +85,7 @@ log = logging.getLogger(__name__)
 
 class GeneralApplicationConfigDTO(BaseModel):
     telegram_enabled: bool
+    telegram_bot_username: str
     user_initiated: bool
     multitenancy_enabled: bool = False
 
