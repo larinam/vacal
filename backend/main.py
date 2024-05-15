@@ -585,7 +585,7 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, List[st
     updated_days = {}
     for date_str, day_type_ids in days.items():
         validate_date(date_str)
-        day_types = [DayType.objects(tenant=tenant, id=day_type_id).first() for day_type_id in day_type_ids]
+        day_types = [DayType.objects(tenant=tenant, id=day_type_id).first() for day_type_id in set(day_type_ids)]
         updated_days[date_str] = sorted(day_types, key=lambda day_type: day_type.name)
 
     team_member.days = team_member.days | updated_days
