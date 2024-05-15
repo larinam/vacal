@@ -8,7 +8,7 @@ import time
 from collections import defaultdict
 from copy import deepcopy
 from io import BytesIO
-from typing import List, Dict, Annotated, Self
+from typing import List, Dict, Annotated, Self, Generator
 
 import holidays
 import pycountry
@@ -549,6 +549,7 @@ async def add_days(team_id: str, team_member_id: str, new_days: Dict[str, List[s
 
     # Updating days field with new entries
     for date_str, day_type_ids in new_days.items():
+        day_type_ids = filter_out_birthdays(tenant, day_type_ids)
         day_types = [DayType.objects(tenant=tenant, id=day_type_id).first() for day_type_id in day_type_ids]
         if date_str in team_member.days:
             # Add new day types to the existing list for this date
@@ -568,6 +569,12 @@ def validate_date(date_str):
         raise HTTPException(status_code=400, detail=f"Can't parse date {date_str}")
 
 
+def filter_out_birthdays(tenant: Tenant, day_type_ids: List[str]) -> Generator:
+    birthday_day_type_id: str = DayType.get_birthday_day_type_id(tenant)
+    day_type_ids = set(day_type_ids)
+    return filter(lambda x: x != birthday_day_type_id, day_type_ids)
+
+
 @app.put("/teams/{team_id}/members/{team_member_id}/days")
 async def update_days(team_id: str, team_member_id: str, days: Dict[str, List[str]],
                       current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
@@ -585,7 +592,8 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, List[st
     updated_days = {}
     for date_str, day_type_ids in days.items():
         validate_date(date_str)
-        day_types = [DayType.objects(tenant=tenant, id=day_type_id).first() for day_type_id in set(day_type_ids)]
+        day_type_ids = filter_out_birthdays(tenant, day_type_ids)
+        day_types = [DayType.objects(tenant=tenant, id=day_type_id).first() for day_type_id in day_type_ids]
         updated_days[date_str] = sorted(day_types, key=lambda day_type: day_type.name)
 
     team_member.days = team_member.days | updated_days
