@@ -3,6 +3,7 @@ import os
 import random
 import uuid
 
+import mongoengine
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
@@ -77,14 +78,14 @@ def generate_random_hex_color():
 
 
 class DayType(Document):
-    tenant = ReferenceField(Tenant, required=True)
+    tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
     name = StringField(required=True, unique_with="tenant")
     identifier = StringField(required=True, unique_with="tenant")
     color = StringField(default=generate_random_hex_color)
 
     meta = {
         "indexes": [
-            "tenant",
+            ("tenant", "identifier")
         ],
         "index_background": True
     }
@@ -124,7 +125,7 @@ class TeamMember(EmbeddedDocument):
 
 
 class Team(Document):
-    tenant = ReferenceField(Tenant, required=True)
+    tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
     name = StringField(required=True, unique_with="tenant")
     team_members = EmbeddedDocumentListField(TeamMember)
     subscriber_emails = ListField(EmailField())
@@ -148,7 +149,7 @@ class Team(Document):
 
 class AuthDetails(EmbeddedDocument):
     # Stores various authentication details
-    telegram_id = LongField(unique=True, required=False, sparse=True)
+    telegram_id = LongField(unique=True, sparse=True)
     telegram_username = StringField(unique=True, required=False, sparse=True)
     # Fields for username/password authentication
     username = StringField(unique=True, required=True, sparse=True)
@@ -156,7 +157,7 @@ class AuthDetails(EmbeddedDocument):
 
 
 class User(Document):
-    tenants = ListField(ReferenceField(Tenant, required=True))
+    tenants = ListField(ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.PULL))
     name = StringField(required=True)
     email = EmailField(unique=True, required=False, sparse=True, default=None)
     auth_details = EmbeddedDocumentField(AuthDetails)
