@@ -204,7 +204,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const getCellTitle = (member, date) => {
     const dateStr = formatDate(date);
-    const dayTypes = member.days[dateStr];
+    const dayEntry = member.days[dateStr] || {};
+    const dayTypes = dayEntry?.day_types || [];
 
     if (dayTypes && dayTypes.length > 0) {
       return dayTypes.map(dt => dt.name).join(', '); // Join multiple day types with a comma
