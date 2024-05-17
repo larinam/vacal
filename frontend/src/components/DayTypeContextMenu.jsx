@@ -49,7 +49,7 @@ const DayTypeContextMenu = ({
     setSelectedDayTypes(updatedDayTypes);
 
     const dateStr = formatDate(selectedDayInfo.date);
-    const dayTypeData = {[dateStr]: updatedDayTypes};
+    const dayTypeData = {[dateStr]: {"day_types": updatedDayTypes}};
 
     const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
     try {

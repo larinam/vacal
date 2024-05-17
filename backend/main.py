@@ -556,7 +556,7 @@ def filter_out_birthdays(tenant: Tenant, day_type_ids: List[str]) -> Generator:
 
 
 @app.put("/teams/{team_id}/members/{team_member_id}/days")
-async def update_days(team_id: str, team_member_id: str, days: Dict[str, List[str]],
+async def update_days(team_id: str, team_member_id: str, days: Dict[str, Dict[str, str | List[str]]],
                       current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
     """Assume it is an update for only one day"""
@@ -569,12 +569,13 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, List[st
         raise HTTPException(status_code=404, detail="Team member not found")
 
     updated_days = {}
-    for date_str, day_type_ids in days.items():
+    for date_str, day_entry_dto in days.items():
         validate_date(date_str)
-        filtered_ids = filter_out_birthdays(tenant, day_type_ids)
+        filtered_ids = filter_out_birthdays(tenant, day_entry_dto["day_types"])
         day_types = DayType.objects(tenant=tenant, id__in=filtered_ids).order_by("name")
-        day_entry = team_member.days.get(date_str, DayEntry(day_types=[]))
+        day_entry: DayEntry = team_member.days.get(date_str, DayEntry())
         day_entry.day_types = day_types
+        day_entry.comment = day_entry_dto.get("comment", '')
         updated_days[date_str] = day_entry
 
     team_member.days.update(updated_days)
