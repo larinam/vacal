@@ -30,7 +30,7 @@ from starlette.concurrency import run_in_threadpool
 
 from .dependencies import create_access_token, get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, \
     TenantMiddleware, tenant_var
-from .model import Team, TeamMember, get_unique_countries, DayType, User, Tenant
+from .model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry
 from .routers import users, daytypes
 from .routers.daytypes import DayTypeReadDTO, get_all_day_types
 from .sheduled.birthdays import send_birthday_email_updates
@@ -118,10 +118,15 @@ class TeamMemberWriteDTO(BaseModel):
         return None if v == "" else v
 
 
+class DayEntryDTO(BaseModel):
+    day_types: List[DayTypeReadDTO] = []
+    comment: str = ''
+
+
 # noinspection PyNestedDecorators
 class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
-    days: Dict[str, List[DayTypeReadDTO]] = Field(default_factory=dict)
+    days: Dict[str, DayEntryDTO] = Field(default_factory=dict)
 
     @computed_field
     @property
@@ -129,8 +134,9 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
         vac_days_count = defaultdict(int)
         vacation_day_type = mongo_to_pydantic(DayType.objects(tenant=tenant_var.get(), name="Vacation").first(),
                                               DayTypeReadDTO)
-        for date_str, day_types in self.days.items():
+        for date_str, day_entry in self.days.items():
             date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+            day_types = day_entry.day_types
             if vacation_day_type in day_types:
                 vac_days_count[date.year] += 1
         return dict(vac_days_count)
@@ -140,8 +146,8 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
         def add_birthday(year):
             birthday_date = f"{year}-{self.birthday}"
             if birthday_date not in self.days:
-                self.days[birthday_date] = []
-            self.days[birthday_date].append(
+                self.days[birthday_date] = DayEntryDTO()
+            self.days[birthday_date].day_types.append(
                 DayTypeReadDTO.from_mongo_reference_field(DayType.get_birthday_day_type_id(tenant_var.get())))
 
         if self.birthday:
@@ -155,13 +161,14 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     @classmethod
     def convert_days(cls, v):
         if v and isinstance(v, dict):
-            converted_days = {}
-            for date_str, day_type_ids in v.items():
+            converted_days = v
+            for date_str, day_entry in v.items():
+                day_type_ids = day_entry["day_types"]
                 converted_day_types = []
                 for day_type_id in day_type_ids:
                     if isinstance(day_type_id, ObjectId):
                         converted_day_types.append(DayTypeReadDTO.from_mongo_reference_field(day_type_id))
-                converted_days[date_str] = converted_day_types
+                converted_days[date_str]["day_types"] = converted_day_types
             return converted_days
         return v
 
@@ -535,33 +542,6 @@ async def get_report_body_rows(tenant, start_date, end_date, day_type_names):
     return body_rows
 
 
-@app.post("/teams/{team_id}/members/{team_member_id}/days")
-async def add_days(team_id: str, team_member_id: str, new_days: Dict[str, List[str]],
-                   current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                   tenant: Annotated[Tenant, Depends(get_tenant)]):
-    team: Team = Team.objects(tenant=tenant, id=team_id).first()
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    team_member: TeamMember = team.team_members.get(uid=team_member_id)
-    if not team_member:
-        raise HTTPException(status_code=404, detail="Team member not found")
-
-    # Updating days field with new entries
-    for date_str, day_type_ids in new_days.items():
-        day_type_ids = filter_out_birthdays(tenant, day_type_ids)
-        day_types = [DayType.objects(tenant=tenant, id=day_type_id).first() for day_type_id in day_type_ids]
-        if date_str in team_member.days:
-            # Add new day types to the existing list for this date
-            team_member.days[date_str].extend(day_types)
-        else:
-            # Create a new entry for this date
-            team_member.days[date_str] = day_types
-
-    team.save()
-    return {"message": "Days added successfully"}
-
-
 def validate_date(date_str):
     try:
         datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -588,14 +568,15 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, List[st
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
 
-    # Convert the day type IDs to DayType references
     updated_days = {}
     for date_str, day_type_ids in days.items():
         validate_date(date_str)
-        day_type_ids = filter_out_birthdays(tenant, day_type_ids)
-        day_types = [DayType.objects(tenant=tenant, id=day_type_id).first() for day_type_id in day_type_ids]
-        updated_days[date_str] = sorted(day_types, key=lambda day_type: day_type.name)
+        filtered_ids = filter_out_birthdays(tenant, day_type_ids)
+        day_types = DayType.objects(tenant=tenant, id__in=filtered_ids).order_by("name")
+        day_entry = team_member.days.get(date_str, DayEntry(day_types=[]))
+        day_entry.day_types = day_types
+        updated_days[date_str] = day_entry
 
-    team_member.days = team_member.days | updated_days
+    team_member.days.update(updated_days)
     team.save()
     return {"message": "Days modified successfully"}

@@ -228,7 +228,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const team = teamData.find(t => t._id === teamId);
     const member = team.team_members.find(m => m.uid === memberId);
     const dateStr = formatDate(date);
-    const existingDayTypes = member.days[dateStr] || [];
+    const dayEntry = member.days[dateStr] || {};
+    const existingDayTypes = dayEntry?.day_types || [];
     const memberName = member.name;
 
     setSelectedDayInfo({
@@ -413,7 +414,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         if (team._id === teamId) {
           const updatedMembers = team.team_members.map(member => {
             if (member.uid === memberId) {
-              return {...member, days: {...member.days, [dateStr]: newDayTypes.map(id => getDayTypeById(id))}};
+              return {
+                ...member,
+                days: {...member.days, [dateStr]: {day_types: newDayTypes.map(id => getDayTypeById(id))}}
+              };
             }
             return member;
           });
@@ -592,7 +596,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       {daysHeader.map(({date}, idx) => {
                         const isToday = formatDate(date) === formatDate(new Date());
                         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                        const dateDayTypes = member.days[dateStr] || [];
+                        const dayEntry = member.days[dateStr] || {};
+                        const dateDayTypes = dayEntry?.day_types || [];
                         const isHolidayDay = isHoliday(member.country, date);
 
                         return (

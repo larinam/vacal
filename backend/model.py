@@ -112,14 +112,18 @@ class DayType(Document):
         return str(cls.objects(tenant=tenant, identifier='birthday').first().id)
 
 
+class DayEntry(EmbeddedDocument):
+    day_types = ListField(ReferenceField(DayType))
+    comment = StringField()
+
+
 class TeamMember(EmbeddedDocument):
     uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
     name = StringField(required=True)
     country = StringField(required=True)  # country name from pycountry
     email = EmailField()
     phone = StringField()
-    # {date_str1:[day_type1, day_type2, day_type3, ..., day_typeN, date_str2:[day_type3, ...]]
-    days = MapField(ListField(ReferenceField(DayType)))
+    days = MapField(EmbeddedDocumentField(DayEntry))
     available_day_types = ListField(ReferenceField(DayType))
     birthday = StringField(regex='^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')  # only MM-DD
 
