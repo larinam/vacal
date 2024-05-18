@@ -231,6 +231,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const dateStr = formatDate(date);
     const dayEntry = member.days[dateStr] || {};
     const existingDayTypes = dayEntry?.day_types || [];
+    const existingComment = dayEntry?.comment || '';
     const memberName = member.name;
 
     setSelectedDayInfo({
@@ -239,6 +240,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       memberName,
       date,
       existingDayTypes,
+      existingComment,
       isHolidayDay
     });
 
@@ -404,8 +406,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     setDraggedMember({memberId: null, originTeamId: null, memberName: ''}); // Reset drag state
   };
 
-  const updateLocalTeamData = (teamId, memberId, dateStr, newDayTypes) => {
-
+  const updateLocalTeamData = (teamId, memberId, dateStr, newDayTypes, comment) => {
     const getDayTypeById = (id) => {
       return dayTypes.find(dayType => dayType._id === id);
     };
@@ -417,7 +418,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
             if (member.uid === memberId) {
               return {
                 ...member,
-                days: {...member.days, [dateStr]: {day_types: newDayTypes.map(id => getDayTypeById(id))}}
+                days: {
+                  ...member.days,
+                  [dateStr]: {
+                    day_types: newDayTypes.map(id => getDayTypeById(id)),
+                    comment: comment
+                  }
+                }
               };
             }
             return member;
@@ -600,6 +607,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         const dayEntry = member.days[dateStr] || {};
                         const dateDayTypes = dayEntry?.day_types || [];
                         const isHolidayDay = isHoliday(member.country, date);
+                        const hasComment = dayEntry?.comment && dayEntry.comment.trim().length > 0;
 
                         return (
                           <td
@@ -609,6 +617,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             className={`${isHolidayDay ? 'holiday-cell' : ''} ${isToday ? 'current-day' : ''}`}
                             style={generateGradientStyle(dateDayTypes)}
                           >
+                            <div className="day-cell-content">
+                              {hasComment && (
+                                <span className="comment-icon">
+                                  *
+                                </span>
+                              )}
+                            </div>
                           </td>
                         );
                       })}

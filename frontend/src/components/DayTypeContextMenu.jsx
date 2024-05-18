@@ -14,12 +14,21 @@ const DayTypeContextMenu = ({
                               updateLocalTeamData
                             }) => {
   const [selectedDayTypes, setSelectedDayTypes] = useState([]);
+  const [comment, setComment] = useState('');
+  const [initialComment, setInitialComment] = useState('');
   const {apiCall} = useApi();
 
   useEffect(() => {
-    if (selectedDayInfo?.existingDayTypes) {
+    if (isOpen) {
       const dayTypeIds = selectedDayInfo.existingDayTypes.map(type => type._id);
       setSelectedDayTypes(dayTypeIds);
+      const existingComment = selectedDayInfo.existingComment || '';
+      setComment(existingComment);
+      setInitialComment(existingComment);
+    } else {
+      setSelectedDayTypes([]);
+      setComment('');
+      setInitialComment('');
     }
   }, [isOpen, selectedDayInfo]);
 
@@ -47,9 +56,23 @@ const DayTypeContextMenu = ({
       : selectedDayTypes.filter(type => type !== value);
 
     setSelectedDayTypes(updatedDayTypes);
+    await updateDayData(updatedDayTypes, comment);
+    onClose();
+  };
 
+  const handleCommentChange = (e) => {
+    setComment(e.target.value);
+  };
+
+  const handleCommentBlur = async () => {
+    if (comment !== initialComment) {
+      await updateDayData(selectedDayTypes, comment);
+    }
+  };
+
+  const updateDayData = async (dayTypes, comment) => {
     const dateStr = formatDate(selectedDayInfo.date);
-    const dayTypeData = {[dateStr]: {"day_types": updatedDayTypes}};
+    const dayTypeData = {[dateStr]: {"day_types": dayTypes, "comment": comment}};
 
     const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
     try {
@@ -62,10 +85,10 @@ const DayTypeContextMenu = ({
     updateLocalTeamData(
       selectedDayInfo.teamId,
       selectedDayInfo.memberId,
-      formatDate(selectedDayInfo.date),
-      updatedDayTypes
+      dateStr,
+      dayTypes,
+      comment
     );
-    onClose();
   };
 
   const formatDate = (date) => {
@@ -83,7 +106,6 @@ const DayTypeContextMenu = ({
   // Format the display of the date and the day of the week
   const displayDate = selectedDayInfo.date ?
     new Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(selectedDayInfo.date) + ', ' + formatDate(selectedDayInfo.date) : "";
-
 
   return (
     <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
@@ -123,6 +145,13 @@ const DayTypeContextMenu = ({
           {selectedDayInfo.memberName}<br/>
         </div>
       )}
+      <textarea
+        className="comment-input"
+        placeholder="Add a comment"
+        value={comment}
+        onChange={handleCommentChange}
+        onBlur={handleCommentBlur}
+      />
     </div>
   );
 };

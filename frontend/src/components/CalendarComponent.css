@@ -72,6 +72,7 @@
     padding: 8px;
     text-align: center;
     overflow: hidden;
+    position: relative;
 }
 
 .calendar-table th:first-child, .calendar-table td:first-child {
@@ -287,4 +288,12 @@ th.day-number-header {
     border-bottom: 0;
     border-top: 0;
     margin: 0
+}
+
+.comment-icon {
+    position: absolute;
+    top: 0;
+    right: 3px;
+    font-size: 20px;
+    color: #DDD;
 }

@@ -6,8 +6,8 @@
 
 .day-type-item label {
     display: flex;
-    align-items: center; /* Centers items vertically */
-    white-space: nowrap; /* Prevents wrapping */
+    align-items: center;
+    white-space: nowrap;
 }
 
 .color-indicator {
@@ -35,13 +35,13 @@
     cursor: pointer;
     font-size: 20px;
     color: #333;
-    padding: 3px; /* Adds some space around the close icon */
-    background-color: rgba(255, 255, 255, 0.9); /* Optional: matches the menu's background */
-    border-radius: 50%; /* Optional: makes it a circle */
-    line-height: 1; /* Adjusts the line height to help center the text vertically */
-    text-align: center; /* Centers the text horizontally */
-    width: 20px; /* Width of the close button */
-    height: 20px; /* Height of the close button */
+    padding: 3px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    line-height: 1;
+    text-align: center;
+    width: 20px;
+    height: 20px;
 }
 
 .display-date-info {
@@ -49,9 +49,16 @@
     padding: 4px;
 }
 
-
 .member-info {
     font-size: .8em;
     padding: 0 4px;
 }
 
+.comment-input {
+    width: 100%;
+    margin-top: 10px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: .9em;
+}
