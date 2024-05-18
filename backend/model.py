@@ -2,12 +2,13 @@ import logging
 import os
 import random
 import uuid
+from datetime import datetime, timezone
 
 import mongoengine
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
-    LongField
+    LongField, DateTimeField
 from passlib.context import CryptContext
 from pymongo import MongoClient
 
@@ -63,6 +64,7 @@ else:  # just local MongoDB
 class Tenant(Document):
     name = StringField(required=True, unique=True)
     identifier = StringField(required=True, unique=True)
+    creation_date = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc))
 
     meta = {
         "indexes": [
