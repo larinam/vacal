@@ -3,7 +3,7 @@ import logging
 import os
 
 from ..email_service import send_email
-from ..model import DayType, Team, TeamMember
+from ..model import DayType, Team
 
 log = logging.getLogger(__name__)
 
@@ -16,34 +16,29 @@ def find_vacation_periods(team, start_date):
 
     vacation_starts = []
 
-    # Iterate over team members and check if the start_date is a vacation
+    start_date_str = str(start_date)
+    day_before = start_date - datetime.timedelta(days=1)
+    day_before_str = str(day_before)
+
     for member in team.team_members:
-        member: TeamMember
-        day_before = start_date - datetime.timedelta(days=1)
-        start_day_vacation = str(start_date) in member.days and vacation_day_type in member.days[
-            str(start_date)].day_types
-        day_before_vacation = str(day_before) in member.days and vacation_day_type in member.days[
-            str(day_before)].day_types
-
-        if start_day_vacation and not day_before_vacation:
-            # Initialize the vacation start and end dates
-            start = start_date
-            end = start_date
-
-            # Extend the end date as long as consecutive vacation days are found
-            next_day = start + datetime.timedelta(days=1)
-            while str(next_day) in member.days and vacation_day_type in member.days[str(next_day)].day_types:
-                end = next_day
-                next_day += datetime.timedelta(days=1)
-
+        if (start_date_str in member.days and vacation_day_type in member.days[start_date_str].day_types and
+                not (day_before_str in member.days and vacation_day_type in member.days[day_before_str].day_types)):
+            end_date = calculate_end_date(member, start_date, vacation_day_type)
             vacation_starts.append({
                 'name': member.name,
-                'email': member.email,  # assuming you might need additional info
-                'start': start,
-                'end': end
+                'email': member.email,
+                'start': start_date,
+                'end': end_date
             })
 
     return vacation_starts
+
+
+def calculate_end_date(member, start_date, vacation_day_type):
+    next_day = start_date + datetime.timedelta(days=1)
+    while str(next_day) in member.days and vacation_day_type in member.days[str(next_day)].day_types:
+        next_day += datetime.timedelta(days=1)
+    return next_day - datetime.timedelta(days=1)
 
 
 def generate_email_body(team):
@@ -64,11 +59,12 @@ def generate_email_body(team):
 
 def send_vacation_email_updates():
     log.debug("Start scheduled task send_vacation_email_updates")
+    today = datetime.date.today().strftime('%B %d')
+
     for team in Team.objects():
         email_body = generate_email_body(team)
         if not email_body:
             continue
         for email in team.subscriber_emails:
-            send_email(f"Vacations Starting Today - {team.name} - {datetime.date.today().strftime('%B %d')}",
-                       email_body, email)
+            send_email(f"Vacations Starting Today - {team.name} - {today}", email_body, email)
     log.debug("Stop scheduled task send_vacation_email_updates")
