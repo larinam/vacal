@@ -3,7 +3,7 @@ import logging
 import os
 
 from ..email_service import send_email
-from ..model import DayType, Team
+from ..model import DayType, Team, TeamMember
 
 log = logging.getLogger(__name__)
 
@@ -18,9 +18,12 @@ def find_vacation_periods(team, start_date):
 
     # Iterate over team members and check if the start_date is a vacation
     for member in team.team_members:
+        member: TeamMember
         day_before = start_date - datetime.timedelta(days=1)
-        start_day_vacation = str(start_date) in member.days and vacation_day_type in member.days[str(start_date)]
-        day_before_vacation = str(day_before) in member.days and vacation_day_type in member.days[str(day_before)]
+        start_day_vacation = str(start_date) in member.days and vacation_day_type in member.days[
+            str(start_date)].day_types
+        day_before_vacation = str(day_before) in member.days and vacation_day_type in member.days[
+            str(day_before)].day_types
 
         if start_day_vacation and not day_before_vacation:
             # Initialize the vacation start and end dates
@@ -29,7 +32,7 @@ def find_vacation_periods(team, start_date):
 
             # Extend the end date as long as consecutive vacation days are found
             next_day = start + datetime.timedelta(days=1)
-            while str(next_day) in member.days and vacation_day_type in member.days[str(next_day)]:
+            while str(next_day) in member.days and vacation_day_type in member.days[str(next_day)].day_types:
                 end = next_day
                 next_day += datetime.timedelta(days=1)
 
