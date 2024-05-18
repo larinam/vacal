@@ -2,13 +2,13 @@ import logging
 import os
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import mongoengine
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
-    LongField, DateTimeField
+    LongField, DateTimeField, IntField
 from passlib.context import CryptContext
 from pymongo import MongoClient
 
@@ -61,10 +61,19 @@ else:  # just local MongoDB
     connect("vacal")
 
 
+class MaxTeamMembersInThePeriod(EmbeddedDocument):
+    period = DateTimeField(reqired=True)
+    team_members_number = IntField(required=True)
+
+
 class Tenant(Document):
     name = StringField(required=True, unique=True)
     identifier = StringField(required=True, unique=True)
     creation_date = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc))
+    status = StringField(required=True, choices=['trial', 'active', 'blocked', 'free'], default='trial')
+    trial_until = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc) + timedelta(days=31))
+    current_period = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc))
+    max_team_members_in_periods = MapField(EmbeddedDocumentField(MaxTeamMembersInThePeriod))
 
     meta = {
         "indexes": [
@@ -72,6 +81,51 @@ class Tenant(Document):
         ],
         "index_background": True
     }
+
+    PERIOD_DAYS = 31
+
+    def is_active(self):
+        return os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'active'
+
+    def activate(self):
+        self.status = 'active'
+        self.save()
+
+    def is_blocked(self):
+        return os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'blocked'
+
+    def block(self):
+        self.status = 'blocked'
+        self.save()
+
+    def is_trial(self):
+        return os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'trial'
+
+    def reset_trial(self):
+        self.status = 'trial'
+        self.trial_until = datetime.now(timezone.utc) + timedelta(days=self.PERIOD_DAYS)
+        self.save()
+
+    def is_free(self):
+        return ((os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'free') or
+                os.getenv("MULTITENANCY_ENABLED", False) is False)
+
+    def update_max_team_members_in_the_period(self):
+        now = datetime.now(timezone.utc)
+
+        # Check if the current period needs to be updated
+        if now >= self.current_period + timedelta(days=self.PERIOD_DAYS):
+            self.current_period = self.current_period + timedelta(days=self.PERIOD_DAYS)
+
+        current_period_str = self.current_period.isoformat()
+
+        current_team_member_count = calculate_team_members_number_in_tenant(self)
+
+        existing_max = self.max_team_members_in_periods.get(current_period_str, 0)
+
+        if current_team_member_count > existing_max:
+            self.max_team_members_in_periods[current_period_str] = current_team_member_count
+            self.save()
 
 
 def generate_random_hex_color():
@@ -229,6 +283,13 @@ def get_team_id_and_member_uid_by_email(tenant, email):
             if member.email == email:
                 return str(team.id), str(member.uid)
     return None, None
+
+
+def calculate_team_members_number_in_tenant(tenant):
+    team_member_count = 0
+    for team in Team.objects(tenant=tenant):
+        team_member_count += len(team.team_members)
+    return team_member_count
 
 
 run_migrations()
