@@ -33,6 +33,7 @@ from .dependencies import create_access_token, get_current_active_user_check_ten
 from .model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry
 from .routers import users, daytypes
 from .routers.daytypes import DayTypeReadDTO, get_all_day_types
+from .sheduled.activate_trials import activate_trials
 from .sheduled.birthdays import send_birthday_email_updates
 from .sheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
 from .sheduled.vacation_starts import send_vacation_email_updates
@@ -66,6 +67,7 @@ def start_scheduler():
     scheduler.add_job(send_vacation_email_updates, 'cron', hour=6, minute=0)
     scheduler.add_job(send_birthday_email_updates, 'cron', hour=6, minute=5)
     scheduler.add_job(run_update_max_team_members_numbers, 'cron', hour=1, minute=5)
+    scheduler.add_job(activate_trials, 'cron', hour=2, minute=5)
     scheduler.start()
 
 

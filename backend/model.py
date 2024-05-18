@@ -87,9 +87,10 @@ class Tenant(Document):
     def is_active(self):
         return os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'active'
 
-    def activate(self):
-        self.status = 'active'
-        self.save()
+    def activate_trial(self):
+        if self.is_trial() and datetime.now(timezone.utc) > self.trial_until:
+            self.status = 'active'
+            self.save()
 
     def is_blocked(self):
         return os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'blocked'
@@ -109,6 +110,10 @@ class Tenant(Document):
     def is_free(self):
         return ((os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'free') or
                 os.getenv("MULTITENANCY_ENABLED", False) is False)
+
+    def set_free(self):
+        self.status = 'free'
+        self.save()
 
     def update_max_team_members_in_the_period(self):
         now = datetime.now(timezone.utc)
