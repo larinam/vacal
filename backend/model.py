@@ -61,11 +61,6 @@ else:  # just local MongoDB
     connect("vacal")
 
 
-class MaxTeamMembersInThePeriod(EmbeddedDocument):
-    period = DateTimeField(reqired=True)
-    team_members_number = IntField(required=True)
-
-
 class Tenant(Document):
     name = StringField(required=True, unique=True)
     identifier = StringField(required=True, unique=True)
@@ -73,7 +68,7 @@ class Tenant(Document):
     status = StringField(required=True, choices=['trial', 'active', 'blocked', 'free'], default='trial')
     trial_until = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc) + timedelta(days=31))
     current_period = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc))
-    max_team_members_in_periods = MapField(EmbeddedDocumentField(MaxTeamMembersInThePeriod))
+    max_team_members_in_periods = MapField(IntField())
 
     meta = {
         "indexes": [
