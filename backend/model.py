@@ -112,7 +112,7 @@ class Tenant(Document):
 
     def update_max_team_members_in_the_period(self):
         now = datetime.now(timezone.utc)
-
+        self.current_period = self.current_period.replace(tzinfo=timezone.utc)
         # Check if the current period needs to be updated
         if now >= self.current_period + timedelta(days=self.PERIOD_DAYS):
             self.current_period = self.current_period + timedelta(days=self.PERIOD_DAYS)
@@ -124,7 +124,7 @@ class Tenant(Document):
         existing_max = self.max_team_members_in_periods.get(current_period_str, 0)
 
         if current_team_member_count > existing_max:
-            self.max_team_members_in_periods[current_period_str] = current_team_member_count
+            self.max_team_members_in_periods.update({current_period_str: current_team_member_count})
             self.save()
 
 
