@@ -46,7 +46,6 @@ const AddMemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editin
       updateTeamData(); // Refresh team data
     } catch (error) {
       console.error('Error adding/modifying team member:', error);
-      console.error(error.data.detail[0].msg)
       toast.error(error?.data?.detail[0].msg);
       if (error.data) {
         toast.error(error?.data?.detail.msg);
