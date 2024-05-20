@@ -26,6 +26,10 @@ loggers:
     level: INFO
     handlers: [default]
     propagate: no
+  watchfiles.main:
+    level: WARN
+    handlers: [default]
+    propagate: no
 root:
   level: INFO
   handlers:
