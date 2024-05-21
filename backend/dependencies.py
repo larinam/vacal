@@ -4,8 +4,10 @@ from contextvars import ContextVar
 from typing import Annotated
 
 import jwt
-from fastapi import HTTPException, Depends, Header
+from fastapi import Depends, Header
+from fastapi import HTTPException, Security
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.security.api_key import APIKeyHeader
 from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -78,6 +80,7 @@ def mongo_to_pydantic(mongo_document, pydantic_model):
     return pydantic_model(**document_dict)
 
 
+# TENANT
 tenant_var: ContextVar[Tenant] = ContextVar("tenant_var")
 
 
@@ -89,3 +92,18 @@ class TenantMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         tenant_var.reset(token)
         return response
+
+
+# API KEY
+VACAL_MANAGEMENT_API_KEY = os.getenv("VACAL_MANAGEMENT_API_KEY")  # no default value should be set
+api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=True)
+
+
+def get_api_key(api_key: str = Security(api_key_header)):
+    if VACAL_MANAGEMENT_API_KEY and api_key == VACAL_MANAGEMENT_API_KEY:
+        return api_key
+    else:
+        raise HTTPException(
+            status_code=403,
+            detail="Could not validate credentials",
+        )

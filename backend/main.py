@@ -31,7 +31,7 @@ from starlette.concurrency import run_in_threadpool
 from .dependencies import create_access_token, get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, \
     TenantMiddleware, tenant_var
 from .model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry
-from .routers import users, daytypes, statistics
+from .routers import users, daytypes, management
 from .routers.daytypes import DayTypeReadDTO, get_all_day_types
 from .sheduled.activate_trials import activate_trials
 from .sheduled.birthdays import send_birthday_email_updates
@@ -60,7 +60,8 @@ app = FastAPI()
 app.add_middleware(TenantMiddleware)
 app.include_router(users.router)
 app.include_router(daytypes.router)
-app.include_router(statistics.router)
+if MULTITENANCY_ENABLED:
+    app.include_router(management.router)
 Instrumentator().instrument(app).expose(app)
 scheduler = BackgroundScheduler()
 
