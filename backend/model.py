@@ -83,6 +83,7 @@ class Tenant(Document):
         return os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'active'
 
     def activate_trial(self):
+        self.trial_until = self.trial_until.replace(tzinfo=timezone.utc)
         if self.is_trial() and datetime.now(timezone.utc) > self.trial_until:
             self.status = 'active'
             self.save()

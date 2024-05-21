@@ -31,7 +31,7 @@ from starlette.concurrency import run_in_threadpool
 from .dependencies import create_access_token, get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, \
     TenantMiddleware, tenant_var
 from .model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry
-from .routers import users, daytypes
+from .routers import users, daytypes, statistics
 from .routers.daytypes import DayTypeReadDTO, get_all_day_types
 from .sheduled.activate_trials import activate_trials
 from .sheduled.birthdays import send_birthday_email_updates
@@ -54,10 +54,13 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 365
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")
 
+MULTITENANCY_ENABLED = os.getenv("MULTITENANCY_ENABLED", False)
+
 app = FastAPI()
 app.add_middleware(TenantMiddleware)
 app.include_router(users.router)
 app.include_router(daytypes.router)
+app.include_router(statistics.router)
 Instrumentator().instrument(app).expose(app)
 scheduler = BackgroundScheduler()
 
@@ -66,8 +69,9 @@ scheduler = BackgroundScheduler()
 def start_scheduler():
     scheduler.add_job(send_vacation_email_updates, 'cron', hour=6, minute=0)
     scheduler.add_job(send_birthday_email_updates, 'cron', hour=6, minute=5)
-    scheduler.add_job(run_update_max_team_members_numbers, 'cron', hour=1, minute=5)
-    scheduler.add_job(activate_trials, 'cron', hour=2, minute=5)
+    if MULTITENANCY_ENABLED:
+        scheduler.add_job(run_update_max_team_members_numbers, 'cron', hour=1, minute=5)
+        scheduler.add_job(activate_trials, 'cron', hour=2, minute=5)
     scheduler.start()
 
 
@@ -249,7 +253,7 @@ async def get_config():
     return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME),
             "telegram_bot_username": TELEGRAM_BOT_USERNAME,
             "user_initiated": tenant_exists and user_exists,
-            "multitenancy_enabled": os.getenv("MULTITENANCY_ENABLED", False)}
+            "multitenancy_enabled": MULTITENANCY_ENABLED}
 
 
 # Authentication
