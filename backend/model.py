@@ -2,9 +2,10 @@ import logging
 import os
 import random
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 import mongoengine
+from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
@@ -61,12 +62,16 @@ else:  # just local MongoDB
     connect("vacal")
 
 
+def add_a_month(source_date):
+    return source_date + relativedelta(months=1)
+
+
 class Tenant(Document):
     name = StringField(required=True, unique=True)
     identifier = StringField(required=True, unique=True)
     creation_date = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc))
     status = StringField(required=True, choices=['trial', 'active', 'blocked', 'free'], default='trial')
-    trial_until = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc) + timedelta(days=31))
+    trial_until = DateTimeField(reqired=True, default=lambda: add_a_month(datetime.now(timezone.utc)))
     current_period = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc))
     max_team_members_in_periods = MapField(IntField())
 
@@ -76,8 +81,6 @@ class Tenant(Document):
         ],
         "index_background": True
     }
-
-    PERIOD_DAYS = 31
 
     def is_active(self):
         return os.getenv("MULTITENANCY_ENABLED", False) and self.status == 'active'
@@ -100,7 +103,7 @@ class Tenant(Document):
 
     def reset_trial(self):
         self.status = 'trial'
-        self.trial_until = datetime.now(timezone.utc) + timedelta(days=self.PERIOD_DAYS)
+        self.trial_until = add_a_month(datetime.now(timezone.utc))
         self.save()
 
     def is_free(self):
@@ -115,8 +118,8 @@ class Tenant(Document):
         now = datetime.now(timezone.utc)
         self.current_period = self.current_period.replace(tzinfo=timezone.utc)
         # Check if the current period needs to be updated
-        if now >= self.current_period + timedelta(days=self.PERIOD_DAYS):
-            self.current_period = self.current_period + timedelta(days=self.PERIOD_DAYS)
+        if now >= add_a_month(self.current_period):
+            self.current_period = add_a_month(self.current_period)
 
         current_period_str = self.current_period.isoformat()
 

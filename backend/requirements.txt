@@ -13,3 +13,4 @@ prometheus-fastapi-instrumentator
 python-multipart
 passlib[bcrypt]
 pyjwt
+python-dateutil
