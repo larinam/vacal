@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.dependencies import mongo_to_pydantic, get_api_key
 from backend.model import Tenant
@@ -10,6 +10,7 @@ router = APIRouter(prefix="/management", tags=["Management"])
 
 
 class TenantDTO(BaseModel):
+    id: str = Field(None, alias='_id')
     name: str
     identifier: str
     creation_date: datetime
