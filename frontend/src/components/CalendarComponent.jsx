@@ -1,4 +1,4 @@
-import {eachDayOfInterval, endOfWeek, format, getISOWeek, isWeekend, startOfWeek, isToday, isYesterday} from 'date-fns';
+import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, isYesterday, startOfWeek} from 'date-fns';
 import React, {useEffect, useRef, useState} from 'react';
 import {Tooltip} from 'react-tooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -522,13 +522,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
               return (
                 <th
                   key={idx}
-                  className={
+                  className={`${
                     isToday(date)
                       ? 'current-day-number'
                       : isOutOfMonth
                         ? 'out-of-month-day-number' // Assign a different class for out-of-month days
                         : 'day-number-header'
-                  }
+                  } ${isYesterday(date) ? 'yesterday' : ''}`}
                 >
                   {day}
                 </th>
