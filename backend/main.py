@@ -588,6 +588,10 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, Dict[st
         day_entry.comment = day_entry_dto.get("comment", '')
         updated_days[date_str] = day_entry
 
-    team_member.days.update(updated_days)
+    if not team_member.days:
+        # otherwise breaks with mongoengine.errors.OperationError and can't add days for newly created team members
+        team_member.days = updated_days
+    else:
+        team_member.days.update(updated_days)
     team.save()
     return {"message": "Days modified successfully"}
