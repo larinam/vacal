@@ -214,6 +214,10 @@
     border-right: 1px solid rgba(0, 0, 0, 0.4); /* Darker right border */
 }
 
+.calendar-table .yesterday {
+    border-right: none;
+}
+
 .dragging {
     opacity: 0.5;
     background-color: #f0f0f0;

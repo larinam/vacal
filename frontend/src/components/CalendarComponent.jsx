@@ -1,4 +1,4 @@
-import {eachDayOfInterval, endOfWeek, format, getISOWeek, isWeekend, startOfWeek} from 'date-fns';
+import {eachDayOfInterval, endOfWeek, format, getISOWeek, isWeekend, startOfWeek, isToday, isYesterday} from 'date-fns';
 import React, {useEffect, useRef, useState} from 'react';
 import {Tooltip} from 'react-tooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -523,7 +523,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                 <th
                   key={idx}
                   className={
-                    formatDate(date) === formatDate(today)
+                    isToday(date)
                       ? 'current-day-number'
                       : isOutOfMonth
                         ? 'out-of-month-day-number' // Assign a different class for out-of-month days
@@ -568,10 +568,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       </span>
                     </td>
                     {daysHeader.map(({date}, idx) => {
-                      const isToday = formatDate(date) === formatDate(new Date());
                       return (<td
                         key={idx}
-                        className={`${isToday ? 'current-day' : ''}`}
+                        className={`${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}`}
                       >
 
 
@@ -602,7 +601,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
                       </td>
                       {daysHeader.map(({date}, idx) => {
-                        const isToday = formatDate(date) === formatDate(new Date());
                         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                         const dayEntry = member.days[dateStr] || {};
                         const dateDayTypes = dayEntry?.day_types || [];
@@ -614,7 +612,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             key={idx}
                             onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
                             title={getCellTitle(member, date)}
-                            className={`${isHolidayDay ? 'holiday-cell' : ''} ${isToday ? 'current-day' : ''}`}
+                            className={`${isHolidayDay ? 'holiday-cell' : ''} ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}`}
                             style={generateGradientStyle(dateDayTypes)}
                           >
                             <div className="day-cell-content">
