@@ -525,11 +525,11 @@ async def get_report_body_rows(tenant, start_date, end_date, day_type_names):
             day_type_counts = {}
             member_holidays = country_holidays.get(member.country, [])
             vac_days_count = 0
-            for date_str, day_types in member.days.items():
+            for date_str, day_entry in member.days.items():
                 # Convert the string to a date object to compare with the given date range
                 date = datetime.date.fromisoformat(date_str)
                 if start_date <= date <= end_date:
-                    for day_type in day_types:
+                    for day_type in day_entry.day_types:
                         if vacation_day_type_id == str(day_type.id):
                             # Count only if the day type list contains the 'Vacation' day type ID
                             vac_days_count += 1
