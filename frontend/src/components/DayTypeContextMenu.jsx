@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import './DayTypeContextMenu.css';
 import {useApi} from '../hooks/useApi';
 import {format, isWeekend} from "date-fns";
+import {toast} from "react-toastify";
 
 const DayTypeContextMenu = ({
                               contextMenuRef,
@@ -80,6 +81,7 @@ const DayTypeContextMenu = ({
       updateTeamData();
     } catch (error) {
       console.error('Error updating day types:', error);
+      toast.error(error?.data?.detail);
     }
 
     updateLocalTeamData(
