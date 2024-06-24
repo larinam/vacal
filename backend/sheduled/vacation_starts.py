@@ -4,6 +4,7 @@ import os
 
 from ..email_service import send_email
 from ..model import DayType, Team
+from ..utils import get_country_holidays
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +37,9 @@ def find_vacation_periods(team, start_date):
 
 def calculate_end_date(member, start_date, vacation_day_type):
     next_day = start_date + datetime.timedelta(days=1)
-    while str(next_day) in member.days and vacation_day_type in member.days[str(next_day)].day_types:
+    holidays = get_country_holidays(member.country, start_date.year)
+    while (str(next_day) in member.days and vacation_day_type in member.days[str(next_day)].day_types) or \
+            (holidays and not holidays.is_workday(next_day)):
         next_day += datetime.timedelta(days=1)
     return next_day - datetime.timedelta(days=1)
 

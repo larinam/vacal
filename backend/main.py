@@ -10,7 +10,6 @@ from copy import deepcopy
 from io import BytesIO
 from typing import List, Dict, Annotated, Self, Generator
 
-import holidays
 import pycountry
 from apscheduler.schedulers.background import BackgroundScheduler
 from bson import ObjectId
@@ -37,6 +36,7 @@ from .sheduled.activate_trials import activate_trials
 from .sheduled.birthdays import send_birthday_email_updates
 from .sheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
 from .sheduled.vacation_starts import send_vacation_email_updates
+from .utils import get_country_holidays
 
 origins = [
     "http://localhost",
@@ -229,19 +229,13 @@ def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
     countries = get_unique_countries(tenant)
     holidays_dict = {}
     for country in countries:
-        country_holidays = {}
-        country_alpha_2 = pycountry.countries.get(name=country).alpha_2
-        try:
-            country_holidays_obj = holidays.country_holidays(
-                country_alpha_2, years=[year - 1, year, year + 1]
-            )
-            # Filtering out holidays with "Söndag" for Sweden
-            if country == "Sweden":
-                country_holidays = {date: name for date, name in country_holidays_obj.items() if "Söndag" != name}
-            else:
-                country_holidays = dict(country_holidays_obj)
-        except NotImplementedError as e:  # there are no holidays for some countries, but it's fine
-            log.warning(e, exc_info=e)
+        country_holidays_obj = get_country_holidays(country, year)
+        # Filtering out holidays with "Söndag" for Sweden
+        if country == "Sweden":
+            country_holidays = {date: name for date, name in country_holidays_obj.items() if
+                                name not in ["Söndag", "Sunday"]}
+        else:
+            country_holidays = dict(country_holidays_obj)
         holidays_dict.update({country: country_holidays})
     return holidays_dict
 
