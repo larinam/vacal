@@ -44,6 +44,10 @@ export const useApi = () => {
                 return data;
             }
         } catch (error) {
+            if (error.name === 'AbortError') {
+                // Silently handle aborted requests. This is the expected behaviour as of now.
+                return {};
+            }
             console.error('API call error:', error);
             throw error;
         } finally {
