@@ -1,4 +1,4 @@
-name: Backend - Build and Push Docker Image
+name: Backend - Test, Build and Push Docker Image
 
 on:
   push:
@@ -13,6 +13,20 @@ jobs:
     steps:
     - name: Check out the repo
       uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install -U -r backend/requirements.txt
+        pip install pytest
+
+    - name: Run tests with pytest
+      run: pytest
 
     - name: Extract the short SHA of the commit
       shell: bash
