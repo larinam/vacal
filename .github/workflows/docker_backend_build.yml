@@ -10,6 +10,12 @@ jobs:
   build_and_push:
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
     steps:
     - name: Check out the repo
       uses: actions/checkout@v4
