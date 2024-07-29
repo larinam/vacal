@@ -44,9 +44,16 @@ def calculate_end_date(member, start_date, vacation_day_type):
     return next_day - datetime.timedelta(days=1)
 
 
-def generate_email_body(team):
-    today = datetime.date.today()
-    vacations = find_vacation_periods(team, today)
+def get_next_working_day(member, date):
+    next_day = date + datetime.timedelta(days=1)
+    holidays = get_country_holidays(member.country, date.year)
+    while holidays and not holidays.is_workday(next_day):
+        next_day += datetime.timedelta(days=1)
+    return next_day
+
+
+def generate_email_body(team, start_date):
+    vacations = find_vacation_periods(team, start_date)
     if not vacations:
         return ""
     body = "Hi there!\n\n"
@@ -62,12 +69,11 @@ def generate_email_body(team):
 
 def send_vacation_email_updates():
     log.debug("Start scheduled task send_vacation_email_updates")
-    today = datetime.date.today().strftime('%B %d')
+    today = datetime.date.today()
 
     for team in Team.objects():
-        email_body = generate_email_body(team)
-        if not email_body:
-            continue
-        for email in team.subscriber_emails:
-            send_email(f"Vacations Starting Today - {team.name} - {today}", email_body, email)
+        email_body = generate_email_body(team, today)
+        if email_body:
+            for email in team.subscriber_emails:
+                send_email(f"Vacations Starting Today - {team.name} - {today.strftime('%B %d')}", email_body, email)
     log.debug("Stop scheduled task send_vacation_email_updates")
