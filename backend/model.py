@@ -2,7 +2,7 @@ import logging
 import os
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import mongoengine
 from dateutil.relativedelta import relativedelta
@@ -270,6 +270,35 @@ class User(Document):
             raise RuntimeError("The last tenant can't be removed from the user. User should have at least one attached "
                                "tenant.")
         self.tenants.remove(tenant)
+        self.save()
+
+
+class UserInvite(Document):
+    email = EmailField(required=True, unique=True)
+    inviter = ReferenceField(User, required=True)
+    tenant = ReferenceField(Tenant, required=True)
+    token = StringField(required=True, unique=True)
+    status = StringField(choices=["pending", "accepted", "expired"], default="pending")
+    expiration_date = DateTimeField(default=lambda: datetime.now(timezone.utc) + timedelta(days=7))
+
+    meta = {
+        "indexes": [
+            "email",
+            "token",
+            "status",
+        ],
+        "index_background": True
+    }
+
+    def is_expired(self):
+        return datetime.now(timezone.utc) > self.expiration_date
+
+    def mark_as_accepted(self):
+        self.status = "accepted"
+        self.save()
+
+    def mark_as_expired(self):
+        self.status = "expired"
         self.save()
 
 

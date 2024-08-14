@@ -5,12 +5,14 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEdit, faKey, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from "../../contexts/AuthContext";
 import PasswordChangeModal from "./PasswordChangeModal";
+import InviteUserModal from './InviteUserModal';
 
 const UserManagement = () => {
     const { apiCall } = useApi();
-    const {user} = useAuth(); // this is a current user
+    const { user } = useAuth(); // this is a current user
     const [users, setUsers] = useState([]);
     const [showUserModal, setShowUserModal] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false); // New state for invite modal
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
 
@@ -32,6 +34,10 @@ const UserManagement = () => {
         setShowUserModal(true);
     };
 
+    const handleInviteUserClick = () => {
+        setShowInviteModal(true);
+    };
+
     const handleEditUserClick = (user) => {
         setEditingUser(user); // Set the user data for editing
         setShowUserModal(true);
@@ -39,6 +45,7 @@ const UserManagement = () => {
 
     const handleModalClose = () => {
         setShowUserModal(false);
+        setShowInviteModal(false);
         fetchUsers(); // Refresh users after modal close
     };
 
@@ -62,7 +69,10 @@ const UserManagement = () => {
     return (
         <div className="settingsUserManagementContainer">
             <h2>User Management Settings</h2>
-            <button onClick={handleAddUserClick}>Add User</button>
+            <div className="userManagementButtons">
+                <button onClick={handleAddUserClick}>Add User</button>
+                <button onClick={handleInviteUserClick}>Invite User</button>
+            </div>
             <table>
                 <thead>
                 <tr>
@@ -91,7 +101,6 @@ const UserManagement = () => {
                             </td>
                         </tr>
                     ))}
-
                 </tbody>
             </table>
             {showUserModal && (
@@ -99,6 +108,12 @@ const UserManagement = () => {
                     isOpen={showUserModal}
                     onClose={handleModalClose}
                     editingUser={editingUser} // Pass editing user data to the modal
+                />
+            )}
+            {showInviteModal && (
+                <InviteUserModal
+                    isOpen={showInviteModal}
+                    onClose={handleModalClose}
                 />
             )}
             {showPasswordModal && (

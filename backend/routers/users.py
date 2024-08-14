@@ -1,11 +1,18 @@
+import logging
+import os
+import secrets
 from typing import Annotated, List
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import field_validator, BaseModel, Field, computed_field
 from starlette import status
 
 from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant
-from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember
+from ..email_service import send_email
+from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember, UserInvite
+
+log = logging.getLogger(__name__)
+cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
 
 router = APIRouter(prefix="/users", tags=["User Operations"])
 
@@ -231,3 +238,83 @@ async def remove_tenant(tenant_id: str, current_user: Annotated[User, Depends(ge
             detail=str(e)
         )
     return {"message": "Tenant removed."}
+
+
+def send_invitation_email(email: str, token: str):
+    """
+    Sends an email invitation to the specified email address with a registration link.
+
+    :param email: The email address to send the invitation to.
+    :param token: The unique token associated with the invitation.
+    """
+    log.debug(f"Sending invitation email to {email}")
+
+    subject = "You're invited to join Vacation Calendar!"
+    registration_link = f"{cors_origin}/register?token={token}"
+    body = (
+        f"Hi there!\n\n"
+        f"You have been invited to join our Vacation Calendar. To complete your registration, "
+        f"please click the link below:\n\n"
+        f"{registration_link}\n\n"
+        f"If you did not expect this email, you can safely ignore it.\n\n"
+        f"Best regards,\n"
+        f"Vacation Calendar"
+    )
+
+    try:
+        send_email(subject, body, email)
+        log.info(f"Invitation email sent to {email}")
+    except Exception as e:
+        log.error(f"Failed to send invitation email to {email}: {str(e)}")
+        raise
+
+
+class InviteUserRequest(BaseModel):
+    email: str
+
+
+@router.post("/invite")
+async def invite_user(invite_data: InviteUserRequest,
+                      background_tasks: BackgroundTasks,
+                      current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                      tenant: Annotated[Tenant, Depends(get_tenant)]):
+    # Extract the email from the request body
+    email = invite_data.email
+
+    # Check if the email is already associated with an invite
+    existing_invite = UserInvite.objects(email=email, tenant=tenant).first()
+    if existing_invite and not existing_invite.is_expired():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already invited")
+
+    # Generate a unique token for the invitation
+    token = secrets.token_urlsafe(32)
+    invite = UserInvite(email=email, inviter=current_user, tenant=tenant, token=token)
+    invite.save()
+
+    # Send an invitation email in the background
+    background_tasks.add_task(send_invitation_email, email, token)
+
+    return {"message": "Invitation sent successfully"}
+
+
+@router.post("/register/{token}")
+async def register_user_via_invite(token: str, user_creation: UserCreationModel):
+    invite = UserInvite.objects(token=token, status="pending").first()
+
+    if not invite or invite.is_expired():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired invitation token")
+
+    # Create the user and associate with the tenant
+    user = User()
+    user.tenants = [invite.tenant]
+    user.name = user_creation.name
+    user.email = invite.email
+    user.auth_details = AuthDetails(username=user_creation.username,
+                                    telegram_username=user_creation.telegram_username if user_creation.telegram_username else None)
+    user.hash_password(user_creation.password)
+    user.save()
+
+    # Mark invite as accepted
+    invite.mark_as_accepted()
+
+    return {"message": "User registered successfully"}
