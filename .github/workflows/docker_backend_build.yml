@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -U -r backend/requirements.txt
-        pip install pytest
+        pip install pytest httpx
 
     - name: Run tests with pytest
       run: pytest
