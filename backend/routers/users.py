@@ -250,7 +250,7 @@ def send_invitation_email(email: str, token: str):
     log.debug(f"Sending invitation email to {email}")
 
     subject = "You're invited to join Vacation Calendar!"
-    registration_link = f"{cors_origin}/register?token={token}"
+    registration_link = f"{cors_origin}/register/{token}"
     body = (
         f"Hi there!\n\n"
         f"You have been invited to join our Vacation Calendar. To complete your registration, "
@@ -295,6 +295,25 @@ async def invite_user(invite_data: InviteUserRequest,
     background_tasks.add_task(send_invitation_email, email, token)
 
     return {"message": "Invitation sent successfully"}
+
+
+@router.get("/invite/{token}")
+async def get_invite_details(token: str):
+    invite = UserInvite.objects(token=token, status="pending").first()
+
+    if not invite or invite.is_expired():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired invitation token")
+
+    # Retrieve related tenant details
+    tenant = invite.tenant
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated tenant not found")
+
+    return {
+        "email": invite.email,
+        "tenant_name": tenant.name,
+        "tenant_identifier": tenant.identifier
+    }
 
 
 @router.post("/register/{token}")
