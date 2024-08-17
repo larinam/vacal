@@ -270,6 +270,11 @@ async def invite_user(invite_data: InviteUserRequest,
     if existing_invite and not existing_invite.is_expired():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already invited")
 
+    # Check if a user with this email already exists in the current tenant
+    existing_user = User.objects(email=email, tenants__in=[tenant]).first()
+    if existing_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists in the Workspace")
+
     # Generate a unique token for the invitation
     token = secrets.token_urlsafe(32)
     invite = UserInvite(email=email, inviter=current_user, tenant=tenant, token=token)
@@ -279,6 +284,7 @@ async def invite_user(invite_data: InviteUserRequest,
     background_tasks.add_task(send_invitation_email, email, token)
 
     return {"message": "Invitation sent successfully"}
+
 
 
 @router.get("/invite/{token}")
