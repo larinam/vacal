@@ -12,7 +12,7 @@ const UserManagement = () => {
     const { user } = useAuth(); // this is a current user
     const [users, setUsers] = useState([]);
     const [showUserModal, setShowUserModal] = useState(false);
-    const [showInviteModal, setShowInviteModal] = useState(false); // New state for invite modal
+    const [showInviteModal, setShowInviteModal] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
 
@@ -28,11 +28,6 @@ const UserManagement = () => {
     useEffect(() => {
         fetchUsers();
     }, []);
-
-    const handleAddUserClick = () => {
-        setEditingUser(null); // Ensure no user data is set for adding new user
-        setShowUserModal(true);
-    };
 
     const handleInviteUserClick = () => {
         setShowInviteModal(true);
@@ -70,7 +65,6 @@ const UserManagement = () => {
         <div className="settingsUserManagementContainer">
             <h2>User Management Settings</h2>
             <div className="userManagementButtons">
-                <button onClick={handleAddUserClick}>Add User</button>
                 <button onClick={handleInviteUserClick}>Invite User</button>
             </div>
             <table>

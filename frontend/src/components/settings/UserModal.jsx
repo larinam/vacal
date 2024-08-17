@@ -22,14 +22,6 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                 password: '',
                 telegram_username: editingUser.telegram_username || '',
             });
-        } else {
-            setNewUserData({
-                name: '',
-                email: '',
-                username: '',
-                password: '',
-                telegram_username: '',
-            });
         }
     }, [editingUser]);
 
@@ -48,25 +40,14 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
 
     const handleUserFormSubmit = async (e) => {
         e.preventDefault();
-        console.log(editingUser)
-        const method = editingUser ? 'PUT' : 'POST';
-        const url = editingUser ? `/users/${editingUser._id}` : '/users';
-        if (editingUser) {
-            // Exclude password when editing
-            delete newUserData.password;
-        }
+        const method = 'PUT';
+        const url = `/users/${editingUser._id}`;
+
         try {
             await apiCall(url, method, newUserData);
-            setNewUserData({
-                name: '',
-                email: '',
-                username: '',
-                password: '',
-                telegram_username: '',
-            });
             onClose();
         } catch (error) {
-            console.error('Error adding/updating user:', error);
+            console.error('Error updating user:', error);
             toast.error(error);
         }
     };
@@ -99,16 +80,6 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                         placeholder="Username"
                         required
                     />
-                    { !editingUser && (
-                        <input
-                            type="password"
-                            autoComplete={"new-password"}
-                            value={newUserData.password}
-                            onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                            placeholder="Password"
-                            required={!editingUser}
-                        />
-                    )}
                     <input
                         type="text"
                         value={newUserData.telegram_username}
@@ -116,7 +87,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                         placeholder="Telegram Username"
                     />
                     <div className="button-container">
-                        <button type="submit">{editingUser ? 'Update User' : 'Add User'}</button>
+                        <button type="submit">Update User</button>
                         <button type="button" onClick={onClose}>Close</button>
                     </div>
                 </form>
