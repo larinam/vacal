@@ -13,7 +13,7 @@ const SettingsComponent = ({ onClose }) => {
                     Day Types
                 </NavLink>
                 <NavLink to="usermanagement" className="navItem" activeclassname="active">
-                    User Management
+                    Users
                 </NavLink>
             </div>
             <div className="settingsContent">

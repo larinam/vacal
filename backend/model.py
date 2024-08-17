@@ -291,6 +291,7 @@ class UserInvite(Document):
     }
 
     def is_expired(self):
+        self.expiration_date = self.expiration_date.replace(tzinfo=timezone.utc)
         return datetime.now(timezone.utc) > self.expiration_date
 
     def mark_as_accepted(self):
