@@ -29,7 +29,7 @@ const UserRegistration = () => {
       }
     };
     fetchInviteDetails();
-  }, [token, apiCall, navigate]);
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
