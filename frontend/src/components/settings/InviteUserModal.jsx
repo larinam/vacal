@@ -30,7 +30,7 @@ const InviteUserModal = ({ isOpen, onClose }) => {
             toast.success('Invitation sent successfully');
         } catch (error) {
             console.error('Error sending invitation:', error);
-            toast.error('Failed to send invitation');
+            toast.error('Failed to send invitation: ' + error?.data?.detail);
         }
     };
 
