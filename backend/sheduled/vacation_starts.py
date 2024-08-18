@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+from collections import defaultdict
 
 from ..email_service import send_email
 from ..model import DayType, Team
@@ -52,18 +53,24 @@ def get_next_working_day(member, date):
     return next_day
 
 
-def generate_email_body(team, start_date):
-    vacations = find_vacation_periods(team, start_date)
-    if not vacations:
+def generate_consolidated_email_body(team_vacations):
+    if not team_vacations:
         return ""
+
     body = "Hi there!\n\n"
-    for v in vacations:
-        if v["start"] == v["end"]:
-            body += f"{v['name']} is on vacation on {v["start"]}.\n"
-        else:
-            body += f"{v["name"]} is on vacation from {v["start"]} to {v["end"]}.\n"
-    body += f"\nFor details, visit {cors_origin}."
+
+    for team_name, vacations in team_vacations:
+        body += f"Team {team_name}:\n"
+        for v in vacations:
+            if v["start"] == v["end"]:
+                body += f"- {v['name']} is on vacation on {v['start']}.\n"
+            else:
+                body += f"- {v['name']} is on vacation from {v['start']} to {v['end']}.\n"
+        body += "\n"
+
+    body += f"For details, visit {cors_origin}."
     body += "\n\nBest regards,\nVacation Calendar"
+
     return body
 
 
@@ -71,9 +78,20 @@ def send_vacation_email_updates():
     log.debug("Start scheduled task send_vacation_email_updates")
     today = datetime.date.today()
 
+    # Dictionary to store vacation info per subscriber email
+    vacation_info_by_subscriber = defaultdict(list)
+
+    # Collect vacation info across all teams
     for team in Team.objects():
-        email_body = generate_email_body(team, today)
-        if email_body:
+        vacations = find_vacation_periods(team, today)
+        if vacations:
             for email in team.subscriber_emails:
-                send_email(f"Vacations Starting Today - {team.name} - {today.strftime('%B %d')}", email_body, email)
+                vacation_info_by_subscriber[email].append((team.name, vacations))
+
+    # Generate and send consolidated emails
+    for email, team_vacations in vacation_info_by_subscriber.items():
+        email_body = generate_consolidated_email_body(team_vacations)
+        if email_body:
+            send_email(f"Vacations Starting Today - {today.strftime('%B %d')}", email_body, email)
+
     log.debug("Stop scheduled task send_vacation_email_updates")
