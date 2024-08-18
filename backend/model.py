@@ -132,85 +132,6 @@ class Tenant(Document):
             self.save()
 
 
-def generate_random_hex_color():
-    """Generate a random hex color code."""
-    return "#{:06x}".format(random.randint(0, 0xFFFFFF))
-
-
-class DayType(Document):
-    tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
-    name = StringField(required=True, unique_with="tenant")
-    identifier = StringField(required=True, unique_with="tenant")
-    color = StringField(default=generate_random_hex_color)
-
-    meta = {
-        "indexes": [
-            ("tenant", "identifier")
-        ],
-        "index_background": True
-    }
-
-    SYSTEM_DAY_TYPE_IDENTIFIERS = ['vacation', 'compensatory_leave', 'override', 'birthday']
-
-    @classmethod
-    def init_day_types(cls, tenant):
-        if cls.objects(tenant=tenant).count() == 0:
-            initial_day_types = [
-                cls(tenant=tenant, name='Vacation', identifier='vacation', color="#FF6666"),
-                cls(tenant=tenant, name='Compensatory leave', identifier='compensatory_leave', color="#CC99FF"),
-                cls(tenant=tenant, name='Holiday override', identifier='override', color="#EEEEEE"),
-                cls(tenant=tenant, name='Birthday', identifier='birthday', color="#FFC0CB"),
-            ]
-            cls.objects.insert(initial_day_types, load_bulk=False)
-
-    @classmethod
-    def get_vacation_day_type_id(cls, tenant):
-        return str(cls.objects(tenant=tenant, identifier='vacation').first().id)
-
-    @classmethod
-    def get_birthday_day_type_id(cls, tenant):
-        return str(cls.objects(tenant=tenant, identifier='birthday').first().id)
-
-
-class DayEntry(EmbeddedDocument):
-    day_types = ListField(ReferenceField(DayType))
-    comment = StringField()
-
-
-class TeamMember(EmbeddedDocument):
-    uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
-    name = StringField(required=True)
-    country = StringField(required=True)  # country name from pycountry
-    email = EmailField()
-    phone = StringField()
-    days = MapField(EmbeddedDocumentField(DayEntry))
-    available_day_types = ListField(ReferenceField(DayType))
-    birthday = StringField(regex='^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')  # only MM-DD
-
-
-class Team(Document):
-    tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
-    name = StringField(required=True, unique_with="tenant")
-    team_members = EmbeddedDocumentListField(TeamMember)
-    subscriber_emails = ListField(EmailField())
-    available_day_types = ListField(ReferenceField(DayType))
-
-    meta = {
-        "indexes": [
-            "tenant",
-        ],
-        "index_background": True
-    }
-
-    @classmethod
-    def init_team(cls, tenant, team_member):
-        if cls.objects(tenant=tenant).count() == 0:
-            initial_teams = [
-                cls(tenant=tenant, name='My Team', team_members=[team_member]),
-            ]
-            cls.objects.insert(initial_teams, load_bulk=False)
-
-
 class AuthDetails(EmbeddedDocument):
     # Stores various authentication details
     telegram_id = LongField(unique=True, sparse=True)
@@ -274,9 +195,9 @@ class User(Document):
 
 
 class UserInvite(Document):
-    email = EmailField(required=True, unique=True)
+    email = EmailField(required=True)
     inviter = ReferenceField(User, required=True)
-    tenant = ReferenceField(Tenant, required=True)
+    tenant = ReferenceField(Tenant, required=True, unique_with="email")
     token = StringField(required=True, unique=True)
     status = StringField(choices=["pending", "accepted", "expired"], default="pending")
     expiration_date = DateTimeField(default=lambda: datetime.now(timezone.utc) + timedelta(days=7))
@@ -301,6 +222,86 @@ class UserInvite(Document):
     def mark_as_expired(self):
         self.status = "expired"
         self.save()
+
+
+def generate_random_hex_color():
+    """Generate a random hex color code."""
+    return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
+
+class DayType(Document):
+    tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
+    name = StringField(required=True, unique_with="tenant")
+    identifier = StringField(required=True, unique_with="tenant")
+    color = StringField(default=generate_random_hex_color)
+
+    meta = {
+        "indexes": [
+            ("tenant", "identifier")
+        ],
+        "index_background": True
+    }
+
+    SYSTEM_DAY_TYPE_IDENTIFIERS = ['vacation', 'compensatory_leave', 'override', 'birthday']
+
+    @classmethod
+    def init_day_types(cls, tenant):
+        if cls.objects(tenant=tenant).count() == 0:
+            initial_day_types = [
+                cls(tenant=tenant, name='Vacation', identifier='vacation', color="#FF6666"),
+                cls(tenant=tenant, name='Compensatory leave', identifier='compensatory_leave', color="#CC99FF"),
+                cls(tenant=tenant, name='Holiday override', identifier='override', color="#EEEEEE"),
+                cls(tenant=tenant, name='Birthday', identifier='birthday', color="#FFC0CB"),
+            ]
+            cls.objects.insert(initial_day_types, load_bulk=False)
+
+    @classmethod
+    def get_vacation_day_type_id(cls, tenant):
+        return str(cls.objects(tenant=tenant, identifier='vacation').first().id)
+
+    @classmethod
+    def get_birthday_day_type_id(cls, tenant):
+        return str(cls.objects(tenant=tenant, identifier='birthday').first().id)
+
+
+class DayEntry(EmbeddedDocument):
+    day_types = ListField(ReferenceField(DayType))
+    comment = StringField()
+
+
+class TeamMember(EmbeddedDocument):
+    uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
+    name = StringField(required=True)
+    country = StringField(required=True)  # country name from pycountry
+    email = EmailField()
+    phone = StringField()
+    days = MapField(EmbeddedDocumentField(DayEntry))
+    available_day_types = ListField(ReferenceField(DayType))
+    birthday = StringField(regex='^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')  # only MM-DD
+
+
+class Team(Document):
+    tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
+    name = StringField(required=True, unique_with="tenant")
+    team_members = EmbeddedDocumentListField(TeamMember)
+    subscriber_emails = ListField(EmailField())
+    available_day_types = ListField(ReferenceField(DayType))
+    subscribers = ListField(ReferenceField(User))
+
+    meta = {
+        "indexes": [
+            "tenant",
+        ],
+        "index_background": True
+    }
+
+    @classmethod
+    def init_team(cls, tenant, team_member):
+        if cls.objects(tenant=tenant).count() == 0:
+            initial_teams = [
+                cls(tenant=tenant, name='My Team', team_members=[team_member]),
+            ]
+            cls.objects.insert(initial_teams, load_bulk=False)
 
 
 def get_unique_countries(tenant):
