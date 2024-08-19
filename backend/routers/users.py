@@ -144,7 +144,7 @@ async def init_business_objects(tenant, user_creation):
 @router.get("")
 async def read_users(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                      tenant: Annotated[Tenant, Depends(get_tenant)]):
-    users = User.objects(tenants__in=[tenant]).all()
+    users = User.objects(tenants__in=[tenant]).order_by('name').all()
     return [mongo_to_pydantic(user, UserWithoutTenantsDTO) for user in users]
 
 
@@ -273,7 +273,8 @@ async def invite_user(invite_data: InviteUserRequest,
     # Check if a user with this email already exists in the current tenant
     existing_user = User.objects(email=email, tenants__in=[tenant]).first()
     if existing_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists in the Workspace")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="User with this email already exists in the Workspace")
 
     # Generate a unique token for the invitation
     token = secrets.token_urlsafe(32)
@@ -284,7 +285,6 @@ async def invite_user(invite_data: InviteUserRequest,
     background_tasks.add_task(send_invitation_email, email, token)
 
     return {"message": "Invitation sent successfully"}
-
 
 
 @router.get("/invite/{token}")
