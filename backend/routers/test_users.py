@@ -1,12 +1,11 @@
 from unittest.mock import patch
 
+import pytest
+from bson.objectid import ObjectId
 from fastapi.testclient import TestClient
 
 from ..main import app
-
-import pytest
 from ..model import User, AuthDetails, Tenant
-from bson.objectid import ObjectId
 
 client = TestClient(app)
 
@@ -56,6 +55,7 @@ def test_read_users(mock_user, mock_tenant):
 
         # Setup the mock for User.objects
         mock_user_objects.return_value.all.return_value = [mock_user]
+        mock_user_objects.return_value.order_by.return_value.all.return_value = [mock_user]
         mock_tenant_objects.return_value.first.return_value = mock_tenant
 
         # Mock jwt.decode to return a valid payload
