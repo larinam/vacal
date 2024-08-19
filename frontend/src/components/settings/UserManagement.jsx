@@ -10,12 +10,13 @@ import InviteManagement from './InviteManagement';
 
 const UserManagement = () => {
     const { apiCall } = useApi();
-    const { user } = useAuth(); // this is a current user
+    const { user } = useAuth(); // this is the current user
     const [users, setUsers] = useState([]);
     const [showUserModal, setShowUserModal] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+    const [refreshInvites, setRefreshInvites] = useState(false);
 
     const fetchUsers = async () => {
         try {
@@ -42,7 +43,7 @@ const UserManagement = () => {
     const handleModalClose = () => {
         setShowUserModal(false);
         setShowInviteModal(false);
-        fetchUsers(); // Refresh users after modal close
+        setRefreshInvites(!refreshInvites); // Trigger refresh of invites
     };
 
     const handleDeleteUser = async (userId, userName) => {
@@ -64,7 +65,7 @@ const UserManagement = () => {
     return (
       <div className="settingsUserManagementContainer">
           <h2>User Management Settings</h2>
-          <InviteManagement/>
+          <InviteManagement refreshTrigger={refreshInvites} />
           <h3>Users</h3>
           <div className="userManagementButtons">
               <button onClick={handleInviteUserClick}>Invite User</button>

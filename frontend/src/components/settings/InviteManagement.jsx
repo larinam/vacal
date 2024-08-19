@@ -3,7 +3,7 @@ import {useApi} from '../../hooks/useApi';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 
-const InviteManagement = () => {
+const InviteManagement = ({ refreshTrigger }) => {
     const { apiCall } = useApi();
     const [invites, setInvites] = useState([]);
 
@@ -30,7 +30,7 @@ const InviteManagement = () => {
 
     useEffect(() => {
         fetchInvites();
-    }, []);
+    }, [refreshTrigger]);
 
     if (invites.length === 0) {
         return null; // Hide the component if there are no invites
