@@ -1,6 +1,7 @@
 import logging
 import os
 import secrets
+from datetime import datetime
 from typing import Annotated, List
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
@@ -327,3 +328,34 @@ async def register_user_via_invite(token: str, user_creation: UserCreationModel)
     invite.mark_as_accepted()
 
     return {"message": "User registered successfully"}
+
+
+class UserInviteDTO(BaseModel):
+    id: str = Field(alias="_id", default=None)
+    email: str
+    status: str
+    expiration_date: datetime
+
+
+@router.get("/invites", response_model=List[UserInviteDTO])
+async def list_invites(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                       tenant: Annotated[Tenant, Depends(get_tenant)]):
+    invites = UserInvite.objects(tenant=tenant, status__ne="accepted").all()
+    return [mongo_to_pydantic(invite, UserInviteDTO) for invite in invites]
+
+
+@router.delete("/invite/{invite_id}")
+async def withdraw_invite(invite_id: str,
+                          current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                          tenant: Annotated[Tenant, Depends(get_tenant)]):
+    invite = UserInvite.objects(id=invite_id, tenant=tenant).first()
+
+    if not invite:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite not found")
+
+    if invite.status == "accepted":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot withdraw an accepted invite")
+
+    invite.delete()
+
+    return {"message": "Invite withdrawn successfully"}

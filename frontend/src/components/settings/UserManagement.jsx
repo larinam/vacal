@@ -6,6 +6,7 @@ import {faEdit, faKey, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from "../../contexts/AuthContext";
 import PasswordChangeModal from "./PasswordChangeModal";
 import InviteUserModal from './InviteUserModal';
+import InviteManagement from './InviteManagement';
 
 const UserManagement = () => {
     const { apiCall } = useApi();
@@ -60,63 +61,64 @@ const UserManagement = () => {
         setShowPasswordModal(true);
     };
 
-
     return (
-        <div className="settingsUserManagementContainer">
-            <h2>User Management Settings</h2>
-            <div className="userManagementButtons">
-                <button onClick={handleInviteUserClick}>Invite User</button>
-            </div>
-            <table>
-                <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Username</th>
-                    <th>Telegram Username</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+      <div className="settingsUserManagementContainer">
+          <h2>User Management Settings</h2>
+          <InviteManagement/>
+          <h3>Users</h3>
+          <div className="userManagementButtons">
+              <button onClick={handleInviteUserClick}>Invite User</button>
+          </div>
+          <table>
+              <thead>
+              <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Username</th>
+                  <th>Telegram Username</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+              </tr>
+              </thead>
+              <tbody>
+              {users.map((u, index) => (
+                <tr key={index}>
+                    <td>{u.name}</td>
+                    <td>{u.email}</td>
+                    <td>{u.username}</td>
+                    <td>{u.telegram_username || 'N/A'}</td>
+                    <td>{u.disabled ? 'Disabled' : 'Active'}</td>
+                    <td>
+                        <FontAwesomeIcon icon={faEdit} onClick={() => handleEditUserClick(u)}/>
+                        <FontAwesomeIcon icon={faTrashAlt} onClick={() => handleDeleteUser(u._id, u.name)}/>
+                        {u._id === user._id && (
+                          <FontAwesomeIcon icon={faKey} onClick={() => handlePasswordChangeClick(u)}/>
+                        )}
+                    </td>
                 </tr>
-                </thead>
-                <tbody>
-                    {users.map((u, index) => (
-                        <tr key={index}>
-                            <td>{u.name}</td>
-                            <td>{u.email}</td>
-                            <td>{u.username}</td>
-                            <td>{u.telegram_username || 'N/A'}</td>
-                            <td>{u.disabled ? 'Disabled' : 'Active'}</td>
-                            <td>
-                                <FontAwesomeIcon icon={faEdit} onClick={() => handleEditUserClick(u)} />
-                                <FontAwesomeIcon icon={faTrashAlt} onClick={() => handleDeleteUser(u._id, u.name)} />
-                                {u._id === user._id && (
-                                    <FontAwesomeIcon icon={faKey} onClick={() => handlePasswordChangeClick(u)} />
-                                )}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            {showUserModal && (
-                <UserModal
-                    isOpen={showUserModal}
-                    onClose={handleModalClose}
-                    editingUser={editingUser} // Pass editing user data to the modal
-                />
-            )}
-            {showInviteModal && (
-                <InviteUserModal
-                    isOpen={showInviteModal}
-                    onClose={handleModalClose}
-                />
-            )}
-            {showPasswordModal && (
-                <PasswordChangeModal
-                    isOpen={showPasswordModal}
-                    onClose={() => setShowPasswordModal(false)}
-                />
-            )}
-        </div>
+              ))}
+              </tbody>
+          </table>
+          {showUserModal && (
+            <UserModal
+              isOpen={showUserModal}
+              onClose={handleModalClose}
+              editingUser={editingUser} // Pass editing user data to the modal
+            />
+          )}
+          {showInviteModal && (
+            <InviteUserModal
+              isOpen={showInviteModal}
+              onClose={handleModalClose}
+            />
+          )}
+          {showPasswordModal && (
+            <PasswordChangeModal
+              isOpen={showPasswordModal}
+              onClose={() => setShowPasswordModal(false)}
+            />
+          )}
+      </div>
     );
 };
 
