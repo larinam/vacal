@@ -64,7 +64,6 @@ const InviteManagement = ({ refreshTrigger }) => {
               ))}
               </tbody>
           </table>
-          <hr/>
       </div>
     );
 };
