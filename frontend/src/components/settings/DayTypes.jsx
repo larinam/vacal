@@ -56,7 +56,7 @@ const DayTypes = () => {
     return (
         <div className="settingsDayTypesContainer">
             <h2>Day Types Settings</h2>
-            <table>
+            <table className="settingsTable">
                 <thead>
                 <tr>
                     <th>Name</th>

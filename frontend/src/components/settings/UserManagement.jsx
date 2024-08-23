@@ -70,7 +70,7 @@ const UserManagement = () => {
           <div className="userManagementButtons">
               <button onClick={handleInviteUserClick}>Invite User</button>
           </div>
-          <table>
+          <table className="settingsTable">
               <thead>
               <tr>
                   <th>Name</th>

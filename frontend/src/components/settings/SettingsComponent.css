@@ -34,3 +34,31 @@
 .closeButton {
     margin: 10px 0 10px 0;
 }
+
+/*Table styles*/
+.settingsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    color: #24292f;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.settingsTable th,
+.settingsTable td {
+    padding: 8px 16px;
+    text-align: left;
+    vertical-align: top;
+    border: 1px solid #d0d7de;
+}
+
+.settingsTable th {
+    background-color: #f6f8fa;
+    font-weight: 600;
+}
+
+.settingsTable tbody tr:hover {
+    background-color: #f6f8fa;
+}

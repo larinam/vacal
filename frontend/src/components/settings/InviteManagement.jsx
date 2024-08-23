@@ -39,7 +39,7 @@ const InviteManagement = ({ refreshTrigger }) => {
     return (
       <div className="inviteManagementContainer">
           <h3>Not accepted Invites</h3>
-          <table>
+          <table className="settingsTable">
               <thead>
               <tr>
                   <th>Email</th>
