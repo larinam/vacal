@@ -5,11 +5,12 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
   faChevronDown,
   faChevronRight,
+  faEdit,
   faEye,
   faGripVertical,
   faInfoCircle,
-  faPencilAlt,
-  faSave
+  faSave,
+  faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
 import MonthSelector from './MonthSelector';
@@ -558,14 +559,16 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                           <FontAwesomeIcon icon={faEye}/>
                       </span>
                       {team.name}
-                      {team.team_members.length === 0 && (
-                        <span className="delete-icon" onClick={() => deleteTeam(team._id)}>🗑️</span>
-                      )}
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
-                          <FontAwesomeIcon icon={faPencilAlt}/>
+                          <FontAwesomeIcon icon={faEdit}/>
                       </span>
+                      {team.team_members.length === 0 && (
+                        <span className="delete-icon" onClick={() => deleteTeam(team._id)}>
+                          <FontAwesomeIcon icon={faTrashAlt}/>
+                        </span>
+                      )}
                     </td>
                     {daysHeader.map(({date}, idx) => {
                       return (<td
@@ -596,9 +599,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                               <FontAwesomeIcon icon={faGripVertical}/>
                           </span>
                         <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
-                            <FontAwesomeIcon icon={faPencilAlt}/>
+                            <FontAwesomeIcon icon={faEdit}/>
                         </span>
-                        <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>🗑️</span>
+                        <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>
+                          <FontAwesomeIcon icon={faTrashAlt}/>
+                        </span>
                       </td>
                       {daysHeader.map(({date}, idx) => {
                         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

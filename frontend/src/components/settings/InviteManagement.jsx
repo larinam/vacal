@@ -58,6 +58,7 @@ const InviteManagement = ({ refreshTrigger }) => {
                         <FontAwesomeIcon
                           icon={faTrashAlt}
                           onClick={() => handleWithdrawInvite(invite._id, invite.email)}
+                          className="firstActionIcon"
                         />
                     </td>
                 </tr>

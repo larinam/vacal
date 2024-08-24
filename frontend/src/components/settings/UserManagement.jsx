@@ -43,6 +43,7 @@ const UserManagement = () => {
     const handleModalClose = () => {
         setShowUserModal(false);
         setShowInviteModal(false);
+        fetchUsers();
         setRefreshInvites(!refreshInvites); // Trigger refresh of invites
     };
 
@@ -87,13 +88,21 @@ const UserManagement = () => {
                     <td>{u.name}</td>
                     <td>{u.email}</td>
                     <td>{u.username}</td>
-                    <td>{u.telegram_username || 'N/A'}</td>
+                    <td>{u.telegram_username}</td>
                     <td>{u.disabled ? 'Disabled' : 'Active'}</td>
                     <td>
-                        <FontAwesomeIcon icon={faEdit} onClick={() => handleEditUserClick(u)}/>
-                        <FontAwesomeIcon icon={faTrashAlt} onClick={() => handleDeleteUser(u._id, u.name)}/>
+                        <FontAwesomeIcon icon={faEdit}
+                                         onClick={() => handleEditUserClick(u)}
+                                         className="firstActionIcon"
+                        />
+                        <FontAwesomeIcon icon={faTrashAlt}
+                                         onClick={() => handleDeleteUser(u._id, u.name)}
+                                         className="actionIcon"/>
                         {u._id === user._id && (
-                          <FontAwesomeIcon icon={faKey} onClick={() => handlePasswordChangeClick(u)}/>
+                          <FontAwesomeIcon icon={faKey}
+                                           onClick={() => handlePasswordChangeClick(u)}
+                                           className="actionIcon"
+                          />
                         )}
                     </td>
                 </tr>

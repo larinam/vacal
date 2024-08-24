@@ -75,8 +75,13 @@ const DayTypes = () => {
                               {dayType.color}
                           </td>
                           <td>
-                              <FontAwesomeIcon icon={faEdit} onClick={() => editDayType(dayType)}/>
-                              <FontAwesomeIcon icon={faTrashAlt} onClick={() => deleteDayType(dayType._id)}/>
+                              <FontAwesomeIcon icon={faEdit} onClick={() => editDayType(dayType)}
+                                               className="firstActionIcon"
+                              />
+                              <FontAwesomeIcon icon={faTrashAlt}
+                                               onClick={() => deleteDayType(dayType._id)}
+                                               className="actionIcon"
+                              />
                           </td>
                       </tr>
                     ))}

@@ -35,6 +35,15 @@
     margin: 10px 0 10px 0;
 }
 
+.firstActionIcon {
+    cursor: pointer;
+}
+
+.actionIcon {
+    margin-left: 10px;
+    cursor: pointer;
+}
+
 /*Table styles*/
 .settingsTable {
     width: 100%;
