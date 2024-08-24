@@ -300,10 +300,13 @@ async def get_invite_details(token: str):
     if not tenant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated tenant not found")
 
+    existing_user = User.objects(email=invite.email).first() is not None
+
     return {
         "email": invite.email,
         "tenant_name": tenant.name,
-        "tenant_identifier": tenant.identifier
+        "tenant_identifier": tenant.identifier,
+        "existing_user": existing_user
     }
 
 
@@ -314,20 +317,34 @@ async def register_user_via_invite(token: str, user_creation: UserCreationModel)
     if not invite or invite.is_expired():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired invitation token")
 
-    # Create the user and associate with the tenant
-    user = User()
-    user.tenants = [invite.tenant]
-    user.name = user_creation.name
-    user.email = invite.email
-    user.auth_details = AuthDetails(username=user_creation.username,
-                                    telegram_username=user_creation.telegram_username if user_creation.telegram_username else None)
-    user.hash_password(user_creation.password)
-    user.save()
+    # Check if the user already exists based on the email from the invite
+    user = User.objects(email=invite.email).first()
+
+    if user:
+        # User exists, add the new tenant
+        if invite.tenant in user.tenants:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already associated with this tenant")
+
+        user.tenants.append(invite.tenant)
+        user.save()
+    else:
+        # User doesn't exist, create a new one
+        user = User()
+        user.tenants = [invite.tenant]
+        user.name = user_creation.name
+        user.email = invite.email
+        user.auth_details = AuthDetails(
+            username=user_creation.username,
+            telegram_username=user_creation.telegram_username if user_creation.telegram_username else None
+        )
+        user.hash_password(user_creation.password)
+        user.save()
 
     # Mark invite as accepted
     invite.mark_as_accepted()
 
-    return {"message": "User registered successfully"}
+    return {"message": "User registered successfully" if not user else "Tenant associated successfully with the existing user"}
+
 
 
 class UserInviteDTO(BaseModel):
