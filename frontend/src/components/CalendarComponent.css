@@ -17,6 +17,25 @@
     justify-content: center; /* Centers content of each flex item */
 }
 
+.stickyHeader input[type="text"] {
+    padding: 5px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    font-size: 13px;
+    width: 50%;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.stickyHeader input[type="text"]:focus {
+    border-color: #0366d6;
+    outline: none;
+}
+
+.stickyHeader input[type="text"]::placeholder {
+    color: #8a939d;
+}
+
 .filter-wrapper {
     flex: 0 0 40%; /* Allocate space but allow it to shrink or grow as needed */
     display: flex;
