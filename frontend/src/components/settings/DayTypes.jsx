@@ -4,10 +4,11 @@ import {faEdit, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import './DayTypes.css';
 import {useApi} from '../../hooks/useApi';
 import {toast} from "react-toastify";
+import DayTypeModal from './DayTypeModal';
 
 const DayTypes = () => {
     const [dayTypes, setDayTypes] = useState([]);
-    const [newDayType, setNewDayType] = useState({ name: '', identifier: '', color: '' });
+    const [showDayTypeModal, setShowDayTypeModal] = useState(false);
     const [editingDayType, setEditingDayType] = useState(null);
     const { apiCall } = useApi();
 
@@ -20,42 +21,39 @@ const DayTypes = () => {
         refreshDayTypes();
     }, []);
 
-    const saveDayType = async () => {
-        const url = editingDayType ? `/daytypes/${editingDayType._id}` : `/daytypes`;
-        const method = editingDayType ? 'PUT' : 'POST';
-        try {
-            await apiCall(url, method, newDayType);
-            setNewDayType({ name: '', identifier: '', color: '' });
-            setEditingDayType(null);
-            refreshDayTypes();
-        } catch (error) {
-            console.error('Error saving day type:', error);
-            toast.error(error?.data?.detail);
+    const handleAddDayTypeClick = () => {
+        setEditingDayType(null); // Reset the editing day type
+        setShowDayTypeModal(true); // Show the modal for adding a new day type
+    };
+
+    const handleEditDayTypeClick = (dayType) => {
+        setEditingDayType(dayType); // Set the day type data for editing
+        setShowDayTypeModal(true); // Show the modal for editing
+    };
+
+    const handleDeleteDayType = async (dayTypeId) => {
+        const isConfirmed = window.confirm('Are you sure you want to delete this day type?');
+        if (isConfirmed) {
+            try {
+                await apiCall(`/daytypes/${dayTypeId}`, 'DELETE');
+                refreshDayTypes(); // Refresh the list after deletion
+                toast.success('Day type deleted successfully');
+            } catch (error) {
+                console.error('Error deleting day type:', error);
+                toast.error('Error deleting day type');
+            }
         }
     };
 
-    const deleteDayType = async (dayTypeId) => {
-        try {
-            await apiCall(`/daytypes/${dayTypeId}`, 'DELETE', newDayType);
-            refreshDayTypes();
-        } catch (error) {
-            console.error('Error deleting day type:', error);
-            toast.error(error?.data?.detail);
-        }
-    };
-
-    const editDayType = (dayType) => {
-        setEditingDayType(dayType);
-        setNewDayType({ name: dayType.name, identifier: dayType.identifier, color: dayType.color });
-    };
-
-    const onColorChange = (e) => {
-        setNewDayType({ ...newDayType, color: e.target.value });
+    const handleModalClose = () => {
+        setShowDayTypeModal(false);
+        refreshDayTypes(); // Refresh the day types list after closing the modal
     };
 
     return (
         <div className="settingsDayTypesContainer">
             <h2>Day Types Settings</h2>
+            <button onClick={handleAddDayTypeClick}>Add Day Type</button>
             <table className="settingsTable">
                 <thead>
                 <tr>
@@ -75,11 +73,11 @@ const DayTypes = () => {
                               {dayType.color}
                           </td>
                           <td>
-                              <FontAwesomeIcon icon={faEdit} onClick={() => editDayType(dayType)}
+                              <FontAwesomeIcon icon={faEdit} onClick={() => handleEditDayTypeClick(dayType)}
                                                className="firstActionIcon"
                               />
                               <FontAwesomeIcon icon={faTrashAlt}
-                                               onClick={() => deleteDayType(dayType._id)}
+                                               onClick={() => handleDeleteDayType(dayType._id)}
                                                className="actionIcon"
                               />
                           </td>
@@ -87,35 +85,13 @@ const DayTypes = () => {
                     ))}
                 </tbody>
             </table>
-
-            <div className="dayTypeForm">
-                <input
-                  type="text"
-                  value={newDayType.name}
-                  onChange={(e) => setNewDayType({...newDayType, name: e.target.value})}
-                  placeholder="Day Type Name"
-                  required
+            {showDayTypeModal && (
+                <DayTypeModal
+                    isOpen={showDayTypeModal}
+                    onClose={handleModalClose}
+                    editingDayType={editingDayType}
                 />
-                <input
-                  type="text"
-                  value={newDayType.identifier}
-                  onChange={(e) => setNewDayType({...newDayType, identifier: e.target.value})}
-                  placeholder="Day Type Identifier"
-                  required
-                />
-                <input
-                  type="text"
-                  value={newDayType.color}
-                  onChange={(e) => setNewDayType({...newDayType, color: e.target.value})}
-                  placeholder="Day Type Color"
-                />
-                <input
-                  type="color"
-                  value={newDayType.color}
-                  onChange={onColorChange}
-                />
-                <button onClick={saveDayType}>{editingDayType ? 'Update' : 'Add'}</button>
-            </div>
+            )}
         </div>
     );
 };

@@ -1,0 +1,35 @@
+.color-input-container {
+    display: flex;
+}
+
+.color-input-container input[type="color"] {
+    margin-left: 10px;
+    width: 37px;
+    height: 33px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    background-color: white;
+}
+
+.color-input-container input[type="color"]::-webkit-color-swatch {
+    border-radius: 50%;
+    border: 1px solid #fff;
+}
+
+.color-input-container input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.modal-content input[type="text"] {
+    margin-bottom: 10px;
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}

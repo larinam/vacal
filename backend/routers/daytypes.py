@@ -83,7 +83,7 @@ async def delete_day_type(day_type_id: str,
                           tenant: Annotated[Tenant, Depends(get_tenant)]):
     # Check if DayType is used in any TeamMember's days or available_day_types, or in any Team's available_day_types
     if any(
-            day_type_id in (str(day_types.id) for day_types in flatten_list(member.days.values()))
+            day_type_id in (str(day_type) for day_type in flatten_list(member.days.values()))
             for team in Team.objects(tenant=tenant)
             for member in team.team_members
     ):
@@ -101,3 +101,4 @@ async def delete_day_type(day_type_id: str,
         raise HTTPException(status_code=404, detail="DayType not found")
     DayTypeReadDTO.from_mongo_reference_field.cache_clear()
     return {"message": "DayType deleted successfully"}
+
