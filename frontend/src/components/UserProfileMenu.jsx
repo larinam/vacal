@@ -7,7 +7,7 @@ import {useAuth} from "../contexts/AuthContext";
 
 const UserProfileMenu = ({setShowDropdown}) => {
   const navigate = useNavigate();
-  const {handleLogout, user, currentTenant} = useAuth();
+  const {handleLogout, user, currentTenant, setCurrentTenant} = useAuth();
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -24,6 +24,14 @@ const UserProfileMenu = ({setShowDropdown}) => {
     };
   }, [setShowDropdown]);
 
+  const handleTenantSwitch = (tenant) => {
+    if (tenant.identifier !== currentTenant) {
+      setCurrentTenant(tenant.identifier);
+      navigate(0); // This triggers a full page reload, or navigate to a specific path if required
+    }
+    setShowDropdown(false); // Close the dropdown after switching
+  };
+
   return (
     <div className="dropdownMenu" ref={dropdownRef}>
       <div className="dropdownItem" style={{cursor: 'default', backgroundColor: 'transparent', transition: 'none'}}>
@@ -36,6 +44,23 @@ const UserProfileMenu = ({setShowDropdown}) => {
         <FontAwesomeIcon icon={faCog}/>
         <span>Settings</span>
       </div>
+
+      {user.tenants.length > 1 && (
+        <>
+          <hr/>
+          {user.tenants.map((tenant) => (
+            <div
+              key={tenant.id}
+              className="dropdownItem"
+              onClick={() => handleTenantSwitch(tenant)}
+              style={{fontWeight: tenant.identifier === currentTenant ? 'bold' : 'normal'}}
+            >
+              <span>{tenant.name} ({tenant.identifier})</span>
+            </div>
+          ))}
+          <hr/>
+        </>
+      )}
       <div className="dropdownItem" onClick={() => {
         window.open('https://t.me/larinam', '_blank');
         setShowDropdown(false); // This will close the dropdown menu when the item is clicked

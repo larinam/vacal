@@ -171,18 +171,38 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
 
 
 @router.delete("/{user_id}")
-async def delete_user(user_id: str, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                      tenant: Annotated[Tenant, Depends(get_tenant)]):
-    # One should not be able to delete the last user in the tenant.
-    # There should be another option to destroy the whole tenant with the last user.
-    if User.objects(tenants__in=[tenant]).count() == 1:
-        raise HTTPException(status_code=400, detail="Can't delete the last user in the workspace")
+async def delete_user(
+        user_id: str,
+        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+        tenant: Annotated[Tenant, Depends(get_tenant)]
+):
+    user_to_delete = User.objects(id=user_id).first()
 
-    result = User.objects(tenants__in=[tenant], id=user_id).delete()
-    if result == 0:
+    if not user_to_delete:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return {"message": "User deleted successfully"}
+    # Check if the user is part of more than one tenant
+    if len(user_to_delete.tenants) > 1:
+        try:
+            user_to_delete.remove_tenant(tenant)
+            UserInvite.objects(email=user_to_delete.email, tenant=tenant).delete()
+        except RuntimeError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        return {"message": f"User removed from tenant {tenant.name} successfully"}
+    else:
+        # Prevent deletion of the last user in the tenant
+        # There should be another option to destroy the whole tenant with the last user.
+        if User.objects(tenants__in=[tenant]).count() == 1:
+            raise HTTPException(status_code=400, detail="Can't delete the last user in the workspace")
+
+        result = user_to_delete.delete()
+        UserInvite.objects(email=user_to_delete.email, tenant=tenant).delete()
+
+        if result == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return {"message": "User deleted successfully"}
 
 
 @router.get("/me")
@@ -323,7 +343,8 @@ async def register_user_via_invite(token: str, user_creation: UserCreationModel)
     if user:
         # User exists, add the new tenant
         if invite.tenant in user.tenants:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already associated with this tenant")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="User already associated with this tenant")
 
         user.tenants.append(invite.tenant)
         user.save()
@@ -343,8 +364,8 @@ async def register_user_via_invite(token: str, user_creation: UserCreationModel)
     # Mark invite as accepted
     invite.mark_as_accepted()
 
-    return {"message": "User registered successfully" if not user else "Tenant associated successfully with the existing user"}
-
+    return {
+        "message": "User registered successfully" if not user else "Tenant associated successfully with the existing user"}
 
 
 class UserInviteDTO(BaseModel):
