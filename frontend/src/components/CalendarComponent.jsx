@@ -50,6 +50,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [draggingMemberId, setDraggingMemberId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
   const [daysHeader, setDaysHeader] = useState([]);
+  const [selectedRange, setSelectedRange] = useState({start: null, end: null});
+  const [isSelecting, setIsSelecting] = useState(false); // Track if user is currently selecting
 
 
   const saveToLocalStorage = (key, value) => {
@@ -224,32 +226,60 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     return ''; // No special title for regular days
   };
 
+  // Start selection on mouse down
+  const handleMouseDown = (date, memberId) => {
+    setIsSelecting(true);
+    setSelectedRange({start: {date, memberId}, end: {date, memberId}});
+  };
+
+  // Update selection on mouse over
+  const handleMouseOver = (date, memberId) => {
+    if (isSelecting) {
+      setSelectedRange(prev => ({
+        ...prev,
+        end: {date, memberId}
+      }));
+    }
+  };
+
+  // Finalize selection on mouse up
+  const handleMouseUp = () => {
+    if (isSelecting && selectedRange.start && selectedRange.end) {
+      setIsSelecting(false);
+
+      // Show the context menu for the selected range
+      setShowContextMenu(true);
+    }
+  };
+
   const handleDayClick = (teamId, memberId, date, isHolidayDay, event) => {
-    event.preventDefault();
+    if (!isSelecting) {
+      event.preventDefault();
 
-    const team = teamData.find(t => t._id === teamId);
-    const member = team.team_members.find(m => m.uid === memberId);
-    const dateStr = formatDate(date);
-    const dayEntry = member.days[dateStr] || {};
-    const existingDayTypes = dayEntry?.day_types || [];
-    const existingComment = dayEntry?.comment || '';
-    const memberName = member.name;
+      const team = teamData.find(t => t._id === teamId);
+      const member = team.team_members.find(m => m.uid === memberId);
+      const dateStr = formatDate(date);
+      const dayEntry = member.days[dateStr] || {};
+      const existingDayTypes = dayEntry?.day_types || [];
+      const existingComment = dayEntry?.comment || '';
+      const memberName = member.name;
 
-    setSelectedDayInfo({
-      teamId,
-      memberId,
-      memberName,
-      date,
-      existingDayTypes,
-      existingComment,
-      isHolidayDay
-    });
+      setSelectedDayInfo({
+        teamId,
+        memberId,
+        memberName,
+        date,
+        existingDayTypes,
+        existingComment,
+        isHolidayDay
+      });
 
-    const xPosition = event.clientX + window.scrollX;
-    const yPosition = event.clientY + window.scrollY;
+      const xPosition = event.clientX + window.scrollX;
+      const yPosition = event.clientY + window.scrollY;
 
-    setContextMenuPosition({x: xPosition, y: yPosition});
-    setShowContextMenu(true);
+      setContextMenuPosition({ x: xPosition, y: yPosition });
+      setShowContextMenu(true);
+    }
   };
 
   const deleteTeam = async (teamId) => {
@@ -437,6 +467,29 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     });
   };
 
+  const checkIfInRange = (date, memberId, selectedRange) => {
+    if (!selectedRange.start || !selectedRange.end) return false;
+
+    const startDate = selectedRange.start.date;
+    const endDate = selectedRange.end.date;
+    const startMemberId = selectedRange.start.memberId;
+    const endMemberId = selectedRange.end.memberId;
+
+    // Ensure the range is within the same member
+    if (startMemberId !== memberId || endMemberId !== memberId) {
+      return false;
+    }
+
+    // Convert dates to time for comparison
+    const dateTimestamp = date.getTime();
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
+    // Check if the date falls within the range
+    return (dateTimestamp >= startTimestamp && dateTimestamp <= endTimestamp) ||
+      (dateTimestamp <= startTimestamp && dateTimestamp >= endTimestamp);
+  };
+
 
   return (
     <div>
@@ -467,6 +520,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         onClose={() => setShowContextMenu(false)}
         dayTypes={dayTypes}
         selectedDayInfo={selectedDayInfo}
+        selectedRange={selectedRange}  // Pass selectedRange here
         updateTeamData={updateTeamData}
         updateLocalTeamData={updateLocalTeamData}
       />
@@ -606,6 +660,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         </span>
                       </td>
                       {daysHeader.map(({date}, idx) => {
+                        const isInRange = checkIfInRange(date, member.uid, selectedRange);
                         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                         const dayEntry = member.days[dateStr] || {};
                         const dateDayTypes = dayEntry?.day_types || [];
@@ -615,16 +670,19 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         return (
                           <td
                             key={idx}
+                            onMouseDown={(e) => handleMouseDown(date, member.uid)}
+                            onMouseOver={(e) => handleMouseOver(date, member.uid)}
+                            onMouseUp={handleMouseUp}
                             onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
                             title={getCellTitle(member, date)}
-                            className={`${isHolidayDay ? 'holiday-cell' : ''} ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}`}
+                            className={`${isHolidayDay ? 'holiday-cell' : ''} ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')} ${isInRange ? 'selected-day' : ''}`}
                             style={generateGradientStyle(dateDayTypes)}
                           >
                             <div className="day-cell-content">
                               {hasComment && (
                                 <span className="comment-icon">
-                                  *
-                                </span>
+                                *
+                              </span>
                               )}
                             </div>
                           </td>

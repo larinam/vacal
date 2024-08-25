@@ -11,6 +11,7 @@ const DayTypeContextMenu = ({
                               onClose,
                               dayTypes,
                               selectedDayInfo,
+                              selectedRange, // Receive the selected range
                               updateTeamData,
                               updateLocalTeamData
                             }) => {
@@ -20,7 +21,7 @@ const DayTypeContextMenu = ({
   const {apiCall} = useApi();
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && selectedDayInfo) {
       const dayTypeIds = selectedDayInfo.existingDayTypes.map(type => type._id);
       setSelectedDayTypes(dayTypeIds);
       const existingComment = selectedDayInfo.existingComment || '';
@@ -72,8 +73,13 @@ const DayTypeContextMenu = ({
   };
 
   const updateDayData = async (dayTypes, comment) => {
-    const dateStr = formatDate(selectedDayInfo.date);
-    const dayTypeData = {[dateStr]: {"day_types": dayTypes, "comment": comment}};
+    if (!selectedDayInfo) return; // Ensure selectedDayInfo is valid
+    const daysToUpdate = getDaysInRange(selectedRange);
+    const dayTypeData = {};
+
+    daysToUpdate.forEach(dateStr => {
+      dayTypeData[dateStr] = {"day_types": dayTypes, "comment": comment};
+    });
 
     const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
     try {
@@ -84,20 +90,37 @@ const DayTypeContextMenu = ({
       toast.error(error?.data?.detail);
     }
 
-    updateLocalTeamData(
-      selectedDayInfo.teamId,
-      selectedDayInfo.memberId,
-      dateStr,
-      dayTypes,
-      comment
-    );
+    // Update the local state for all selected days
+    daysToUpdate.forEach(dateStr => {
+      updateLocalTeamData(
+        selectedDayInfo.teamId,
+        selectedDayInfo.memberId,
+        dateStr,
+        dayTypes,
+        comment
+      );
+    });
   };
+
+  const getDaysInRange = (range) => {
+    if (!range.start || !range.end) return []; // Handle null or undefined ranges
+    const start = new Date(range.start.date);
+    const end = new Date(range.end.date);
+    const dates = [];
+
+    for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(formatDate(new Date(d)));
+    }
+
+    return dates;
+  };
+
 
   const formatDate = (date) => {
     return format(date, 'yyyy-MM-dd');
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !selectedDayInfo) return null; // Handle cases where the menu should not be rendered
 
   const contextMenuStyle = {
     position: 'absolute',
@@ -105,15 +128,14 @@ const DayTypeContextMenu = ({
     left: `${position.x}px`,
   };
 
-  // Format the display of the date and the day of the week
   const displayDate = selectedDayInfo.date ?
     new Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(selectedDayInfo.date) + ', ' + formatDate(selectedDayInfo.date) : "";
 
   return (
     <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
-      {selectedDayInfo && (
+      {selectedRange.start && selectedRange.end && (
         <div className="display-date-info">
-          {displayDate}
+          {formatDate(selectedRange.start.date)} - {formatDate(selectedRange.end.date)}
         </div>
       )}
       <div className="close-button" onClick={onClose}>&times;</div>
@@ -142,11 +164,6 @@ const DayTypeContextMenu = ({
           </div>
         );
       })}
-      {selectedDayInfo && (
-        <div className="member-info">
-          {selectedDayInfo.memberName}<br/>
-        </div>
-      )}
       <textarea
         className="comment-input"
         placeholder="Add a comment"

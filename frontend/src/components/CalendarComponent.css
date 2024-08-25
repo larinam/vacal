@@ -320,3 +320,7 @@ th.day-number-header {
     font-size: 20px;
     color: #DDD;
 }
+
+.selected-day {
+  background-color: rgba(0, 123, 255, 0.2); /* Highlight color */
+}
