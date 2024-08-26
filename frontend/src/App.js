@@ -7,6 +7,7 @@ import InitialUserCreation from './components/auth/InitialUserCreation';
 import UserRegistration from "./components/auth/UserRegistration";
 import './styles.css';
 import {useAuth} from './contexts/AuthContext';
+import AdditionalWorkspaceCreation from "./components/auth/AdditionalWorkspaceCreation";
 
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
         <Route path="/login" element={<Login/>}/>
         <Route path="/create-initial-user" element={<InitialUserCreation/>}/>
         <Route path="/register/:token" element={<UserRegistration/>}/>
+        <Route path="/create-additional-workspace" element={<AdditionalWorkspaceCreation/>}/>
         <Route path="/main/*" element={<MainComponent/>}/>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>

@@ -141,6 +141,39 @@ async def init_business_objects(tenant, user_creation):
                              email=user_creation.email)
     Team.init_team(tenant, team_member)
 
+@router.post("/create-tenant")
+async def create_tenant_for_user(tenant_creation: TenantCreationModel,
+                                 current_user: Annotated[User, Depends(get_current_active_user_check_tenant)]):
+    # Check if a tenant with the same name or identifier already exists
+    existing_tenant_name = Tenant.objects(name=tenant_creation.name).first()
+    existing_tenant_identifier = Tenant.objects(identifier=tenant_creation.identifier).first()
+
+    if existing_tenant_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A tenant with this name already exists."
+        )
+
+    if existing_tenant_identifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A tenant with this identifier already exists."
+        )
+
+    # Create a new tenant
+    new_tenant = Tenant(name=tenant_creation.name, identifier=tenant_creation.identifier)
+    new_tenant.save()
+
+    # Add the new tenant to the current user's list of tenants
+    current_user.tenants.append(new_tenant)
+    current_user.save()
+
+    # Initialize business objects for the new tenant
+    await init_business_objects(new_tenant, current_user)
+
+    return {"message": "Tenant created successfully"}
+
+
 
 @router.get("")
 async def read_users(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],

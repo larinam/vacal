@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCog, faQuestion, faSignOut} from '@fortawesome/free-solid-svg-icons';
+import {faCog, faPlus, faQuestion, faSignOut} from '@fortawesome/free-solid-svg-icons';
 import './UserProfileMenu.css';
 import {useAuth} from "../contexts/AuthContext";
 
@@ -44,10 +44,9 @@ const UserProfileMenu = ({setShowDropdown}) => {
         <FontAwesomeIcon icon={faCog}/>
         <span>Settings</span>
       </div>
-
+      <hr/>
       {user.tenants.length > 1 && (
         <>
-          <hr/>
           {user.tenants.map((tenant) => (
             <div
               key={tenant.id}
@@ -58,9 +57,16 @@ const UserProfileMenu = ({setShowDropdown}) => {
               <span>{tenant.name} ({tenant.identifier})</span>
             </div>
           ))}
-          <hr/>
         </>
       )}
+      <div className="dropdownItem" style={{'user-select': 'none'}} onClick={() => {
+        navigate('/create-additional-workspace');
+      }}>
+        <FontAwesomeIcon icon={faPlus}/>
+        <span>Create workspace</span>
+      </div>
+
+      <hr/>
       <div className="dropdownItem" onClick={() => {
         window.open('https://t.me/larinam', '_blank');
         setShowDropdown(false); // This will close the dropdown menu when the item is clicked

@@ -1,0 +1,43 @@
+.additionalWorkspaceCreationContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.additionalWorkspaceCreationContainer h1 {
+    margin-bottom: 20px;
+    font-weight: 300;
+}
+
+.formStyle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.2);
+}
+
+.inputStyle, .buttonStyle {
+    width: 300px;
+    display: block;
+    box-sizing: border-box;
+}
+
+.inputStyle {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.buttonStyle {
+    margin-top: 20px;
+}
+
+.createWorkspaceButton {
+    background-color: #007bff;
+}
+
+.createWorkspaceButton:hover {
+    background-color: #0056b3;
+}
