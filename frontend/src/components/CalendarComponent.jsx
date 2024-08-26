@@ -1,6 +1,5 @@
 import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, isYesterday, startOfWeek} from 'date-fns';
 import React, {useEffect, useRef, useState} from 'react';
-import {Tooltip} from 'react-tooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
   faChevronDown,
@@ -584,12 +583,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                     <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                       <td className="member-name-cell">
                         {member.name} <span title={member.country}>{member.country_flag}</span>
-                        <span className="info-icon" data-tip data-tooltip-id={`tooltip-${member.uid}`}>
-                            <FontAwesomeIcon icon={faInfoCircle}/>
+                        <span className="info-icon">
+                            <FontAwesomeIcon icon={faInfoCircle} title={renderVacationDaysTooltip(member)}/>
                         </span>
-                        <Tooltip id={`tooltip-${member.uid}`} place="top" effect="solid">
-                          {renderVacationDaysTooltip(member)}
-                        </Tooltip>
                         <span
                           className="drag-icon"
                           draggable="true"
