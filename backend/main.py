@@ -8,7 +8,7 @@ import time
 from collections import defaultdict
 from copy import deepcopy
 from io import BytesIO
-from typing import List, Dict, Annotated, Self, Generator
+from typing import List, Dict, Annotated, Self, Generator, Optional
 
 import pycountry
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -32,6 +32,7 @@ from .dependencies import create_access_token, get_current_active_user_check_ten
 from .model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry
 from .routers import users, daytypes, management
 from .routers.daytypes import DayTypeReadDTO, get_all_day_types
+from .routers.users import UserWithoutTenantsDTO
 from .sheduled.activate_trials import activate_trials
 from .sheduled.birthdays import send_birthday_email_updates
 from .sheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
@@ -192,7 +193,6 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
 
 class TeamWriteDTO(BaseModel):
     name: str
-    subscriber_emails: List[EmailStr] = []
     available_day_types: List[DayTypeReadDTO] = []
 
 
@@ -200,11 +200,23 @@ class TeamWriteDTO(BaseModel):
 class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
+    subscribers: List[UserWithoutTenantsDTO] = []
 
     @field_validator('team_members')
     @classmethod
     def sort_team_members(cls, team_members):
         return sorted(team_members, key=lambda member: member.name)
+
+    @field_validator('subscribers', mode="before")
+    @classmethod
+    def convert_subscribers(cls, v):
+        if v and isinstance(v, list):
+            converted_subscribers = []
+            for subscriber in v:
+                if isinstance(subscriber, ObjectId):
+                    converted_subscribers.append(UserWithoutTenantsDTO.from_mongo_reference_field(subscriber))
+            return converted_subscribers
+        return v
 
 
 class TokenDTO(BaseModel):
@@ -385,7 +397,6 @@ async def update_team(team_id: str, team_dto: TeamWriteDTO,
     team = Team.objects(tenant=tenant, id=team_id).first()
     if team:
         team.name = team_dto.name
-        team.subscriber_emails = team_dto.subscriber_emails
         team.available_day_types = team_dto.available_day_types
         team.save()
         return {"message": "Team modified successfully"}
@@ -414,6 +425,66 @@ async def update_team_member(team_id: str, team_member_id: str, team_member_dto:
 
     team.save()
     return {"message": "Team member modified successfully"}
+
+
+@app.post("/teams/{team_id}/subscribe")
+async def subscribe_user_to_team(
+        team_id: str,
+        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+        tenant: Annotated[Tenant, Depends(get_tenant)],
+        user_id: Optional[str] = None
+):
+    team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    user_to_subscribe = User.objects(id=user_id).first() if user_id else current_user
+
+    if user_to_subscribe in team.subscribers:
+        raise HTTPException(status_code=400, detail="User already subscribed to the team")
+
+    team.subscribers.append(user_to_subscribe)
+    team.save()
+    return {"message": "User subscribed to the team successfully"}
+
+
+@app.post("/teams/{team_id}/unsubscribe")
+async def unsubscribe_user_from_team(
+        team_id: str,
+        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+        tenant: Annotated[Tenant, Depends(get_tenant)],
+        user_id: Optional[str] = None,
+):
+    team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    user_to_unsubscribe = User.objects(id=user_id).first() if user_id else current_user
+
+    if user_to_unsubscribe not in team.subscribers:
+        raise HTTPException(status_code=400, detail="User is not subscribed to the team")
+
+    team.subscribers.remove(user_to_unsubscribe)
+    team.save()
+    return {"message": "User unsubscribed from the team successfully"}
+
+
+@app.get("/teams/{team_id}/subscribers", response_model=List[UserWithoutTenantsDTO])
+async def list_team_subscribers(
+        team_id: str,
+        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+        tenant: Annotated[Tenant, Depends(get_tenant)]
+):
+    team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    subscribers = [
+        mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
+        for subscriber in team.subscribers
+    ]
+
+    return subscribers
 
 
 @app.post("/move-team-member/{team_member_uid}")

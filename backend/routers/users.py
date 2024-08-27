@@ -2,13 +2,15 @@ import logging
 import os
 import secrets
 from datetime import datetime
+from functools import lru_cache
 from typing import Annotated, List
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import field_validator, BaseModel, Field, computed_field
 from starlette import status
 
-from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant
+from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant, \
+    tenant_var
 from ..email_service import send_email
 from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember, UserInvite
 
@@ -55,6 +57,14 @@ class UserWithoutTenantsDTO(BaseModel):
     @property
     def telegram_username(self) -> str | None:
         return self.auth_details.telegram_username
+
+    @classmethod
+    @lru_cache(maxsize=8192)
+    def from_mongo_reference_field(cls, user_document_reference):
+        if user_document_reference:
+            user_document = User.objects.get(tenants__in=[tenant_var.get()], id=user_document_reference)
+            return mongo_to_pydantic(user_document, cls)
+        return None
 
 
 class UserDTO(UserWithoutTenantsDTO):
@@ -141,6 +151,7 @@ async def init_business_objects(tenant, user_creation):
                              email=user_creation.email)
     Team.init_team(tenant, team_member)
 
+
 @router.post("/create-tenant")
 async def create_tenant_for_user(tenant_creation: TenantCreationModel,
                                  current_user: Annotated[User, Depends(get_current_active_user_check_tenant)]):
@@ -174,7 +185,6 @@ async def create_tenant_for_user(tenant_creation: TenantCreationModel,
     return {"message": "Tenant created successfully"}
 
 
-
 @router.get("")
 async def read_users(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                      tenant: Annotated[Tenant, Depends(get_tenant)]):
@@ -199,7 +209,7 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
         user.auth_details.telegram_username = user_update.telegram_username
     # Don't update password here; handle password updates separately for security
     user.save()
-
+    UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
     return {"message": "User updated successfully"}
 
 
@@ -235,6 +245,7 @@ async def delete_user(
         if result == 0:
             raise HTTPException(status_code=404, detail="User not found")
 
+        UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
         return {"message": "User deleted successfully"}
 
 

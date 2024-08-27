@@ -46,7 +46,7 @@ def send_birthday_email_updates():
         email_body = generate_birthday_email_body(team)
         if not email_body:
             continue  # Skip if there are no birthdays today
-        for email in team.subscriber_emails:
+        for subscriber in team.subscribers:
             send_email(f"Birthdays Today - {team.name} - {datetime.date.today().strftime('%B %d')}",
-                       email_body, email)
+                       email_body, subscriber.email)
     log.debug("Stop scheduled task send_birthday_email_updates")

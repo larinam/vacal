@@ -1,19 +1,21 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {useApi} from '../hooks/useApi';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faTrash, faUserPlus} from '@fortawesome/free-solid-svg-icons';
 
 const AddTeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
   const [teamName, setTeamName] = useState('');
-  const [subscriberEmails, setSubscriberEmails] = useState([]);
+  const [subscribers, setSubscribers] = useState([]);
   const modalContentRef = useRef(null);
   const {apiCall} = useApi();
 
   useEffect(() => {
     if (editingTeam) {
       setTeamName(editingTeam.name);
-      setSubscriberEmails(editingTeam.subscriber_emails || []);
+      fetchSubscribers(); // Fetch the subscribers when the modal opens
     } else {
       setTeamName('');
-      setSubscriberEmails([]);
+      setSubscribers([]);
     }
   }, [editingTeam]);
 
@@ -30,20 +32,37 @@ const AddTeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
     };
   }, [onClose]);
 
-  const handleEmailChange = (event, index) => {
-    const newEmails = [...subscriberEmails];
-    newEmails[index] = event.target.value;
-    setSubscriberEmails(newEmails);
+  const fetchSubscribers = async () => {
+    if (!editingTeam) return;
+
+    try {
+      const response = await apiCall(`/teams/${editingTeam._id}/subscribers`, 'GET');
+      setSubscribers(response); // Assuming the response is the list of subscribers
+    } catch (error) {
+      console.error('Error fetching subscribers:', error);
+    }
   };
 
-  const addEmailField = () => {
-    setSubscriberEmails([...subscriberEmails, '']);
+  const handleRemoveSubscriber = async (subscriberId) => {
+    if (!editingTeam) return;
+
+    try {
+      await apiCall(`/teams/${editingTeam._id}/unsubscribe?user_id=${subscriberId}`, 'POST');
+      await fetchSubscribers(); // Reload subscribers after removing one
+    } catch (error) {
+      console.error('Error removing subscriber:', error);
+    }
   };
 
-  const removeEmailField = index => {
-    const newEmails = [...subscriberEmails];
-    newEmails.splice(index, 1);
-    setSubscriberEmails(newEmails);
+  const handleSubscribeCurrentUser = async () => {
+    if (!editingTeam) return;
+
+    try {
+      await apiCall(`/teams/${editingTeam._id}/subscribe`, 'POST');
+      await fetchSubscribers(); // Reload subscribers after subscribing
+    } catch (error) {
+      console.error('Error subscribing current user:', error);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -53,13 +72,11 @@ const AddTeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
 
     const payload = {
       name: teamName,
-      subscriber_emails: subscriberEmails.filter(email => email) // Filter out empty emails
     };
 
     try {
       await apiCall(url, method, payload);
       setTeamName('');
-      setSubscriberEmails([]);
       onClose();
       updateTeamData(); // Refresh data
     } catch (error) {
@@ -80,24 +97,33 @@ const AddTeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
             placeholder="Enter team name"
             required
           />
-          {subscriberEmails.map((email, index) => (
-            <div key={index} className="email-input">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => handleEmailChange(e, index)}
-                placeholder="Enter subscriber email"
-                required
-              />
-              <button type="button" onClick={() => removeEmailField(index)}>Remove</button>
-            </div>
-          ))}
-          <button type="button" onClick={addEmailField}>Add email to subscribe to notifications</button>
           <div className="button-container">
             <button type="submit">{editingTeam ? 'Update Team' : 'Add Team'}</button>
             <button type="button" onClick={onClose}>Close</button>
           </div>
         </form>
+        <div className="subscribers-list">
+          <h3>Event subscription</h3>
+          <button
+            type="button"
+            className="subscribe-button"
+            onClick={handleSubscribeCurrentUser}
+            style={{marginLeft: '10px'}}
+          >
+            <FontAwesomeIcon icon={faUserPlus} style={{marginRight: '5px'}}/>
+            Subscribe
+          </button>
+          {subscribers.map(subscriber => (
+            <div key={subscriber._id}>
+              <span>{subscriber.name}</span>
+              <FontAwesomeIcon
+                icon={faTrash}
+                onClick={() => handleRemoveSubscriber(subscriber._id)}
+                style={{cursor: 'pointer', marginLeft: '10px'}}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

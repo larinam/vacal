@@ -284,7 +284,6 @@ class Team(Document):
     tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
     name = StringField(required=True, unique_with="tenant")
     team_members = EmbeddedDocumentListField(TeamMember)
-    subscriber_emails = ListField(EmailField())
     available_day_types = ListField(ReferenceField(DayType))
     subscribers = ListField(ReferenceField(User))
 

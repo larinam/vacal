@@ -85,8 +85,8 @@ def send_vacation_email_updates():
     for team in Team.objects():
         vacations = find_vacation_periods(team, today)
         if vacations:
-            for email in team.subscriber_emails:
-                vacation_info_by_subscriber[email].append((team.name, vacations))
+            for subscriber in team.subscribers:
+                vacation_info_by_subscriber[subscriber.email].append((team.name, vacations))
 
     # Generate and send consolidated emails
     for email, team_vacations in vacation_info_by_subscriber.items():
