@@ -8,9 +8,11 @@ user_collection = db['user']
 teams = team_collection.find()
 
 for team in teams:
+    tenant_id = team['tenant']
     subscribers = []
+
     for email in team.get('subscriber_emails', []):
-        user = user_collection.find_one({'email': email})
+        user = user_collection.find_one({'email': email, 'tenants': tenant_id})
         if user:
             subscribers.append(user['_id'])
 
