@@ -1,13 +1,15 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {useApi} from '../hooks/useApi';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faTrash, faUserPlus} from '@fortawesome/free-solid-svg-icons';
+import {faUserPlus, faUserTimes} from '@fortawesome/free-solid-svg-icons';
+import {useAuth} from "../contexts/AuthContext";
 
 const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
   const [teamName, setTeamName] = useState('');
   const [subscribers, setSubscribers] = useState([]);
   const modalContentRef = useRef(null);
   const {apiCall} = useApi();
+  const {user} = useAuth();
 
   useEffect(() => {
     if (editingTeam) {
@@ -43,25 +45,19 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
     }
   };
 
-  const handleRemoveSubscriber = async (subscriberId) => {
-    if (!editingTeam) return;
-
-    try {
-      await apiCall(`/teams/${editingTeam._id}/unsubscribe?user_id=${subscriberId}`, 'POST');
-      await fetchSubscribers(); // Reload subscribers after removing one
-    } catch (error) {
-      console.error('Error removing subscriber:', error);
-    }
-  };
-
   const handleSubscribeCurrentUser = async () => {
     if (!editingTeam) return;
 
     try {
-      await apiCall(`/teams/${editingTeam._id}/subscribe`, 'POST');
-      await fetchSubscribers(); // Reload subscribers after subscribing
+      const isSubscribed = subscribers.some(subscriber => subscriber._id === user._id);
+      const endpoint = isSubscribed
+        ? `/teams/${editingTeam._id}/unsubscribe`
+        : `/teams/${editingTeam._id}/subscribe`;
+
+      await apiCall(endpoint, 'POST');
+      await fetchSubscribers(); // Reload subscribers after (un)subscribing
     } catch (error) {
-      console.error('Error subscribing current user:', error);
+      console.error(`Error ${isSubscribed ? 'unsubscribing' : 'subscribing'} current user:`, error);
     }
   };
 
@@ -86,6 +82,8 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
 
   if (!isOpen) return null;
 
+  const isSubscribed = subscribers.some(subscriber => subscriber._id === user._id);
+
   return (
     <div className="modal">
       <div className="modal-content" ref={modalContentRef}>
@@ -103,24 +101,18 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
           </div>
         </form>
         <div className="subscribers-list">
-          <h3>Event subscription</h3>
+          <h3>Watchers</h3>
           <button
             type="button"
             className="subscribe-button"
             onClick={handleSubscribeCurrentUser}
-            style={{marginLeft: '10px'}}
           >
-            <FontAwesomeIcon icon={faUserPlus} style={{marginRight: '5px'}}/>
-            Subscribe
+            <FontAwesomeIcon icon={isSubscribed ? faUserTimes : faUserPlus} style={{marginRight: '5px'}}/>
+            {isSubscribed ? 'Unwatch' : 'Watch'}
           </button>
           {subscribers.map(subscriber => (
             <div key={subscriber._id}>
               <span>{subscriber.name}</span>
-              <FontAwesomeIcon
-                icon={faTrash}
-                onClick={() => handleRemoveSubscriber(subscriber._id)}
-                style={{cursor: 'pointer', marginLeft: '10px'}}
-              />
             </div>
           ))}
         </div>
