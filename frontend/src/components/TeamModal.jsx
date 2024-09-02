@@ -3,7 +3,7 @@ import {useApi} from '../hooks/useApi';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faTrash, faUserPlus} from '@fortawesome/free-solid-svg-icons';
 
-const AddTeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
+const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
   const [teamName, setTeamName] = useState('');
   const [subscribers, setSubscribers] = useState([]);
   const modalContentRef = useRef(null);
@@ -129,4 +129,4 @@ const AddTeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
   );
 };
 
-export default AddTeamModal;
+export default TeamModal;

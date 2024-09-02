@@ -13,8 +13,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import './CalendarComponent.css';
 import MonthSelector from './MonthSelector';
-import AddTeamModal from './AddTeamModal';
-import AddMemberModal from './AddMemberModal';
+import TeamModal from './TeamModal';
+import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
 import {useApi} from '../hooks/useApi';
 
@@ -439,7 +439,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   return (
     <div>
-      <AddTeamModal
+      <TeamModal
         isOpen={showAddTeamForm}
         onClose={() => {
           setShowAddTeamForm(false);
@@ -449,7 +449,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         editingTeam={editingTeam}
       />
 
-      <AddMemberModal
+      <MemberModal
         isOpen={showAddMemberForm}
         onClose={() => {
           setShowAddMemberForm(false);

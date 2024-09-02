@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {useApi} from '../hooks/useApi';
 import {toast} from "react-toastify";
 
-const AddMemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMember}) => {
+const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMember}) => {
   const [newMemberData, setNewMemberData] = useState({
     name: '',
     country: '',
@@ -105,4 +105,4 @@ const AddMemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editin
   );
 };
 
-export default AddMemberModal;
+export default MemberModal;
