@@ -100,22 +100,24 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
             <button type="button" onClick={onClose}>Close</button>
           </div>
         </form>
-        <div className="subscribers-list">
-          <h3>Watchers</h3>
-          <button
-            type="button"
-            className="subscribe-button"
-            onClick={handleSubscribeCurrentUser}
-          >
-            <FontAwesomeIcon icon={isSubscribed ? faUserTimes : faUserPlus} style={{marginRight: '5px'}}/>
-            {isSubscribed ? 'Unwatch' : 'Watch'}
-          </button>
-          {subscribers.map(subscriber => (
-            <div key={subscriber._id}>
-              <span>{subscriber.name}</span>
-            </div>
-          ))}
-        </div>
+        {editingTeam && (
+          <div className="subscribers-list">
+            <h3>Watchers</h3>
+            <button
+              type="button"
+              className="subscribe-button"
+              onClick={handleSubscribeCurrentUser}
+            >
+              <FontAwesomeIcon icon={isSubscribed ? faUserTimes : faUserPlus} style={{marginRight: '5px'}}/>
+              {isSubscribed ? 'Unwatch' : 'Watch'}
+            </button>
+            {subscribers.map(subscriber => (
+              <div key={subscriber._id}>
+                <span>{subscriber.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
