@@ -6,6 +6,7 @@ import logging
 import os
 import time
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from copy import deepcopy
 from io import BytesIO
 from typing import List, Dict, Annotated, Self, Generator, Optional
@@ -57,30 +58,27 @@ TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")
 
 MULTITENANCY_ENABLED = os.getenv("MULTITENANCY_ENABLED", False)
 
-app = FastAPI()
-app.add_middleware(TenantMiddleware)
-app.include_router(users.router)
-app.include_router(daytypes.router)
-if MULTITENANCY_ENABLED:
-    app.include_router(management.router)
-Instrumentator().instrument(app).expose(app)
-scheduler = BackgroundScheduler()
 
-
-@app.on_event("startup")
-def start_scheduler():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = BackgroundScheduler()
     scheduler.add_job(send_vacation_email_updates, 'cron', hour=6, minute=0)
     scheduler.add_job(send_birthday_email_updates, 'cron', hour=6, minute=5)
     if MULTITENANCY_ENABLED:
         scheduler.add_job(run_update_max_team_members_numbers, 'cron', hour=1, minute=5)
         scheduler.add_job(activate_trials, 'cron', hour=2, minute=5)
     scheduler.start()
-
-
-@app.on_event("shutdown")
-def shutdown_scheduler():
+    yield
     scheduler.shutdown()
 
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(TenantMiddleware)
+app.include_router(users.router)
+app.include_router(daytypes.router)
+if MULTITENANCY_ENABLED:
+    app.include_router(management.router)
+Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
