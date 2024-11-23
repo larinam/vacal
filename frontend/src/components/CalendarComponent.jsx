@@ -331,9 +331,16 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
   const renderVacationDaysTooltip = (member) => {
-    const selectedYear = displayMonth.getFullYear()
+    const selectedYear = displayMonth.getFullYear();
     const vacationDays = member.vacation_days_by_year[selectedYear];
-    return vacationDays ? `Vacation days in ${selectedYear}: ${vacationDays}` : `No vacation days in ${selectedYear}`;
+    const yearlyVacationDays = member.yearly_vacation_days;
+    const vacationDaysText = vacationDays
+      ? `${vacationDays} vacation days used in ${selectedYear}`
+      : `No vacation days used in ${selectedYear}`;
+    const yearlyVacationDaysText = yearlyVacationDays
+      ? `${yearlyVacationDays} vacation days available per year`
+      : 'No yearly vacation days defined';
+    return `${vacationDaysText}\n${yearlyVacationDaysText}`;
   };
 
   function generateGradientStyle(dateDayTypes) {
