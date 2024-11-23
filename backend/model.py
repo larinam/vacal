@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
-    LongField, DateTimeField, IntField
+    LongField, DateTimeField, IntField, DateField, DecimalField
 from passlib.context import CryptContext
 from pymongo import MongoClient
 
@@ -278,6 +278,8 @@ class TeamMember(EmbeddedDocument):
     days = MapField(EmbeddedDocumentField(DayEntry))
     available_day_types = ListField(ReferenceField(DayType))
     birthday = StringField(regex='^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')  # only MM-DD
+    employee_start_date = DateField()
+    yearly_vacation_days = DecimalField()
 
 
 class Team(Document):

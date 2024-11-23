@@ -8,6 +8,7 @@ import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from copy import deepcopy
+from decimal import Decimal
 from io import BytesIO
 from typing import List, Dict, Annotated, Self, Generator, Optional
 
@@ -106,6 +107,8 @@ class TeamMemberWriteDTO(BaseModel):
     phone: str | None = None
     available_day_types: List[DayTypeReadDTO] = []
     birthday: str | None = Field(None, pattern=r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
+    employee_start_date: datetime.date | None = None
+    yearly_vacation_days: Decimal | None = None
 
     @field_validator("country")
     @classmethod
@@ -420,6 +423,8 @@ async def update_team_member(team_id: str, team_member_id: str, team_member_dto:
     team_member.phone = team_member_dto.phone
     team_member.birthday = team_member_dto.birthday
     team_member.available_day_types = team_member_dto.available_day_types
+    team_member.employee_start_date = team_member_dto.employee_start_date
+    team_member.yearly_vacation_days = team_member_dto.yearly_vacation_days
 
     team.save()
     return {"message": "Team member modified successfully"}
