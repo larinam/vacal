@@ -16,6 +16,17 @@ form {
     border-radius: 5px;
 }
 
+form label {
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+form label input {
+    margin-top: 2px;
+}
+
 form input[type="text"], form input[type="password"], form input[type="email"], form input[type="number"], form input[type="date"], form input[type="tel"] {
     padding: 8px;
     border-radius: 6px;

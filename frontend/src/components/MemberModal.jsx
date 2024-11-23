@@ -83,53 +83,74 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
     <div className="modal">
       <div className="modal-content" ref={modalContentRef}>
         <form onSubmit={handleAddMemberFormSubmit}>
-          <input
-            type="text"
-            value={newMemberData.name}
-            onChange={(e) => setNewMemberData({...newMemberData, name: e.target.value})}
-            placeholder="Enter member's name"
-            required
-          />
-          <input
-            type="text"
-            value={newMemberData.country}
-            onChange={(e) => setNewMemberData({...newMemberData, country: e.target.value})}
-            placeholder="Enter member's country"
-            required
-          />
-          <input
-            type="email"
-            value={newMemberData.email}
-            onChange={(e) => setNewMemberData({...newMemberData, email: e.target.value})}
-            placeholder="Enter member's email"
-          />
-          <input
-            type="tel"
-            value={newMemberData.phone}
-            onChange={(e) => setNewMemberData({...newMemberData, phone: e.target.value})}
-            placeholder="Enter member's phone"
-          />
-          <input
-            type="text"
-            value={newMemberData.birthday}
-            onChange={(e) => setNewMemberData({...newMemberData, birthday: e.target.value})}
-            placeholder="Enter birthday (MM-DD)"
-          />
-          <input
-            type="date"
-            value={newMemberData.employee_start_date}
-            onChange={(e) => setNewMemberData({...newMemberData, employee_start_date: e.target.value})}
-            placeholder="Enter employee start date"
-            required
-          />
-          <input
-            type="number"
-            step="0.01"
-            value={newMemberData.yearly_vacation_days}
-            onChange={(e) => setNewMemberData({...newMemberData, yearly_vacation_days: e.target.value})}
-            placeholder="Enter yearly vacation days"
-            required
-          />
+          <label>
+            Name
+            <input
+              type="text"
+              value={newMemberData.name}
+              onChange={(e) => setNewMemberData({...newMemberData, name: e.target.value})}
+              placeholder="Enter member's name"
+              required
+            />
+          </label>
+          <label>
+            Country
+            <input
+              type="text"
+              value={newMemberData.country}
+              onChange={(e) => setNewMemberData({...newMemberData, country: e.target.value})}
+              placeholder="Enter member's country"
+              required
+            />
+          </label>
+          <label>
+            Email
+            <input
+              type="email"
+              value={newMemberData.email}
+              onChange={(e) => setNewMemberData({...newMemberData, email: e.target.value})}
+              placeholder="Enter member's email"
+            />
+          </label>
+          <label>
+            Phone
+            <input
+              type="tel"
+              value={newMemberData.phone}
+              onChange={(e) => setNewMemberData({...newMemberData, phone: e.target.value})}
+              placeholder="Enter member's phone"
+            />
+          </label>
+          <label>
+            Birthday
+            <input
+              type="text"
+              value={newMemberData.birthday}
+              onChange={(e) => setNewMemberData({...newMemberData, birthday: e.target.value})}
+              placeholder="Enter birthday (MM-DD)"
+            />
+          </label>
+          <label>
+            Employee start date
+            <input
+              type="date"
+              value={newMemberData.employee_start_date}
+              onChange={(e) => setNewMemberData({...newMemberData, employee_start_date: e.target.value})}
+              placeholder="Enter employee start date"
+              required
+            />
+          </label>
+          <label>
+            Yearly vacation days
+            <input
+              type="number"
+              step="0.01"
+              value={newMemberData.yearly_vacation_days}
+              onChange={(e) => setNewMemberData({...newMemberData, yearly_vacation_days: e.target.value})}
+              placeholder="Enter yearly vacation days"
+              required
+            />
+          </label>
           <div className="button-container">
             <button type="submit">{editingMember ? 'Edit Member' : 'Add Member'}</button>
             <button type="button" onClick={onClose}>Close</button>
