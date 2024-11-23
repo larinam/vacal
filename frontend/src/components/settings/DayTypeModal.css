@@ -21,13 +21,6 @@
     padding: 0;
 }
 
-.modal-content input[type="text"] {
-    margin-bottom: 10px;
-    padding: 8px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
 .button-container {
     display: flex;
     justify-content: space-between;

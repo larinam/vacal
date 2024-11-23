@@ -4,6 +4,7 @@ import CalendarComponent from './CalendarComponent';
 import SettingsComponent from './settings/SettingsComponent';
 import ReportFormModal from './ReportFormModal';
 import './MainComponent.css';
+import './Modal.css';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faFileExcel, faUserCircle} from '@fortawesome/free-solid-svg-icons';
 import {useApi} from '../hooks/useApi';

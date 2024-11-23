@@ -1,0 +1,5 @@
+.modal-content input[type="text"], .modal-content input[type="password"], .modal-content input[type="email"], .modal-content input[type="number"], .modal-content input[type="date"], .modal-content input[type="tel"] {
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
