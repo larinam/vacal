@@ -58,34 +58,46 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
         <div className="modal">
             <div className="modal-content" ref={modalContentRef}>
                 <form onSubmit={handleUserFormSubmit}>
-                    <input
-                        autoFocus={true}
-                        type="text"
-                        value={newUserData.name}
-                        onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
-                        placeholder="Name"
-                        required
-                    />
-                    <input
-                        type="email"
-                        value={newUserData.email}
-                        onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
-                        placeholder="Email"
-                        required
-                    />
-                    <input
-                        type="text"
-                        value={newUserData.username}
-                        onChange={(e) => setNewUserData({ ...newUserData, username: e.target.value })}
-                        placeholder="Username"
-                        required
-                    />
-                    <input
-                        type="text"
-                        value={newUserData.telegram_username}
-                        onChange={(e) => setNewUserData({ ...newUserData, telegram_username: e.target.value })}
-                        placeholder="Telegram Username"
-                    />
+                    <label>
+                        Name
+                        <input
+                            autoFocus={true}
+                            type="text"
+                            value={newUserData.name}
+                            onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
+                            placeholder="Enter name"
+                            required
+                        />
+                    </label>
+                    <label>
+                        Email
+                        <input
+                            type="email"
+                            value={newUserData.email}
+                            onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                            placeholder="Enter email"
+                            required
+                        />
+                    </label>
+                    <label>
+                        Username
+                        <input
+                            type="text"
+                            value={newUserData.username}
+                            onChange={(e) => setNewUserData({ ...newUserData, username: e.target.value })}
+                            placeholder="Enter username"
+                            required
+                        />
+                    </label>
+                    <label>
+                        Telegram Username
+                        <input
+                            type="text"
+                            value={newUserData.telegram_username}
+                            onChange={(e) => setNewUserData({ ...newUserData, telegram_username: e.target.value })}
+                            placeholder="Enter Telegram username"
+                        />
+                    </label>
                     <div className="button-container">
                         <button type="submit">Update User</button>
                         <button type="button" onClick={onClose}>Close</button>

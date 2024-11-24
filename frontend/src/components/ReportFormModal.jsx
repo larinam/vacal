@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 
 const ReportFormModal = ({ isOpen, onClose, onGenerateReport }) => {
     const [startDate, setStartDate] = useState('');
@@ -42,7 +42,7 @@ const ReportFormModal = ({ isOpen, onClose, onGenerateReport }) => {
             <div className="modal-content" ref={modalContentRef}>
                 <form onSubmit={handleSubmit}>
                     <label>
-                        Start Date:
+                        Start date
                         <input
                             type="date"
                             value={startDate}
@@ -51,7 +51,7 @@ const ReportFormModal = ({ isOpen, onClose, onGenerateReport }) => {
                         />
                     </label>
                     <label>
-                        End Date:
+                        End date
                         <input
                             type="date"
                             value={endDate}
