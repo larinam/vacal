@@ -7,14 +7,14 @@ import {useAuth} from "../../contexts/AuthContext";
 
 const AdditionalWorkspaceCreation = () => {
   const navigate = useNavigate();
-  const { apiCall } = useApi();
+  const {apiCall} = useApi();
   const [tenantName, setTenantName] = useState('');
   const [tenantIdentifier, setTenantIdentifier] = useState('');
   const {setCurrentTenant} = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const tenantData = { name: tenantName, identifier: tenantIdentifier };
+    const tenantData = {name: tenantName, identifier: tenantIdentifier};
     try {
       await apiCall('/users/create-tenant', 'POST', tenantData);
       toast.success('Workspace created successfully');

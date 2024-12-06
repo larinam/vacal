@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCog, faPlus, faQuestion, faSignOut} from '@fortawesome/free-solid-svg-icons';
+import {faCog, faPlus, faQuestion, faSignOut, faUserPlus} from '@fortawesome/free-solid-svg-icons';
 import './UserProfileMenu.css';
 import {useAuth} from "../contexts/AuthContext";
 
@@ -43,6 +43,13 @@ const UserProfileMenu = ({setShowDropdown}) => {
       }}>
         <FontAwesomeIcon icon={faCog}/>
         <span>Settings</span>
+      </div>
+      <div className="dropdownItem" onClick={() => {
+        navigate('/main/settings/usermanagement?inviteUser=true');
+        setShowDropdown(false); // This will close the dropdown menu when the item is clicked
+      }}>
+        <FontAwesomeIcon icon={faUserPlus}/>
+        <span>Invite user</span>
       </div>
       <hr/>
       {user.tenants.length > 1 && (
