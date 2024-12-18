@@ -1,0 +1,15 @@
+version: '3'
+
+includes:
+  backend:
+    dir: ./backend
+    taskfile: ./backend/Taskfile.yml
+  frontend:
+    dir: ./frontend
+    taskfile: ./frontend/Taskfile.yml
+
+tasks:
+  run:
+    desc: run the frontend and backend in the local compose environment
+    cmds:
+      - docker compose up --build

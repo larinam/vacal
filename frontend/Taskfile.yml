@@ -1,0 +1,35 @@
+version: '3'
+
+tasks:
+
+  install:
+    desc: install npm dependencies
+    cmds:
+      - npm install
+  build:
+    desc: build the frontend
+    env:
+      REACT_APP_API_URL: '{{.REACT_APP_API_URL| default "http://localhost:8000"}}'
+    cmds:
+      - task: install
+      - npm run build
+
+  docker-install:
+    desc: install npm dependencies in a docker container (no need for local npm installation)
+    cmds:
+      - docker run --rm --workdir /app -v $(pwd):/app --entrypoint "npm" node:latest install
+  docker-build:
+    desc: build the frontend in a docker container (no need for local npm installation)
+    vars:
+      REACT_APP_API_URL: '{{.REACT_APP_API_URL| default "http://localhost:8000"}}'
+    cmds:
+      - task: docker-install
+      - docker run --rm --workdir /app -v $(pwd):/app -e 'REACT_APP_API_URL={{.REACT_APP_API_URL}}' --entrypoint "npm" node:latest run build
+
+  deploy-s3:
+    desc: "deploy the frontend to S3"
+    cmds:
+      - aws s3 cp ./build s3://{{.S3BUCKET}} --recursive --exclude "index.html" --cache-control 'max-age=31536000, public'
+      - aws s3 cp ./build/index.html s3://{{.S3BUCKET}} --cache-control 'no-cache' --content-type 'text/html'
+    requires:
+      vars: [S3BUCKET]
