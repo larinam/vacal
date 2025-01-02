@@ -3,35 +3,20 @@ import './Login.css';
 import {useAuth} from "../../contexts/AuthContext";
 import {useNavigate} from "react-router-dom";
 import TelegramLogin from "./TelegramLogin";
-import {useApi} from "../../hooks/useApi";
+import {useConfig} from "../../contexts/ConfigContext";
 
 const Login = () => {
   const {handleLogin} = useAuth();
   const navigate = useNavigate();
-  const {apiCall} = useApi();
+  const {isMultitenancyEnabled, isTelegramEnabled, telegramBotUsername, userInitiated} = useConfig();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isMultitenancyEnabled, setIsMultitenancyEnabled] = useState(false);
-  const [isTelegramEnabled, setIsTelegramEnabled] = useState(false);
-  const [telegramBotUsername, setTelegramBotUsername] = useState('');
 
 
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const config = await apiCall('/config');
-        setIsTelegramEnabled(config.telegram_enabled);
-        setIsMultitenancyEnabled(config.multitenancy_enabled);
-        setTelegramBotUsername(config.telegram_bot_username);
-        if (!config.user_initiated) {
-          navigate('/create-initial-user')
-        }
-      } catch (error) {
-        console.error('Error fetching configuration:', error);
-      }
-    };
-
-    fetchConfig();
+    if (!userInitiated) {
+      navigate('/create-initial-user')
+    }
   }, []);
 
   const handleSubmit = async (e) => {
