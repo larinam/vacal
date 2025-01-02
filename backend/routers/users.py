@@ -156,8 +156,8 @@ async def init_business_objects(tenant, user_creation):
 async def create_tenant_for_user(tenant_creation: TenantCreationModel,
                                  current_user: Annotated[User, Depends(get_current_active_user_check_tenant)]):
     # Check if a tenant with the same name or identifier already exists
-    existing_tenant_name = Tenant.objects(name=tenant_creation.name).first()
-    existing_tenant_identifier = Tenant.objects(identifier=tenant_creation.identifier).first()
+    existing_tenant_name = Tenant.objects(name__iexact=tenant_creation.name).first()
+    existing_tenant_identifier = Tenant.objects(identifier__iexact=tenant_creation.identifier).first()
 
     if existing_tenant_name:
         raise HTTPException(
