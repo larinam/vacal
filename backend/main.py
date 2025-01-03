@@ -38,7 +38,7 @@ from .routers.users import UserWithoutTenantsDTO
 from .sheduled.activate_trials import activate_trials
 from .sheduled.birthdays import send_birthday_email_updates
 from .sheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
-from .sheduled.vacation_starts import send_vacation_email_updates
+from .sheduled.vacation_starts import send_vacation_email_updates, send_upcoming_vacation_email_updates
 from .utils import get_country_holidays
 
 origins = [
@@ -64,6 +64,7 @@ MULTITENANCY_ENABLED = os.getenv("MULTITENANCY_ENABLED", False)
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
     scheduler.add_job(send_vacation_email_updates, 'cron', hour=6, minute=0)
+    scheduler.add_job(send_upcoming_vacation_email_updates, 'cron', hour=6, minute=1)
     scheduler.add_job(send_birthday_email_updates, 'cron', hour=6, minute=5)
     if MULTITENANCY_ENABLED:
         scheduler.add_job(run_update_max_team_members_numbers, 'cron', hour=1, minute=5)

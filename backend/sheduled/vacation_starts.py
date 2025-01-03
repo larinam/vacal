@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
 
 
-def find_vacation_periods(team, start_date):
+def find_vacation_periods(team, start_date) -> list:
     # Identify the vacation DayType ID for the tenant
     vacation_day_type = DayType.objects(tenant=team.tenant, identifier="vacation").first()
 
@@ -53,7 +53,7 @@ def get_next_working_day(member, date):
     return next_day
 
 
-def generate_consolidated_email_body(team_vacations):
+def generate_consolidated_email_body(team_vacations) -> str:
     if not team_vacations:
         return ""
 
@@ -74,7 +74,7 @@ def generate_consolidated_email_body(team_vacations):
     return body
 
 
-def send_vacation_email_updates():
+def send_vacation_email_updates() -> None:
     log.debug("Start scheduled task send_vacation_email_updates")
     today = datetime.date.today()
 
@@ -95,3 +95,30 @@ def send_vacation_email_updates():
             send_email(f"Vacations Starting Today - {today.strftime('%B %d')}", email_body, email)
 
     log.debug("Stop scheduled task send_vacation_email_updates")
+
+
+def send_upcoming_vacation_email_updates() -> None:
+    log.debug("Start scheduled task send_upcoming_vacation_email_updates")
+    today = datetime.date.today()
+
+    # Dictionary to store vacation info per subscriber email
+    vacation_info_by_subscriber = defaultdict(lambda: defaultdict(list))
+
+    # Collect vacation info across all teams
+    for team in Team.objects():
+        for member in team.team_members:
+            next_working_day = get_next_working_day(member, today)
+            vacations_next_day = find_vacation_periods(team, next_working_day)
+            if vacations_next_day:
+                for subscriber in team.subscribers:
+                    vacation_info_by_subscriber[subscriber.email][team.name].extend(vacations_next_day)
+
+    # Generate and send consolidated emails
+    for email, teams_vacations in vacation_info_by_subscriber.items():
+        # Flatten the structure for email body generation
+        flattened_vacations = [(team_name, vacations) for team_name, vacations in teams_vacations.items()]
+        email_body = generate_consolidated_email_body(flattened_vacations)
+        if email_body:
+            send_email(f"Vacations Starting Soon - {today.strftime('%B %d')}", email_body, email)
+
+    log.debug("Stop scheduled task send_upcoming_vacation_email_updates")
