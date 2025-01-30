@@ -40,7 +40,7 @@ def calculate_end_date(member, start_date, vacation_day_type):
     next_day = start_date + datetime.timedelta(days=1)
     holidays = get_country_holidays(member.country, start_date.year)
     while (str(next_day) in member.days and vacation_day_type in member.days[str(next_day)].day_types) or \
-            (holidays and not holidays.is_workday(next_day)):
+            (holidays and not holidays.is_working_day(next_day)):
         next_day += datetime.timedelta(days=1)
     return next_day - datetime.timedelta(days=1)
 
@@ -48,7 +48,7 @@ def calculate_end_date(member, start_date, vacation_day_type):
 def get_next_working_day(member, date):
     next_day = date + datetime.timedelta(days=1)
     holidays = get_country_holidays(member.country, date.year)
-    while holidays and not holidays.is_workday(next_day):
+    while holidays and not holidays.is_working_day(next_day):
         next_day += datetime.timedelta(days=1)
     return next_day
 
