@@ -1,1 +1,1 @@
-docker-compose build && docker-compose up
+docker-compose up --build --remove-orphans vacal-backend

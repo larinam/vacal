@@ -102,7 +102,7 @@ def send_upcoming_vacation_email_updates() -> None:
     today = datetime.date.today()
 
     # Dictionary to store vacation info per subscriber email
-    vacation_info_by_subscriber = defaultdict(lambda: defaultdict(list))
+    vacation_info_by_subscriber = defaultdict(lambda: defaultdict(set))
 
     # Collect vacation info across all teams
     for team in Team.objects():
@@ -111,7 +111,7 @@ def send_upcoming_vacation_email_updates() -> None:
             vacations_next_day = find_vacation_periods(team, next_working_day)
             if vacations_next_day:
                 for subscriber in team.subscribers:
-                    vacation_info_by_subscriber[subscriber.email][team.name].extend(vacations_next_day)
+                    vacation_info_by_subscriber[subscriber.email][team.name].update(vacations_next_day)
 
     # Generate and send consolidated emails
     for email, teams_vacations in vacation_info_by_subscriber.items():

@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  app:
+  vacal-backend:
     build: .
     ports:
       - "8000:8000"
@@ -20,3 +20,27 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example_IbLEpHISturb
+
+
+  pytest_mongo:
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example_IbLEpHISturb
+    tmpfs:
+      - /data/db
+    restart: "no"
+
+
+  pytest:
+    build:
+      context: .
+      dockerfile: pytest.Dockerfile
+    depends_on:
+      - pytest_mongo
+    environment:
+      - MONGO_HOST=pytest_mongo
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example_IbLEpHISturb
+
+
