@@ -23,8 +23,8 @@ def find_vacation_periods(team, start_date) -> list:
     day_before_str = str(day_before)
 
     for member in team.team_members:
-        if (start_date_str in member.days and vacation_day_type in member.days[start_date_str].day_types and
-                not (day_before_str in member.days and vacation_day_type in member.days[day_before_str].day_types)):
+        if (is_vacation(member, start_date_str, vacation_day_type) and
+                not (is_vacation(member, day_before_str, vacation_day_type))):
             end_date = calculate_end_date(member, start_date, vacation_day_type)
             vacation_starts.append({
                 'name': member.name,
@@ -34,6 +34,10 @@ def find_vacation_periods(team, start_date) -> list:
             })
 
     return vacation_starts
+
+
+def is_vacation(member, date_str, vacation_day_type):
+    return date_str in member.days and vacation_day_type in member.days[date_str].day_types
 
 
 def calculate_end_date(member, start_date, vacation_day_type):
@@ -51,6 +55,11 @@ def get_next_working_day(member, date):
     while holidays and not holidays.is_working_day(next_day):
         next_day += datetime.timedelta(days=1)
     return next_day
+
+
+def is_working_day(member, date):
+    holidays = get_country_holidays(member.country, date.year)
+    return holidays.is_working_day(date)
 
 
 def generate_consolidated_email_body(team_vacations) -> str:
@@ -106,7 +115,11 @@ def send_upcoming_vacation_email_updates() -> None:
 
     # Collect vacation info across all teams
     for team in Team.objects():
+        # Identify the vacation DayType ID for the tenant
+        vacation_day_type = DayType.objects(tenant=team.tenant, identifier="vacation").first()
         for member in team.team_members:
+            if not is_working_day(member, today) or is_vacation(member, today, vacation_day_type):
+                continue  # skip sending notifications on weekends, holidays and if it is already vacation for the team member
             next_working_day = get_next_working_day(member, today)
             vacations_next_day = find_vacation_periods(team, next_working_day)
             if vacations_next_day:
