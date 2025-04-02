@@ -35,23 +35,15 @@ const DayTypeContextMenu = ({
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
+      if (event.key === 'Escape') onClose();
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
+    if (isOpen) document.addEventListener('keydown', handleKeyDown);
 
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleCheckboxChange = async (e) => {
-    const checked = e.target.checked;
-    const value = e.target.value;
+  const handleCheckboxChange = async (value, checked) => {
     const updatedDayTypes = checked
       ? [...selectedDayTypes, value]
       : selectedDayTypes.filter(type => type !== value);
@@ -61,9 +53,7 @@ const DayTypeContextMenu = ({
     onClose();
   };
 
-  const handleCommentChange = (e) => {
-    setComment(e.target.value);
-  };
+  const handleCommentChange = (e) => setComment(e.target.value);
 
   const handleCommentBlur = async () => {
     if (comment !== initialComment) {
@@ -72,8 +62,8 @@ const DayTypeContextMenu = ({
   };
 
   const updateDayData = async (dayTypes, comment) => {
-    const dateStr = formatDate(selectedDayInfo.date);
-    const dayTypeData = {[dateStr]: {"day_types": dayTypes, "comment": comment}};
+    const dateStr = format(selectedDayInfo.date, 'yyyy-MM-dd');
+    const dayTypeData = {[dateStr]: {day_types: dayTypes, comment}};
 
     const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
     try {
@@ -93,10 +83,6 @@ const DayTypeContextMenu = ({
     );
   };
 
-  const formatDate = (date) => {
-    return format(date, 'yyyy-MM-dd');
-  };
-
   if (!isOpen) return null;
 
   const contextMenuStyle = {
@@ -105,26 +91,19 @@ const DayTypeContextMenu = ({
     left: `${position.x}px`,
   };
 
-  // Format the display of the date and the day of the week
-  const displayDate = selectedDayInfo.date ?
-    new Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(selectedDayInfo.date) + ', ' + formatDate(selectedDayInfo.date) : "";
+  const displayDate = selectedDayInfo.date
+    ? new Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(selectedDayInfo.date) + ', ' + format(selectedDayInfo.date, 'yyyy-MM-dd')
+    : "";
+
+  const overrideType = dayTypes.find(type => type.identifier === "override");
 
   return (
     <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
-      {selectedDayInfo && (
-        <div className="display-date-info">
-          {displayDate}
-        </div>
-      )}
+      {selectedDayInfo && <div className="display-date-info">{displayDate}</div>}
       <div className="close-button" onClick={onClose}>&times;</div>
+
       {dayTypes.map(type => {
-        // If the DayType identifier is "override", only show it if it's a weekend or holiday
-        if (type.identifier === "override" && !isWeekend(selectedDayInfo.date) && !selectedDayInfo.isHolidayDay) {
-          return null; // Skip this DayType
-        }
-        if (type.identifier === "birthday") {
-          return null; // Skip this DayType
-        }
+        if (type.identifier === "override" || type.identifier === "birthday") return null;
 
         return (
           <div key={type._id} className="day-type-item">
@@ -132,21 +111,19 @@ const DayTypeContextMenu = ({
               type="checkbox"
               id={`dayType-${type._id}`}
               value={type._id}
-              onChange={handleCheckboxChange}
+              onChange={(e) => handleCheckboxChange(type._id, e.target.checked)}
               checked={selectedDayTypes.includes(type._id)}
             />
             <label htmlFor={`dayType-${type._id}`}>
-              <span className="color-indicator" style={{backgroundColor: type.color}}></span>
+              <span className="color-indicator" style={{backgroundColor: type.color}}/>
               {type.name}
             </label>
           </div>
         );
       })}
-      {selectedDayInfo && (
-        <div className="member-info">
-          {selectedDayInfo.memberName}<br/>
-        </div>
-      )}
+
+      {selectedDayInfo && <div className="member-info">{selectedDayInfo.memberName}<br/></div>}
+
       <textarea
         className="comment-input"
         placeholder="Add a comment"
@@ -154,6 +131,22 @@ const DayTypeContextMenu = ({
         onChange={handleCommentChange}
         onBlur={handleCommentBlur}
       />
+
+      {overrideType && (isWeekend(selectedDayInfo.date) || selectedDayInfo.isHolidayDay) && (
+        <div className="day-type-item override-checkbox">
+          <input
+            type="checkbox"
+            id={`dayType-${overrideType._id}`}
+            value={overrideType._id}
+            onChange={(e) => handleCheckboxChange(overrideType._id, e.target.checked)}
+            checked={selectedDayTypes.includes(overrideType._id)}
+          />
+          <label htmlFor={`dayType-${overrideType._id}`}>
+            <span className="color-indicator" style={{backgroundColor: overrideType.color}}/>
+            {overrideType.name}
+          </label>
+        </div>
+      )}
     </div>
   );
 };
