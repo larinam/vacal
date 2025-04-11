@@ -17,7 +17,7 @@
     justify-content: center; /* Centers content of each flex item */
 }
 
-.stickyHeader input[type="text"] {
+.stickyHeader input[type="search"] {
     padding: 5px 12px;
     border: 1px solid #d0d7de;
     border-radius: 4px;
@@ -27,12 +27,12 @@
     transition: border-color 0.2s ease-in-out;
 }
 
-.stickyHeader input[type="text"]:focus {
+.stickyHeader input[type="search"]:focus {
     border-color: #0366d6;
     outline: none;
 }
 
-.stickyHeader input[type="text"]::placeholder {
+.stickyHeader input[type="search"]::placeholder {
     color: #8a939d;
 }
 

@@ -181,11 +181,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }).filter(team => team !== null); // Remove null entries (teams with no matches)
   };
 
-  const clearFilter = () => {
-    setFilterInput('');
-    filterInputRef.current.focus();
-  };
-
   const formatDate = (date) => {
     return format(date, 'yyyy-MM-dd');
   };
@@ -480,18 +475,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       <div className="stickyHeader">
         <div className="filter-wrapper">
           <input
-            type="text"
+            type="search"
             ref={filterInputRef}
             value={filterInput}
             onChange={(e) => setFilterInput(e.target.value)}
             placeholder="Filter by team or member name"
           />
-          <button
-            onClick={clearFilter}
-            style={{visibility: filterInput ? 'visible' : 'hidden'}}
-          >
-            Clear
-          </button>
         </div>
         <MonthSelector
           displayMonth={displayMonth}
