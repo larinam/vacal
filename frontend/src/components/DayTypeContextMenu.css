@@ -1,64 +1,44 @@
-.day-type-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-}
-
-.day-type-item label {
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-}
-
-.color-indicator {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%; /* Makes it a circle */
-    margin-right: 5px;
-}
-
 .context-menu {
-    background-color: rgba(255, 255, 255, 0.9); /* White with slight transparency */
-    border: 1px solid #ddd; /* Optional: adds a border */
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); /* Optional: adds a shadow */
-    padding: 10px; /* Optional: adds padding inside the menu */
-    padding-right: 25px;
-    border-radius: 4px; /* Optional: rounds the corners */
-    z-index: 1000; /* Ensure it appears above other elements */
+  background-color: rgba(255, 255, 255, 95%);
+  border: 1px solid #ddd;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  padding-right: 25px;
+  border-radius: 4px;
+  z-index: 1000;
 }
 
 .close-button {
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    cursor: pointer;
-    font-size: 20px;
-    color: #333;
-    padding: 3px;
-    background-color: rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    line-height: 1;
-    text-align: center;
-    width: 20px;
-    height: 20px;
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #333;
+  padding: 3px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  line-height: 1;
+  text-align: center;
+  width: 20px;
+  height: 20px;
 }
 
 .display-date-info {
-    font-size: .8em;
-    padding: 4px;
+  font-size: 0.8em;
+  padding: 4px;
 }
 
 .member-info {
-    font-size: .8em;
-    padding: 0 4px;
+  font-size: 0.8em;
+  padding: 0 4px;
 }
 
 .comment-input {
-    width: 100%;
-    margin-top: 10px;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: .9em;
+  width: 100%;
+  margin-top: 10px;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9em;
 }

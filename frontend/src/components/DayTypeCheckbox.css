@@ -1,0 +1,19 @@
+.day-type-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.day-type-item label {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.color-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
