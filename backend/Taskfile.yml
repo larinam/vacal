@@ -1,0 +1,25 @@
+version: '3'
+
+# TODO remove echo commands and replace with actual commands
+tasks:
+
+  test:
+    desc: test the backend
+    env:
+      AUTHENTICATION_SECRET_KEY: b461cb38030c172d3feb5275e3d841087951b8fe88ad9c1697eb5ee41269a135
+    cmds:
+      - pytest
+  build:
+    desc: build the backend container image
+    vars:
+      IMAGE_NAME: '{{.IMAGE_NAME | default "vacal"}}'
+      IMAGE_TAG: '{{.IMAGE_TAG | default "latest"}}'
+    cmds:
+      - docker build -t {{.IMAGE_NAME}}:{{.IMAGE_TAG}} .
+  publish:
+    desc: push the backend container image to the registry
+    vars:
+      IMAGE_NAME: '{{.IMAGE_NAME | default "vacal"}}'
+      IMAGE_TAG: '{{.IMAGE_TAG | default "latest"}}'
+    cmds:
+      - docker push {{.IMAGE_NAME}}:{{.IMAGE_TAG}}
