@@ -9,6 +9,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from copy import deepcopy
 from decimal import Decimal
+from functools import lru_cache
 from io import BytesIO
 from typing import List, Dict, Annotated, Self, Generator, Optional
 
@@ -239,6 +240,7 @@ def validate_country_name(country_name):
     return None
 
 
+@lru_cache(maxsize=32)
 def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
     countries = get_unique_countries(tenant)
     holidays_dict = {}
