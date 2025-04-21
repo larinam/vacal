@@ -49,6 +49,79 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [draggingMemberId, setDraggingMemberId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
   const [daysHeader, setDaysHeader] = useState([]);
+  const [selectionStart, setSelectionStart] = useState(null);
+  const [selectionEnd, setSelectionEnd] = useState(null);
+  const [selectedCells, setSelectedCells] = useState([]);
+
+  const isSelectableDay = (member, date) => {
+    const dateStr = formatDate(date);
+    const dayEntry = member.days[dateStr];
+    const hasExistingDayTypes = dayEntry?.day_types && dayEntry.day_types.length > 0;
+
+    return (
+      !isWeekend(date) &&
+      !isHoliday(member.country, date) &&
+      !hasExistingDayTypes
+    );
+  };
+
+
+  const handleMouseDown = (teamId, memberId, date, isSelectable) => {
+    if (!isSelectable) return;
+    setSelectionStart({teamId, memberId, date});
+    setSelectedCells([{teamId, memberId, date}]);
+  };
+
+
+  const handleMouseOver = (teamId, memberId, date, member) => {
+    if (!selectionStart || selectionStart.memberId !== memberId) return;
+
+    const startDate = selectionStart.date;
+    const endDate = date;
+
+    const datesInterval = eachDayOfInterval({
+      start: startDate < endDate ? startDate : endDate,
+      end: startDate < endDate ? endDate : startDate,
+    });
+
+    // Limit the interval to selectable days only
+    const newSelection = [];
+    for (let d of datesInterval) {
+      if (!isSelectableDay(member, d)) {
+        break; // Stop adding further days as soon as a non-selectable day is encountered
+      }
+      newSelection.push({teamId, memberId, date: d});
+    }
+
+    setSelectedCells(newSelection);
+  };
+
+
+  const handleMouseUp = (event) => {
+    if (selectedCells.length > 0) {
+      const {teamId, memberId, date} = selectedCells[0];
+      const xPosition = event.clientX + window.scrollX;
+      const yPosition = event.clientY + window.scrollY;
+
+      setSelectedDayInfo({
+        teamId,
+        memberId,
+        memberName: teamData
+          .find((team) => team._id === teamId)
+          .team_members.find((m) => m.uid === memberId).name,
+        dateRange: selectedCells.map((cell) => cell.date),
+        existingDayTypes: [],
+        existingComment: '',
+        isHolidayDay: false,
+      });
+
+      setContextMenuPosition({x: xPosition, y: yPosition});
+      setShowContextMenu(true);
+    }
+
+    setSelectionStart(null);
+    setSelectionEnd(null);
+  };
 
 
   const saveToLocalStorage = (key, value) => {
@@ -465,7 +538,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         contextMenuRef={contextMenuRef}
         isOpen={showContextMenu}
         position={contextMenuPosition}
-        onClose={() => setShowContextMenu(false)}
+        onClose={() => {
+          setShowContextMenu(false);
+          setSelectedCells([]);
+          setSelectionStart(null);
+          setSelectionEnd(null);
+        }}
         dayTypes={dayTypes}
         selectedDayInfo={selectedDayInfo}
         updateTeamData={updateTeamData}
@@ -607,17 +685,20 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         return (
                           <td
                             key={idx}
+                            onMouseDown={() => handleMouseDown(team._id, member.uid, date, isSelectableDay(member, date))}
+                            onMouseOver={() => handleMouseOver(team._id, member.uid, date, member)}
+                            onMouseUp={handleMouseUp}
                             onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
                             title={getCellTitle(member, date)}
-                            className={`${isHolidayDay ? 'holiday-cell' : ''} ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}`}
+                            className={`
+    ${isHolidayDay ? 'holiday-cell' : ''}
+    ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}
+    ${selectedCells.some((cell) => cell.date.getTime() === date.getTime() && cell.memberId === member.uid) ? 'selected-range' : ''}
+  `}
                             style={generateGradientStyle(dateDayTypes)}
                           >
                             <div className="day-cell-content">
-                              {hasComment && (
-                                <span className="comment-icon">
-                                  *
-                                </span>
-                              )}
+                              {hasComment && <span className="comment-icon">*</span>}
                             </div>
                           </td>
                         );

@@ -110,7 +110,7 @@
 }
 
 .calendar-table td:hover {
-    background-color: rgba(245, 245, 245, 0.5); /* Light gray with 50% opacity. Highlight only the hovered cell */
+    background-color: rgba(220, 220, 220, 0.5); /* Light gray with 50% opacity. Highlight only the hovered cell */
 }
 
 .team-name-cell .team-name {
@@ -319,4 +319,8 @@ th.day-number-header {
     right: 3px;
     font-size: 20px;
     color: #DDD;
+}
+
+.selected-range {
+    background-color: rgba(220, 220, 220, 0.5);
 }

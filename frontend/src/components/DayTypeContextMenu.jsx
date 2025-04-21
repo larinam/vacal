@@ -6,19 +6,19 @@ import {toast} from 'react-toastify';
 import DayTypeCheckbox from './DayTypeCheckbox';
 
 const DayTypeContextMenu = ({
-  contextMenuRef,
-  isOpen,
-  position,
-  onClose,
-  dayTypes,
-  selectedDayInfo,
-  updateTeamData,
-  updateLocalTeamData,
-}) => {
+                              contextMenuRef,
+                              isOpen,
+                              position,
+                              onClose,
+                              dayTypes,
+                              selectedDayInfo,
+                              updateTeamData,
+                              updateLocalTeamData,
+                            }) => {
   const [selectedDayTypes, setSelectedDayTypes] = useState([]);
   const [comment, setComment] = useState('');
   const [initialComment, setInitialComment] = useState('');
-  const { apiCall } = useApi();
+  const {apiCall} = useApi();
 
   useEffect(() => {
     if (isOpen) {
@@ -62,10 +62,27 @@ const DayTypeContextMenu = ({
   };
 
   const updateDayData = async (dayTypes, comment) => {
-    const dateStr = format(selectedDayInfo.date, 'yyyy-MM-dd');
-    const dayTypeData = { [dateStr]: { day_types: dayTypes, comment } };
+    const dayTypeData = {};
+
+    if (selectedDayInfo.dateRange && selectedDayInfo.dateRange.length > 0) {
+      // Handle multi-day selection
+      selectedDayInfo.dateRange.forEach((date) => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        dayTypeData[dateStr] = {day_types: dayTypes, comment};
+        updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, dateStr, dayTypes, comment);
+      });
+    } else if (selectedDayInfo.date) {
+      // Handle single-day selection
+      const dateStr = format(selectedDayInfo.date, 'yyyy-MM-dd');
+      dayTypeData[dateStr] = {day_types: dayTypes, comment};
+      updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, dateStr, dayTypes, comment);
+    } else {
+      console.error('No valid date or date range provided.');
+      return;
+    }
 
     const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
+
     try {
       await apiCall(url, 'PUT', dayTypeData);
       updateTeamData();
@@ -73,8 +90,6 @@ const DayTypeContextMenu = ({
       console.error('Error updating day types:', error);
       toast.error(error?.data?.detail);
     }
-
-    updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, dateStr, dayTypes, comment);
   };
 
   if (!isOpen) return null;
@@ -85,11 +100,26 @@ const DayTypeContextMenu = ({
     left: `${position.x}px`,
   };
 
-  const displayDate = selectedDayInfo.date
-    ? new Intl.DateTimeFormat(navigator.language, { weekday: 'long' }).format(selectedDayInfo.date) +
-      ', ' +
-      format(selectedDayInfo.date, 'yyyy-MM-dd')
-    : '';
+  let displayDate = '';
+
+  if (selectedDayInfo.date) {
+    // Single day selection
+    displayDate = new Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(selectedDayInfo.date) +
+      ', ' + format(selectedDayInfo.date, 'yyyy-MM-dd');
+  } else if (selectedDayInfo.dateRange && selectedDayInfo.dateRange.length > 0) {
+    // Multiple days selection
+    if (selectedDayInfo.dateRange.length === 1) {
+      // If there's only one day in the range
+      const date = selectedDayInfo.dateRange[0];
+      displayDate = new Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(date) +
+        ', ' + format(date, 'yyyy-MM-dd');
+    } else {
+      // If there are multiple days, show the range
+      const startDate = selectedDayInfo.dateRange[0];
+      const endDate = selectedDayInfo.dateRange[selectedDayInfo.dateRange.length - 1];
+      displayDate = `${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')} (${selectedDayInfo.dateRange.length} days)`;
+    }
+  }
 
   return (
     <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
@@ -115,7 +145,7 @@ const DayTypeContextMenu = ({
       {selectedDayInfo && (
         <div className="member-info">
           {selectedDayInfo.memberName}
-          <br />
+          <br/>
         </div>
       )}
 
@@ -128,22 +158,22 @@ const DayTypeContextMenu = ({
       />
 
       {dayTypes
-  .filter((type) => type.identifier !== 'vacation' && type.identifier !== 'birthday')
-  .map((type) => {
-    // If it's an override type and the condition is not met, return null immediately.
-    if (type.identifier === 'override' && !(isWeekend(selectedDayInfo.date) || selectedDayInfo.isHolidayDay)) {
-      return null;
-    }
+        .filter((type) => type.identifier !== 'vacation' && type.identifier !== 'birthday')
+        .map((type) => {
+          // If it's an override type and the condition is not met, return null immediately.
+          if (type.identifier === 'override' && !(isWeekend(selectedDayInfo.date) || selectedDayInfo.isHolidayDay)) {
+            return null;
+          }
 
-    return (
-      <DayTypeCheckbox
-        key={type._id}
-        type={type}
-        selected={selectedDayTypes.includes(type._id)}
-        onChange={handleCheckboxChange}
-      />
-    );
-  })}
+          return (
+            <DayTypeCheckbox
+              key={type._id}
+              type={type}
+              selected={selectedDayTypes.includes(type._id)}
+              onChange={handleCheckboxChange}
+            />
+          );
+        })}
 
     </div>
   );
