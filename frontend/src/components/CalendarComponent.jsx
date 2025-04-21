@@ -50,7 +50,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [dropTargetId, setDropTargetId] = useState(null);
   const [daysHeader, setDaysHeader] = useState([]);
   const [selectionStart, setSelectionStart] = useState(null);
-  const [selectionEnd, setSelectionEnd] = useState(null);
   const [selectedCells, setSelectedCells] = useState([]);
 
   const isSelectableDay = (member, date) => {
@@ -65,13 +64,43 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     );
   };
 
+  const showDayContextMenu = (teamId, memberId, dates, event, isHolidayDay = false) => {
+    const team = teamData.find((team) => team._id === teamId);
+    const member = team.team_members.find((m) => m.uid === memberId);
+    const memberName = member.name;
+
+    // For single day selection, we might have existing day types and comments
+    let existingDayTypes = [];
+    let existingComment = '';
+
+    if (dates.length === 1) {
+      const dateStr = formatDate(dates[0]);
+      const dayEntry = member.days[dateStr] || {};
+      existingDayTypes = dayEntry?.day_types || [];
+      existingComment = dayEntry?.comment || '';
+    }
+
+    setSelectedDayInfo({
+      teamId,
+      memberId,
+      memberName,
+      dateRange: dates,
+      existingDayTypes,
+      existingComment,
+      isHolidayDay
+    });
+
+    const xPosition = event.clientX + window.scrollX;
+    const yPosition = event.clientY + window.scrollY;
+    setContextMenuPosition({x: xPosition, y: yPosition});
+    setShowContextMenu(true);
+  };
 
   const handleMouseDown = (teamId, memberId, date, isSelectable) => {
     if (!isSelectable) return;
     setSelectionStart({teamId, memberId, date});
     setSelectedCells([{teamId, memberId, date}]);
   };
-
 
   const handleMouseOver = (teamId, memberId, date, member) => {
     if (!selectionStart || selectionStart.memberId !== memberId) return;
@@ -96,31 +125,14 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     setSelectedCells(newSelection);
   };
 
-
   const handleMouseUp = (event) => {
     if (selectedCells.length > 0) {
-      const {teamId, memberId, date} = selectedCells[0];
-      const xPosition = event.clientX + window.scrollX;
-      const yPosition = event.clientY + window.scrollY;
-
-      setSelectedDayInfo({
-        teamId,
-        memberId,
-        memberName: teamData
-          .find((team) => team._id === teamId)
-          .team_members.find((m) => m.uid === memberId).name,
-        dateRange: selectedCells.map((cell) => cell.date),
-        existingDayTypes: [],
-        existingComment: '',
-        isHolidayDay: false,
-      });
-
-      setContextMenuPosition({x: xPosition, y: yPosition});
-      setShowContextMenu(true);
+      const {teamId, memberId} = selectedCells[0];
+      const dates = selectedCells.map((cell) => cell.date);
+      showDayContextMenu(teamId, memberId, dates, event);
     }
 
     setSelectionStart(null);
-    setSelectionEnd(null);
   };
 
 
@@ -293,30 +305,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const handleDayClick = (teamId, memberId, date, isHolidayDay, event) => {
     event.preventDefault();
-
-    const team = teamData.find(t => t._id === teamId);
-    const member = team.team_members.find(m => m.uid === memberId);
-    const dateStr = formatDate(date);
-    const dayEntry = member.days[dateStr] || {};
-    const existingDayTypes = dayEntry?.day_types || [];
-    const existingComment = dayEntry?.comment || '';
-    const memberName = member.name;
-
-    setSelectedDayInfo({
-      teamId,
-      memberId,
-      memberName,
-      date,
-      existingDayTypes,
-      existingComment,
-      isHolidayDay
-    });
-
-    const xPosition = event.clientX + window.scrollX;
-    const yPosition = event.clientY + window.scrollY;
-
-    setContextMenuPosition({x: xPosition, y: yPosition});
-    setShowContextMenu(true);
+    showDayContextMenu(teamId, memberId, [date], event, isHolidayDay);
   };
 
   const deleteTeam = async (teamId) => {
@@ -542,7 +531,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           setShowContextMenu(false);
           setSelectedCells([]);
           setSelectionStart(null);
-          setSelectionEnd(null);
         }}
         dayTypes={dayTypes}
         selectedDayInfo={selectedDayInfo}

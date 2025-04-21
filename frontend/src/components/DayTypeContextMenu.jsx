@@ -65,19 +65,13 @@ const DayTypeContextMenu = ({
     const dayTypeData = {};
 
     if (selectedDayInfo.dateRange && selectedDayInfo.dateRange.length > 0) {
-      // Handle multi-day selection
       selectedDayInfo.dateRange.forEach((date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         dayTypeData[dateStr] = {day_types: dayTypes, comment};
         updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, dateStr, dayTypes, comment);
       });
-    } else if (selectedDayInfo.date) {
-      // Handle single-day selection
-      const dateStr = format(selectedDayInfo.date, 'yyyy-MM-dd');
-      dayTypeData[dateStr] = {day_types: dayTypes, comment};
-      updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, dateStr, dayTypes, comment);
     } else {
-      console.error('No valid date or date range provided.');
+      console.error('No valid date range provided.');
       return;
     }
 
@@ -102,12 +96,7 @@ const DayTypeContextMenu = ({
 
   let displayDate = '';
 
-  if (selectedDayInfo.date) {
-    // Single day selection
-    displayDate = new Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(selectedDayInfo.date) +
-      ', ' + format(selectedDayInfo.date, 'yyyy-MM-dd');
-  } else if (selectedDayInfo.dateRange && selectedDayInfo.dateRange.length > 0) {
-    // Multiple days selection
+  if (selectedDayInfo.dateRange && selectedDayInfo.dateRange.length > 0) {
     if (selectedDayInfo.dateRange.length === 1) {
       // If there's only one day in the range
       const date = selectedDayInfo.dateRange[0];
@@ -161,7 +150,12 @@ const DayTypeContextMenu = ({
         .filter((type) => type.identifier !== 'vacation' && type.identifier !== 'birthday')
         .map((type) => {
           // If it's an override type and the condition is not met, return null immediately.
-          if (type.identifier === 'override' && !(isWeekend(selectedDayInfo.date) || selectedDayInfo.isHolidayDay)) {
+          // For override type, check if it's a weekend or holiday
+          // Only check the first date in the range for simplicity
+          if (type.identifier === 'override' && 
+              selectedDayInfo.dateRange && 
+              selectedDayInfo.dateRange.length > 0 && 
+              !(isWeekend(selectedDayInfo.dateRange[0]) || selectedDayInfo.isHolidayDay)) {
             return null;
           }
 
