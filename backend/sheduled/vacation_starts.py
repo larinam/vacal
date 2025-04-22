@@ -82,7 +82,6 @@ def generate_consolidated_email_body(team_vacations) -> str:
 
     return body
 
-
 def send_vacation_email_updates() -> None:
     log.debug("Start scheduled task send_vacation_email_updates")
     today = datetime.date.today()
@@ -128,9 +127,10 @@ def send_upcoming_vacation_email_updates() -> None:
             next_working_day = get_next_working_day(member, today)
             vacations_next_day = find_vacation_periods(team, next_working_day)
             if vacations_next_day:
-                for subscriber in team.subscribers:
-                    vacation_info_by_subscriber[subscriber.email][team.name].extend(
-                        only_for_team_member(member, vacations_next_day))
+                filtered_vacations = only_for_team_member(member, vacations_next_day)
+                if filtered_vacations:
+                    for subscriber in team.subscribers:
+                        vacation_info_by_subscriber[subscriber.email][team.name].extend(filtered_vacations)
 
     # Generate and send consolidated emails
     for email, teams_vacations in vacation_info_by_subscriber.items():
