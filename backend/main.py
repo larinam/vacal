@@ -93,6 +93,15 @@ app.add_middleware(
 
 log = logging.getLogger(__name__)
 
+@app.get("/health", status_code=status.HTTP_200_OK)
+async def health_check():
+    """
+    Health check endpoint for monitoring and load balancer health checks.
+    Returns a simple status response with a 200 OK status code.
+    This endpoint is suitable for ALB health checks.
+    """
+    return {"status": "healthy"}
+
 
 class GeneralApplicationConfigDTO(BaseModel):
     telegram_enabled: bool
