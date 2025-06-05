@@ -277,9 +277,6 @@ async def update_password(password_update: PasswordUpdateModel,
     return {"message": "Password updated successfully"}
 
 
-# The endpoint path contained a space which results in an URL encoded value
-# ("remove%20tenant") and makes the endpoint hard to call.  Replace the space
-# with a hyphen to form a valid and consistent path.
 @router.get("/me/remove-tenant/{tenant_id}")
 async def remove_tenant(tenant_id: str,
                         current_user: Annotated[User, Depends(get_current_active_user)]):
