@@ -278,8 +278,7 @@ async def update_password(password_update: PasswordUpdateModel,
 
 
 @router.get("/me/remove-tenant/{tenant_id}")
-async def remove_tenant(tenant_id: str,
-                        current_user: Annotated[User, Depends(get_current_active_user)]):
+async def remove_tenant(tenant_id: str, current_user: Annotated[User, Depends(get_current_active_user)]):
     try:
         current_user.remove_tenant(Tenant.objects(identifier=tenant_id).first())
     except RuntimeError as e:
