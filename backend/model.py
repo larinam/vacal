@@ -69,10 +69,10 @@ def add_a_month(source_date):
 class Tenant(Document):
     name = StringField(required=True, unique=True)
     identifier = StringField(required=True, unique=True)
-    creation_date = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc))
+    creation_date = DateTimeField(required=True, default=lambda: datetime.now(timezone.utc))
     status = StringField(required=True, choices=['trial', 'active', 'blocked', 'free'], default='trial')
-    trial_until = DateTimeField(reqired=True, default=lambda: add_a_month(datetime.now(timezone.utc)))
-    current_period = DateTimeField(reqired=True, default=lambda: datetime.now(timezone.utc))
+    trial_until = DateTimeField(required=True, default=lambda: add_a_month(datetime.now(timezone.utc)))
+    current_period = DateTimeField(required=True, default=lambda: datetime.now(timezone.utc))
     max_team_members_in_periods = MapField(IntField())
 
     meta = {
