@@ -36,10 +36,10 @@ from .model import Team, TeamMember, get_unique_countries, DayType, User, Tenant
 from .routers import users, daytypes, management
 from .routers.daytypes import DayTypeReadDTO, get_all_day_types
 from .routers.users import UserWithoutTenantsDTO
-from .sheduled.activate_trials import activate_trials
-from .sheduled.birthdays import send_birthday_email_updates
-from .sheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
-from .sheduled.vacation_starts import send_vacation_email_updates, send_upcoming_vacation_email_updates
+from .scheduled.activate_trials import activate_trials
+from .scheduled.birthdays import send_birthday_email_updates
+from .scheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
+from .scheduled.vacation_starts import send_vacation_email_updates, send_upcoming_vacation_email_updates
 from .utils import get_country_holidays
 
 origins = [
