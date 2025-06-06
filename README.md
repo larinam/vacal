@@ -8,7 +8,7 @@
 * Ideal for both local and distributed teams, enhancing team coordination and planning.
 
 ## Technologies
-* Uses Python [FastAPI](https://github.com/tiangolo/fastapi) on the backend and [MongoDB](https://github.com/mongodb/mongo) as a storage.
+* Uses Python [FastAPI](https://github.com/tiangolo/fastapi) on the backend and [MongoDB](https://github.com/mongodb/mongo) as storage.
 * [ReactJS](https://github.com/facebook/react) on the frontend.
 
 ## Screenshot
