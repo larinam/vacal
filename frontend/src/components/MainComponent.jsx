@@ -87,12 +87,16 @@ const MainComponent = () => {
         }
     };
 
-    if (!data) return <div>Loading...</div>;
+    if (!data) return (
+        <div className="initial-loading">
+            <div className="spinner large" role="status" aria-label="Loading" />
+        </div>
+    );
 
     return (
         <div className="mainContainer">
             <div className="loadingIndicator">
-                {isLoading && 'Loading...'}
+                {isLoading && <div className="spinner" role="status" aria-label="Loading" />}
             </div>
             <div className="iconContainer">
                 <div className="reportIcon" onClick={openReportModal} title="Generate Report">
