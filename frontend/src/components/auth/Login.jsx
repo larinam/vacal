@@ -57,6 +57,7 @@ const Login = () => {
           />
           <button type="submit" className="buttonStyle">Log in</button>
         </form>
+        <p style={{cursor: 'pointer', marginTop: '10px'}} onClick={() => navigate('/password-reset-request')}>Forgot password?</p>
         {isTelegramEnabled && <TelegramLogin telegramBotUsername={telegramBotUsername}/>}
       </div>
     </div>

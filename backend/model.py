@@ -224,6 +224,30 @@ class UserInvite(Document):
         self.save()
 
 
+class PasswordResetToken(Document):
+    user = ReferenceField(User, required=True)
+    token = StringField(required=True, unique=True)
+    status = StringField(choices=["pending", "used", "expired"], default="pending")
+    expiration_date = DateTimeField(default=lambda: datetime.now(timezone.utc) + timedelta(hours=1))
+
+    meta = {
+        "indexes": [
+            "user",
+            "token",
+            "status",
+        ],
+        "index_background": True
+    }
+
+    def is_expired(self):
+        self.expiration_date = self.expiration_date.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > self.expiration_date
+
+    def mark_as_used(self):
+        self.status = "used"
+        self.save()
+
+
 def generate_random_hex_color():
     """Generate a random hex color code."""
     return "#{:06x}".format(random.randint(0, 0xFFFFFF))
