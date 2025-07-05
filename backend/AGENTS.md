@@ -1,5 +1,2 @@
 ## Automatic testing
-Run backend python tests with:
-```shell
-./run_pytest_docker_compose_local.sh
-```
+Run backend tests only in case there were backend changes.
