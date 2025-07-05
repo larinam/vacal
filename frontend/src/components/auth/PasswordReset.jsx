@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
 import {useApi} from '../../hooks/useApi';
 import {toast} from 'react-toastify';
+import './Login.css';
 import './InitialUserCreation.css';
 
 const PasswordReset = () => {
@@ -30,14 +31,16 @@ const PasswordReset = () => {
   };
 
   return (
-    <div className="initialUserCreationContainer">
-      <h1>Set New Password</h1>
+    <div className="loginContainer">
       <button className="logInButton" onClick={() => navigate('/login')}>Log in</button>
-      <form onSubmit={handleSubmit} className="formStyle">
-        <input type="password" name="new-password" autoComplete="new-password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} placeholder="New password" className="inputStyle" required autoFocus />
-        <input type="password" name="confirm-password" autoComplete="new-password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} placeholder="Confirm password" className="inputStyle" required />
-        <button type="submit" className="buttonStyle createWorkspaceButton">Reset Password</button>
-      </form>
+      <div className="loginCenter">
+        <h1>Set New Password</h1>
+        <form onSubmit={handleSubmit} className="formStyle">
+          <input type="password" name="new-password" autoComplete="new-password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} placeholder="New password" className="inputStyle" required autoFocus />
+          <input type="password" name="confirm-password" autoComplete="new-password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} placeholder="Confirm password" className="inputStyle" required />
+          <button type="submit" className="buttonStyle createWorkspaceButton">Reset Password</button>
+        </form>
+      </div>
     </div>
   );
 };
