@@ -8,6 +8,8 @@ import UserRegistration from "./components/auth/UserRegistration";
 import './styles.css';
 import {useAuth} from './contexts/AuthContext';
 import AdditionalWorkspaceCreation from "./components/auth/AdditionalWorkspaceCreation";
+import PasswordResetRequest from "./components/auth/PasswordResetRequest";
+import PasswordReset from "./components/auth/PasswordReset";
 
 
 function App() {
@@ -22,6 +24,8 @@ function App() {
             <Navigate to="/main"/>
         }/>
         <Route path="/login" element={<Login/>}/>
+        <Route path="/password-reset-request" element={<PasswordResetRequest/>}/>
+        <Route path="/password-reset/:token" element={<PasswordReset/>}/>
         <Route path="/create-initial-user" element={<InitialUserCreation/>}/>
         <Route path="/register/:token" element={<UserRegistration/>}/>
         <Route path="/create-additional-workspace" element={<AdditionalWorkspaceCreation/>}/>

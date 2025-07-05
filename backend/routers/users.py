@@ -12,7 +12,7 @@ from starlette import status
 from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant, \
     tenant_var
 from ..email_service import send_email
-from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember, UserInvite
+from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember, UserInvite, PasswordResetToken
 
 log = logging.getLogger(__name__)
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
@@ -107,6 +107,22 @@ class PasswordUpdateModel(BaseModel):
     @field_validator('confirm_password')
     @classmethod
     def passwords_match(cls, v, values, **kwargs):
+        if 'new_password' in values.data and v != values.data['new_password']:
+            raise ValueError("passwords do not match")
+        return v
+
+
+class PasswordResetRequestModel(BaseModel):
+    email: str
+
+
+class PasswordResetModel(BaseModel):
+    new_password: str
+    confirm_password: str
+
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v, values):
         if 'new_password' in values.data and v != values.data['new_password']:
             raise ValueError("passwords do not match")
         return v
@@ -289,6 +305,31 @@ async def remove_tenant(tenant_id: str, current_user: Annotated[User, Depends(ge
     return {"message": "Tenant removed."}
 
 
+@router.post("/password-reset/request")
+async def request_password_reset(data: PasswordResetRequestModel, background_tasks: BackgroundTasks):
+    user = User.objects(email=data.email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    token = secrets.token_urlsafe(32)
+    PasswordResetToken(user=user, token=token).save()
+    background_tasks.add_task(send_password_reset_email, user.email, token)
+    return {"message": "Password reset email sent"}
+
+
+@router.post("/password-reset/{token}")
+async def reset_password(token: str, reset: PasswordResetModel):
+    reset_token = PasswordResetToken.objects(token=token, status="pending").first()
+    if not reset_token or reset_token.is_expired():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+
+    user = reset_token.user
+    user.hash_password(reset.new_password)
+    user.save()
+    reset_token.mark_as_used()
+    return {"message": "Password reset successfully"}
+
+
 def send_invitation_email(email: str, token: str):
     """
     Sends an email invitation to the specified email address with a registration link.
@@ -315,6 +356,28 @@ def send_invitation_email(email: str, token: str):
         log.info(f"Invitation email sent to {email}")
     except Exception as e:
         log.error(f"Failed to send invitation email to {email}: {str(e)}")
+        raise
+
+
+def send_password_reset_email(email: str, token: str):
+    log.debug(f"Sending password reset email to {email}")
+
+    subject = "Password Reset Request"
+    reset_link = f"{cors_origin}/password-reset/{token}"
+    body = (
+        f"Hi there!\n\n"
+        f"We received a request to reset your password. To proceed, please click the link below:\n\n"
+        f"{reset_link}\n\n"
+        f"If you did not request a password reset, you can ignore this email.\n\n"
+        f"Best regards,\n"
+        f"Vacation Calendar"
+    )
+
+    try:
+        send_email(subject, body, email)
+        log.info(f"Password reset email sent to {email}")
+    except Exception as e:
+        log.error(f"Failed to send password reset email to {email}: {str(e)}")
         raise
 
 

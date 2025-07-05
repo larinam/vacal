@@ -65,3 +65,17 @@ h3 {
 .signUpButton:hover {
     background-color: #0056b3;
 }
+
+.forgotPasswordLink {
+    margin-top: 10px;
+    align-self: center;
+    text-align: center;
+    font-size: 0.9em;
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.forgotPasswordLink:hover {
+    text-decoration: underline;
+}

@@ -56,6 +56,12 @@ const Login = () => {
             className="inputStyle"
           />
           <button type="submit" className="buttonStyle">Log in</button>
+          <p
+            className="forgotPasswordLink"
+            onClick={() => navigate('/password-reset-request')}
+          >
+            Forgot password?
+          </p>
         </form>
         {isTelegramEnabled && <TelegramLogin telegramBotUsername={telegramBotUsername}/>}
       </div>
