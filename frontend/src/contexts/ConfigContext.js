@@ -37,6 +37,7 @@ export const ConfigProvider = ({children}) => {
         isTelegramEnabled,
         telegramBotUsername,
         userInitiated,
+        setUserInitiated,
       }}
     >
       {children}
