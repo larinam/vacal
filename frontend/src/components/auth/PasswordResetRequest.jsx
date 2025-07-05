@@ -3,6 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import {useApi} from '../../hooks/useApi';
 import {toast} from 'react-toastify';
 import './Login.css';
+import './InitialUserCreation.css';
 
 const PasswordResetRequest = () => {
   const {apiCall} = useApi();
@@ -26,10 +27,21 @@ const PasswordResetRequest = () => {
 
   return (
     <div className="loginContainer">
+      <button className="logInButton" onClick={() => navigate('/login')}>
+        Log in
+      </button>
       <div className="loginCenter">
         <h1>Reset Password</h1>
         <form onSubmit={handleSubmit} className="formStyle">
-          <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email" className="inputStyle" required autoFocus />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="inputStyle"
+            required
+            autoFocus
+          />
           <button type="submit" className="buttonStyle">Send reset link</button>
         </form>
       </div>
