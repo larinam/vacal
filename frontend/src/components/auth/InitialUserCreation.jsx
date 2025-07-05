@@ -3,10 +3,12 @@ import {useNavigate} from 'react-router-dom';
 import {useApi} from '../../hooks/useApi';
 import {toast} from "react-toastify";
 import './InitialUserCreation.css';
+import {useConfig} from "../../contexts/ConfigContext";
 
 const InitialUserCreation = () => {
   const navigate = useNavigate();
   const {apiCall} = useApi();
+  const {setUserInitiated} = useConfig();
   const [tenantName, setTenantName] = useState('');
   const [tenantIdentifier, setTenantIdentifier] = useState('');
   const [name, setName] = useState('');
@@ -19,6 +21,7 @@ const InitialUserCreation = () => {
     const tenant = {name: tenantName, identifier: tenantIdentifier};
     try {
       await apiCall('/users/create-initial', 'POST', {tenant, name, email, username, password});
+      setUserInitiated(true);
       navigate('/login');
     } catch (error) {
       console.error('Error creating initial user:', error);
