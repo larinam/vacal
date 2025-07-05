@@ -68,7 +68,13 @@ h3 {
 
 .forgotPasswordLink {
     margin-top: 10px;
-    cursor: pointer;
+    align-self: flex-end;
+    font-size: 0.9em;
     color: #007bff;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.forgotPasswordLink:hover {
     text-decoration: underline;
 }
