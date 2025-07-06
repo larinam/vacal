@@ -1,4 +1,9 @@
 from unittest.mock import patch
+import os
+
+# Use in-memory MongoDB for tests
+os.environ.setdefault("MONGO_MOCK", "1")
+os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
 import pytest
 from bson.objectid import ObjectId

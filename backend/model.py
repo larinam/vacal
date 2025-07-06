@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
     LongField, DateTimeField, IntField, DateField, DecimalField
+import mongomock
 from passlib.context import CryptContext
 from pymongo import MongoClient
 
@@ -28,8 +29,12 @@ mongo_host = os.getenv("MONGO_HOST")
 mongo_port = os.getenv("MONGO_PORT")
 mongo_db_name = os.getenv("MONGO_DB_NAME")
 mongo_uri = os.getenv("MONGO_URI")
+use_mock = os.getenv("MONGO_MOCK")
 
-if mongo_uri:
+if use_mock:
+    log.info("Using mongomock for MongoDB connection")
+    connect(mongo_db_name or "vacal", mongo_client_class=mongomock.MongoClient)
+elif mongo_uri:
     if mongo_uri.startswith('"') and mongo_uri.endswith('"'):
         mongo_uri = mongo_uri.strip('"')
     connect(mongo_db_name, host=mongo_uri)
@@ -352,4 +357,5 @@ def calculate_team_members_number_in_tenant(tenant):
     return team_member_count
 
 
-run_migrations()
+if not use_mock:
+    run_migrations()

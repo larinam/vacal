@@ -1,4 +1,9 @@
 from unittest.mock import patch
+import os
+
+# Use an in-memory MongoDB for tests
+os.environ.setdefault("MONGO_MOCK", "1")
+os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
 from fastapi.testclient import TestClient
 from .main import app

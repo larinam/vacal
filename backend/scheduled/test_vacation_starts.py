@@ -1,5 +1,10 @@
 import datetime
 from unittest.mock import MagicMock
+import os
+
+# Use in-memory MongoDB for tests
+os.environ.setdefault("MONGO_MOCK", "1")
+os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
 from .vacation_starts import get_next_working_day, only_for_team_member
 
