@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from pymongo import MongoClient
+import mongomock
 
 # in production the environments should be set and not loaded from .env
 load_dotenv()  # mostly for local development with docker-compose
@@ -12,8 +13,11 @@ mongo_host = os.getenv("MONGO_HOST")
 mongo_port = os.getenv("MONGO_PORT")
 mongo_db_name = os.getenv("MONGO_DB_NAME", "vacal")
 mongo_uri = os.getenv("MONGO_URI")
+use_mock = os.getenv("MONGO_MOCK")
 
-if mongo_uri:
+if use_mock:
+    client = mongomock.MongoClient()
+elif mongo_uri:
     if mongo_uri.startswith('"') and mongo_uri.endswith('"'):
         mongo_uri = mongo_uri.strip('"')
     client = MongoClient(mongo_uri)
