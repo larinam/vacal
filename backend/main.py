@@ -19,11 +19,12 @@ from bson import ObjectId
 from fastapi import FastAPI, status, Body, Depends
 from fastapi import Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
+from ics import Calendar, Event
+import secrets
 from prometheus_fastapi_instrumentator import Instrumentator
 from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field, EmailStr
@@ -213,6 +214,7 @@ class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
     subscribers: List[UserWithoutTenantsDTO] = []
+    calendar_token: Optional[str] = None
 
     @field_validator('team_members')
     @classmethod
@@ -417,6 +419,18 @@ async def update_team(team_id: str, team_dto: TeamWriteDTO,
         raise HTTPException(status_code=404, detail="Team not found")
 
 
+@app.post("/teams/{team_id}/calendar-token")
+async def regenerate_calendar_token(team_id: str,
+                                    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                                    tenant: Annotated[Tenant, Depends(get_tenant)]):
+    team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team.calendar_token = secrets.token_urlsafe(16)
+    team.save()
+    return {"calendar_token": team.calendar_token}
+
+
 @app.put("/teams/{team_id}/members/{team_member_id}")
 async def update_team_member(team_id: str, team_member_id: str, team_member_dto: TeamMemberWriteDTO,
                              current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
@@ -592,6 +606,39 @@ async def export_vacations(current_user: Annotated[User, Depends(get_current_act
     return StreamingResponse(b_io, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={
                                  "Content-Disposition": f"attachment; filename=vacations_{start_date}_{end_date}.xlsx"})
+
+
+def build_team_calendar(team: Team) -> Calendar:
+    """Return a calendar with one all-day event per day entry."""
+    cal = Calendar()
+    for member in sorted(team.team_members, key=lambda m: m.name):
+        for date_str in sorted(member.days.keys()):
+            day_entry = member.days[date_str]
+            date = datetime.date.fromisoformat(date_str)
+            for day_type in day_entry.day_types:
+                event = Event()
+                event.name = f"{member.name} - {day_type.name}"
+                event.begin = date
+                event.make_all_day()
+                if day_entry.comment:
+                    event.description = day_entry.comment
+                # Stable UID allows calendar clients to update events
+                event.uid = f"{team.id}-{member.uid}-{date_str}-{day_type.id}"
+                cal.events.add(event)
+    return cal
+
+
+
+
+@app.get("/calendar/{calendar_token}")
+async def export_calendar_feed(calendar_token: str):
+    if not calendar_token:
+        raise HTTPException(status_code=404, detail="Calendar not found")
+    team = Team.objects(calendar_token=calendar_token).first()
+    if not team or not team.calendar_token:
+        raise HTTPException(status_code=404, detail="Calendar not found")
+    cal = build_team_calendar(team)
+    return Response(str(cal), media_type="text/calendar")
 
 
 async def get_report_body_rows(tenant, start_date, end_date, day_type_names):

@@ -3,6 +3,7 @@ import os
 import random
 import uuid
 from datetime import datetime, timezone, timedelta
+import secrets
 
 import mongoengine
 from dateutil.relativedelta import relativedelta
@@ -317,6 +318,10 @@ class Team(Document):
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
     subscribers = ListField(ReferenceField(User))
+    # Unique token used for unauthenticated calendar feeds.
+    # `sparse=True` allows multiple documents with a null or empty value.
+    calendar_token = StringField(unique=True, sparse=True,
+                                 default=lambda: secrets.token_urlsafe(16))
 
     meta = {
         "indexes": [

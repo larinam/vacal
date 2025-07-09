@@ -15,3 +15,4 @@ passlib[bcrypt]
 pyjwt
 python-dateutil
 mongomock
+ics

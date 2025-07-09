@@ -129,6 +129,7 @@
 /* Hide icons by default */
 .team-name-cell .edit-icon,
 .team-name-cell .delete-icon,
+.team-name-cell .calendar-link-icon,
 .member-name-cell .drag-icon,
 .member-name-cell .edit-icon,
 .member-name-cell .delete-icon,
@@ -139,6 +140,7 @@
 /* Show icons on hover of the cell */
 .team-name-cell:hover .edit-icon,
 .team-name-cell:hover .delete-icon,
+.team-name-cell:hover .calendar-link-icon,
 .member-name-cell:hover .drag-icon,
 .member-name-cell:hover .edit-icon,
 .member-name-cell:hover .delete-icon,
@@ -157,6 +159,12 @@
 }
 
 .add-icon {
+    cursor: pointer;
+    margin-left: 10px;
+    color: #0000ff;
+}
+
+.calendar-link-icon {
     cursor: pointer;
     margin-left: 10px;
     color: #0000ff;
