@@ -9,8 +9,10 @@ import {
   faGripVertical,
   faInfoCircle,
   faSave,
-  faTrashAlt
+  faTrashAlt,
+  faLink
 } from '@fortawesome/free-solid-svg-icons';
+import {toast} from 'react-toastify';
 import './CalendarComponent.css';
 import MonthSelector from './MonthSelector';
 import TeamModal from './TeamModal';
@@ -387,6 +389,15 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     setFocusedTeamId(prev => (prev === teamId ? null : teamId));
   };
 
+  const handleCopyCalendarLink = (token) => {
+    const link = `${process.env.REACT_APP_API_URL}/calendar/${token}`;
+    navigator.clipboard.writeText(link).then(() => {
+      toast.success('Calendar link copied');
+    }).catch(() => {
+      toast.error('Failed to copy link');
+    });
+  };
+
   const renderVacationDaysTooltip = (member) => {
     const selectedYear = displayMonth.getFullYear();
     const vacationDays = member.vacation_days_by_year[selectedYear];
@@ -624,6 +635,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             title="Add team member">➕</span>
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
                           <FontAwesomeIcon icon={faEdit}/>
+                      </span>
+                      <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team.calendar_token)}
+                            title="Copy calendar feed link">
+                          <FontAwesomeIcon icon={faLink}/>
                       </span>
                       {team.team_members.length === 0 && (
                         <span className="delete-icon" onClick={() => deleteTeam(team._id)}>

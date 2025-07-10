@@ -35,3 +35,10 @@
 * See https://core.telegram.org/widgets/login
 * Configure TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME in the backend .env
 * Tip for local testing: https://stackoverflow.com/questions/61964889/testing-telegram-login-widget-locally
+
+### Calendar integration
+Teams expose a read-only iCalendar feed. A token is generated automatically
+for each new team. Regenerate it via `POST /teams/{team_id}/calendar-token`
+and subscribe to `/calendar/{calendar_token}` in external calendars like
+Google Calendar. The feed returns all stored absences, so no dates need to
+be provided in the subscription URL.
