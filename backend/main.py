@@ -155,15 +155,12 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     @computed_field
     @property
     def vacation_days_by_year(self) -> Dict[int, int]:
-        vac_days_count = defaultdict(int)
-        vacation_day_type = mongo_to_pydantic(DayType.objects(tenant=tenant_var.get(), name="Vacation").first(),
-                                              DayTypeReadDTO)
-        for date_str, day_entry in self.days.items():
-            date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-            day_types = day_entry.day_types
-            if vacation_day_type in day_types:
-                vac_days_count[date.year] += 1
-        return dict(vac_days_count)
+        """Return total vacation days (used + planned) grouped by year."""
+        used, planned = self._split_vacation_days()
+        totals = defaultdict(int, used)
+        for year, count in planned.items():
+            totals[year] += count
+        return dict(totals)
 
     def _split_vacation_days(self) -> tuple[Dict[int, int], Dict[int, int]]:
         """Return two dicts: used days and planned days by year."""
