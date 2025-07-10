@@ -400,15 +400,19 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const renderVacationDaysTooltip = (member) => {
     const selectedYear = displayMonth.getFullYear();
-    const vacationDays = member.vacation_days_by_year[selectedYear];
+    const usedDays = member.vacation_used_days_by_year?.[selectedYear] || 0;
+    const plannedDays = member.vacation_planned_days_by_year?.[selectedYear] || 0;
     const yearlyVacationDays = member.yearly_vacation_days;
-    const vacationDaysText = vacationDays
-      ? `${vacationDays} vacation days used in ${selectedYear}`
+    const usedText = usedDays
+      ? `${usedDays} vacation days used in ${selectedYear}`
       : `No vacation days used in ${selectedYear}`;
+    const plannedText = plannedDays
+      ? `${plannedDays} vacation days planned in ${selectedYear}`
+      : `No vacation days planned in ${selectedYear}`;
     const yearlyVacationDaysText = yearlyVacationDays
       ? `${yearlyVacationDays} vacation days available per year`
       : 'No yearly vacation days defined';
-    return `${vacationDaysText}\n${yearlyVacationDaysText}`;
+    return `${usedText}\n${plannedText}\n${yearlyVacationDaysText}`;
   };
 
   function generateGradientStyle(dateDayTypes) {

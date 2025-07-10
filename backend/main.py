@@ -11,7 +11,7 @@ from copy import deepcopy
 from decimal import Decimal
 from functools import lru_cache
 from io import BytesIO
-from typing import List, Dict, Annotated, Self, Generator, Optional
+from typing import List, Dict, Annotated, Self, Generator, Optional, Tuple
 
 import pycountry
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -27,7 +27,7 @@ from ics import Calendar, Event
 import secrets
 from prometheus_fastapi_instrumentator import Instrumentator
 from pycountry.db import Country
-from pydantic import BaseModel, Field, computed_field, EmailStr
+from pydantic import BaseModel, Field, computed_field, EmailStr, PrivateAttr
 from pydantic.functional_validators import field_validator, model_validator
 from starlette.concurrency import run_in_threadpool
 
@@ -150,6 +150,7 @@ class DayEntryDTO(BaseModel):
 class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
     days: Dict[str, DayEntryDTO] = Field(default_factory=dict)
+    _vacation_split_cache: Optional[Tuple[Dict[int, int], Dict[int, int]]] = PrivateAttr(default=None)
 
     @computed_field
     @property
@@ -163,6 +164,42 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
             if vacation_day_type in day_types:
                 vac_days_count[date.year] += 1
         return dict(vac_days_count)
+
+    def _split_vacation_days(self) -> tuple[Dict[int, int], Dict[int, int]]:
+        """Return two dicts: used days and planned days by year."""
+        if self._vacation_split_cache is not None:
+            return self._vacation_split_cache
+
+        used = defaultdict(int)
+        planned = defaultdict(int)
+        vacation_day_type = mongo_to_pydantic(
+            DayType.objects(tenant=tenant_var.get(), name="Vacation").first(),
+            DayTypeReadDTO,
+        )
+        today = datetime.date.today()
+        for date_str, day_entry in self.days.items():
+            date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+            day_types = day_entry.day_types
+            if vacation_day_type in day_types:
+                if date <= today:
+                    used[date.year] += 1
+                else:
+                    planned[date.year] += 1
+
+        self._vacation_split_cache = (dict(used), dict(planned))
+        return self._vacation_split_cache
+
+    @computed_field
+    @property
+    def vacation_used_days_by_year(self) -> Dict[int, int]:
+        used, _ = self._split_vacation_days()
+        return used
+
+    @computed_field
+    @property
+    def vacation_planned_days_by_year(self) -> Dict[int, int]:
+        _, planned = self._split_vacation_days()
+        return planned
 
     @model_validator(mode='after')
     def include_birthday(self) -> Self:
