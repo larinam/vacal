@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 import os
+import secrets
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -21,10 +22,9 @@ from fastapi import Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, StreamingResponse, Response
 from fastapi.security import OAuth2PasswordRequestForm
+from ics import Calendar, Event
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
-from ics import Calendar, Event
-import secrets
 from prometheus_fastapi_instrumentator import Instrumentator
 from pycountry.db import Country
 from pydantic import BaseModel, Field, computed_field, EmailStr, PrivateAttr
@@ -662,7 +662,7 @@ async def export_calendar_feed(calendar_token: str):
     if not team or not team.calendar_token:
         raise HTTPException(status_code=404, detail="Calendar not found")
     cal = build_team_calendar(team)
-    return Response(str(cal), media_type="text/calendar")
+    return Response(cal.serialize(), media_type="text/calendar")
 
 
 async def get_report_body_rows(tenant, start_date, end_date, day_type_names):
