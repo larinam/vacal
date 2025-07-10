@@ -1,0 +1,37 @@
+name: Backend - Test Pull Requests
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
+    steps:
+    - name: Check out the repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install -U -r backend/requirements.txt
+        pip install pytest httpx
+
+    - name: Run tests with pytest
+      run: pytest backend
+      env:
+        MONGO_MOCK: false
+        AUTHENTICATION_SECRET_KEY: b461cb38030c172d3feb5275e3d841087951b8fe88ad9c1697eb5ee41269a135
