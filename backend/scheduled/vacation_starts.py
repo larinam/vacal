@@ -69,7 +69,7 @@ def generate_consolidated_email_body(team_vacations) -> str:
     body = "Hi there!\n\n"
 
     for team_name, vacations in team_vacations:
-        body += f"Team {team_name}:\n"
+        body += f"{team_name}:\n"
         for v in vacations:
             if v["start"] == v["end"]:
                 body += f"- {v['name']} is on vacation on {v['start']}.\n"
