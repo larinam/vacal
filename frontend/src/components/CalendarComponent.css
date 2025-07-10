@@ -167,7 +167,7 @@
 .calendar-link-icon {
     cursor: pointer;
     margin-left: 10px;
-    color: #0000ff;
+    color: inherit;
 }
 
 .collapse-icon {

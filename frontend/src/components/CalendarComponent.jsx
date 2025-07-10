@@ -633,12 +633,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       {team.name}
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
+                      <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
+                          <FontAwesomeIcon icon={faEdit}/>
+                      </span>
                       <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team.calendar_token)}
                             title="Copy calendar feed link">
                           <FontAwesomeIcon icon={faLink}/>
-                      </span>
-                      <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
-                          <FontAwesomeIcon icon={faEdit}/>
                       </span>
                       {team.team_members.length === 0 && (
                         <span className="delete-icon" onClick={() => deleteTeam(team._id)}>
