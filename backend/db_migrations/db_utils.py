@@ -13,7 +13,8 @@ mongo_host = os.getenv("MONGO_HOST")
 mongo_port = os.getenv("MONGO_PORT")
 mongo_db_name = os.getenv("MONGO_DB_NAME", "vacal")
 mongo_uri = os.getenv("MONGO_URI")
-use_mock = os.getenv("MONGO_MOCK")
+use_mock_env = os.getenv("MONGO_MOCK")
+use_mock = str(use_mock_env).lower() in ("1", "true", "yes")
 
 if use_mock:
     client = mongomock.MongoClient()

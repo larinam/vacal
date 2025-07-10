@@ -32,8 +32,9 @@ jobs:
         pip install pytest httpx
 
     - name: Run tests with pytest
-      run: pytest
+      run: pytest backend
       env:
+        MONGO_MOCK: false
         AUTHENTICATION_SECRET_KEY: b461cb38030c172d3feb5275e3d841087951b8fe88ad9c1697eb5ee41269a135
 
     - name: Extract the short SHA of the commit
