@@ -152,16 +152,6 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     days: Dict[str, DayEntryDTO] = Field(default_factory=dict)
     _vacation_split_cache: Optional[Tuple[Dict[int, int], Dict[int, int]]] = PrivateAttr(default=None)
 
-    @computed_field
-    @property
-    def vacation_days_by_year(self) -> Dict[int, int]:
-        """Return total vacation days (used + planned) grouped by year."""
-        used, planned = self._split_vacation_days()
-        totals = defaultdict(int, used)
-        for year, count in planned.items():
-            totals[year] += count
-        return dict(totals)
-
     def _split_vacation_days(self) -> tuple[Dict[int, int], Dict[int, int]]:
         """Return two dicts: used days and planned days by year."""
         if self._vacation_split_cache is not None:
