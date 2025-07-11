@@ -53,7 +53,10 @@ const DayTypeContextMenu = ({
     if (typeObj.identifier === 'vacation' && checked) {
       const team = teamData.find(t => t._id === selectedDayInfo.teamId);
       const member = team.team_members.find(m => m.uid === selectedDayInfo.memberId);
-      if (member.vacation_available_days != null &&
+      const currentYear = new Date().getFullYear();
+      const allFutureYears = selectedDayInfo.dateRange.every(date => date.getFullYear() > currentYear);
+      if (!allFutureYears &&
+          member.vacation_available_days != null &&
           selectedDayInfo.dateRange.length > member.vacation_available_days) {
         const proceed = window.confirm('Not enough vacation days available. Do you want to continue?');
         if (!proceed) {
