@@ -14,6 +14,7 @@ const DayTypeContextMenu = ({
                               selectedDayInfo,
                               updateTeamData,
                               updateLocalTeamData,
+                              teamData,
                             }) => {
   const [selectedDayTypes, setSelectedDayTypes] = useState([]);
   const [comment, setComment] = useState('');
@@ -43,10 +44,35 @@ const DayTypeContextMenu = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleCheckboxChange = async (value, checked) => {
+  const handleCheckboxChange = async (typeObj, checked) => {
+    const value = typeObj._id;
     const updatedDayTypes = checked
       ? [...selectedDayTypes, value]
       : selectedDayTypes.filter((type) => type !== value);
+
+    if (typeObj.identifier === 'vacation') {
+      const team = teamData.find(t => t._id === selectedDayInfo.teamId);
+      const member = team.team_members.find(m => m.uid === selectedDayInfo.memberId);
+      const totalVacation = Object.values(member.vacation_used_days_by_year || {}).reduce((a,b)=>a+b,0) +
+        Object.values(member.vacation_planned_days_by_year || {}).reduce((a,b)=>a+b,0);
+      let existingVacationCount = 0;
+      selectedDayInfo.dateRange.forEach((d) => {
+        const ds = format(d, 'yyyy-MM-dd');
+        const entry = member.days[ds];
+        if (entry && entry.day_types.some(dt => dt.identifier === 'vacation')) {
+          existingVacationCount += 1;
+        }
+      });
+      const updatedVacationCount = updatedDayTypes.includes(value) ? selectedDayInfo.dateRange.length : 0;
+      const newTotal = totalVacation - existingVacationCount + updatedVacationCount;
+      if (member.vacation_available_days != null && newTotal > member.vacation_available_days) {
+        const confirmText =
+          'Not enough vacation days available. Would you like to proceed anyway?';
+        if (!window.confirm(confirmText)) {
+          return;
+        }
+      }
+    }
 
     setSelectedDayTypes(updatedDayTypes);
     await updateDayData(updatedDayTypes, comment);
