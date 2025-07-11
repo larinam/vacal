@@ -65,7 +65,7 @@ const DayTypeContextMenu = ({
       });
       const updatedVacationCount = updatedDayTypes.includes(value) ? selectedDayInfo.dateRange.length : 0;
       const newTotal = totalVacation - existingVacationCount + updatedVacationCount;
-      if (member.vacation_available_days != null && newTotal > member.vacation_available_days) {
+      if (checked && member.vacation_available_days != null && newTotal > member.vacation_available_days) {
         const proceed = window.confirm('Not enough vacation days available. Would you like to proceed anyway?');
         if (!proceed) {
           return;
