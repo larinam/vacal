@@ -8,9 +8,9 @@ import {
   faEye,
   faGripVertical,
   faInfoCircle,
+  faLink,
   faSave,
-  faTrashAlt,
-  faLink
+  faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
 import {toast} from 'react-toastify';
 import './CalendarComponent.css';
@@ -415,7 +415,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       ? `${yearlyVacationDays} vacation days available per year`
       : 'No yearly vacation days defined';
     const availableVacationDaysText = (availableVacationDays || availableVacationDays === 0)
-      ? `${availableVacationDays} vacation days available`
+      ? `${availableVacationDays} vacation days available in ${currentYear}`
       : 'Vacation days availability unknown';
     let lines = [];
     if (selectedYear < currentYear) {
