@@ -66,11 +66,7 @@ const DayTypeContextMenu = ({
       const updatedVacationCount = updatedDayTypes.includes(value) ? selectedDayInfo.dateRange.length : 0;
       const newTotal = totalVacation - existingVacationCount + updatedVacationCount;
       if (member.vacation_available_days != null && newTotal > member.vacation_available_days) {
-        const confirmText =
-          'Not enough vacation days available. Would you like to proceed anyway?';
-        if (!window.confirm(confirmText)) {
-          return;
-        }
+        toast.warn('Not enough vacation days available.');
       }
     }
 

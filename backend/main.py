@@ -213,8 +213,14 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
             else:
                 total_budget += yearly
 
-        used_total = sum(self.vacation_used_days_by_year.values())
-        planned_total = sum(self.vacation_planned_days_by_year.values())
+        used_total = sum(
+            count for year, count in self.vacation_used_days_by_year.items()
+            if year <= today.year
+        )
+        planned_total = sum(
+            count for year, count in self.vacation_planned_days_by_year.items()
+            if year <= today.year
+        )
 
         available = int(total_budget - used_total - planned_total)
         return max(0, available)
