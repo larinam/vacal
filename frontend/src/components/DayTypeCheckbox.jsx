@@ -9,7 +9,7 @@ const DayTypeCheckbox = ({ type, selected, onChange = '' }) => {
         type="checkbox"
         id={`dayType-${type._id}`}
         value={type._id}
-        onChange={(e) => onChange(type._id, e.target.checked)}
+        onChange={(e) => onChange(type, e.target.checked)}
         checked={selected}
       />
       <label htmlFor={`dayType-${type._id}`}>

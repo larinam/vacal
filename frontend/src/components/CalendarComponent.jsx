@@ -8,9 +8,9 @@ import {
   faEye,
   faGripVertical,
   faInfoCircle,
+  faLink,
   faSave,
-  faTrashAlt,
-  faLink
+  faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
 import {toast} from 'react-toastify';
 import './CalendarComponent.css';
@@ -404,6 +404,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const usedDays = member.vacation_used_days_by_year?.[selectedYear] || 0;
     const plannedDays = member.vacation_planned_days_by_year?.[selectedYear] || 0;
     const yearlyVacationDays = member.yearly_vacation_days;
+    const availableVacationDays = member.vacation_available_days;
     const usedText = usedDays
       ? `${usedDays} vacation days used in ${selectedYear}`
       : `No vacation days used in ${selectedYear}`;
@@ -413,6 +414,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const yearlyVacationDaysText = yearlyVacationDays
       ? `${yearlyVacationDays} vacation days available per year`
       : 'No yearly vacation days defined';
+    const availableVacationDaysText = (availableVacationDays || availableVacationDays === 0)
+      ? `${availableVacationDays} vacation days available in ${currentYear}`
+      : 'Vacation days availability unknown';
     let lines = [];
     if (selectedYear < currentYear) {
       lines.push(usedText);
@@ -421,7 +425,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     } else {
       lines.push(usedText, plannedText);
     }
-    lines.push(yearlyVacationDaysText);
+    lines.push(yearlyVacationDaysText, availableVacationDaysText);
     return lines.join('\n');
   };
 
@@ -559,6 +563,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         }}
         dayTypes={dayTypes}
         selectedDayInfo={selectedDayInfo}
+        teamData={teamData}
         updateTeamData={updateTeamData}
         updateLocalTeamData={updateLocalTeamData}
       />

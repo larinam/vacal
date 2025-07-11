@@ -23,6 +23,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, StreamingResponse, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from ics import Calendar, Event
+
+
+def get_today() -> datetime.date:
+    """Helper to return today's date. Extracted for easier testing."""
+    return datetime.date.today()
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -163,7 +168,7 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
             DayType.objects(tenant=tenant_var.get(), name="Vacation").first(),
             DayTypeReadDTO,
         )
-        today = datetime.date.today()
+        today = get_today()
         for date_str, day_entry in self.days.items():
             date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
             day_types = day_entry.day_types
@@ -187,6 +192,38 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     def vacation_planned_days_by_year(self) -> Dict[int, int]:
         _, planned = self._split_vacation_days()
         return planned
+
+    @computed_field
+    @property
+    def vacation_available_days(self) -> int | None:
+        if self.yearly_vacation_days is None or self.employee_start_date is None:
+            return None
+
+        yearly = Decimal(str(self.yearly_vacation_days))
+        start = self.employee_start_date
+        today = get_today()
+
+        total_budget = Decimal("0")
+        for year in range(start.year, today.year + 1):
+            if year == start.year:
+                days_in_year = (datetime.date(year, 12, 31) - datetime.date(year, 1, 1)).days + 1
+                days_employed = (datetime.date(year, 12, 31) - start).days + 1
+                portion = (Decimal(days_employed) / Decimal(days_in_year)) * yearly
+                total_budget += portion
+            else:
+                total_budget += yearly
+
+        used_total = sum(
+            count for year, count in self.vacation_used_days_by_year.items()
+            if year <= today.year
+        )
+        planned_total = sum(
+            count for year, count in self.vacation_planned_days_by_year.items()
+            if year <= today.year
+        )
+
+        available = int(total_budget - used_total - planned_total)
+        return max(0, available)
 
     @model_validator(mode='after')
     def include_birthday(self) -> Self:

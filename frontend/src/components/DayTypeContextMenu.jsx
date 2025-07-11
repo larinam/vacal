@@ -14,6 +14,7 @@ const DayTypeContextMenu = ({
                               selectedDayInfo,
                               updateTeamData,
                               updateLocalTeamData,
+                              teamData,
                             }) => {
   const [selectedDayTypes, setSelectedDayTypes] = useState([]);
   const [comment, setComment] = useState('');
@@ -43,10 +44,26 @@ const DayTypeContextMenu = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleCheckboxChange = async (value, checked) => {
+  const handleCheckboxChange = async (typeObj, checked) => {
+    const value = typeObj._id;
     const updatedDayTypes = checked
       ? [...selectedDayTypes, value]
       : selectedDayTypes.filter((type) => type !== value);
+
+    if (typeObj.identifier === 'vacation' && checked) {
+      const team = teamData.find(t => t._id === selectedDayInfo.teamId);
+      const member = team.team_members.find(m => m.uid === selectedDayInfo.memberId);
+      const currentYear = new Date().getFullYear();
+      const allFutureYears = selectedDayInfo.dateRange.every(date => date.getFullYear() > currentYear);
+      if (!allFutureYears &&
+          member.vacation_available_days != null &&
+          selectedDayInfo.dateRange.length > member.vacation_available_days) {
+        const proceed = window.confirm('Not enough vacation days available. Do you want to continue?');
+        if (!proceed) {
+          return;
+        }
+      }
+    }
 
     setSelectedDayTypes(updatedDayTypes);
     await updateDayData(updatedDayTypes, comment);
