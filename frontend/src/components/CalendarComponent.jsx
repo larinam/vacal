@@ -115,11 +115,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       end: startDate < endDate ? endDate : startDate,
     });
 
-    // Limit the interval to selectable days only
+    // Build the interval skipping over non-selectable days
     const newSelection = [];
     for (let d of datesInterval) {
       if (!isSelectableDay(member, d)) {
-        break; // Stop adding further days as soon as a non-selectable day is encountered
+        continue; // Skip weekends/holidays/filled days but keep extending the selection
       }
       newSelection.push({teamId, memberId, date: d});
     }
