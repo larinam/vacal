@@ -13,3 +13,8 @@ There is additional information about backend and frontend in the respective fol
 
 When starting a task, please determine whether the solution should be implemented in the backend, the frontend, or both,
 and proceed accordingly.
+
+
+## Documentation
+
+If the change to the product is significant, please suggest an adjustment to the README.md file.
