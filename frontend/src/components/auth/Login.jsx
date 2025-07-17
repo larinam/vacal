@@ -6,7 +6,7 @@ import TelegramLogin from "./TelegramLogin";
 import {useConfig} from "../../contexts/ConfigContext";
 
 const Login = () => {
-  const {handleLogin} = useAuth();
+  const {handleLogin, handleWebAuthnLogin} = useAuth();
   const navigate = useNavigate();
   const {isMultitenancyEnabled, isTelegramEnabled, telegramBotUsername, userInitiated} = useConfig();
   const [username, setUsername] = useState('');
@@ -53,13 +53,14 @@ const Login = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="inputStyle"
-          />
-          <button type="submit" className="buttonStyle">Log in</button>
-          <p
-            className="forgotPasswordLink"
-            onClick={() => navigate('/password-reset-request')}
-          >
+          className="inputStyle"
+        />
+        <button type="submit" className="buttonStyle">Log in</button>
+        <button type="button" className="buttonStyle" onClick={() => handleWebAuthnLogin(username)}>Use Security Key</button>
+        <p
+          className="forgotPasswordLink"
+          onClick={() => navigate('/password-reset-request')}
+        >
             Forgot password?
           </p>
         </form>

@@ -35,6 +35,9 @@
 * See https://core.telegram.org/widgets/login
 * Configure TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME in the backend .env
 * Tip for local testing: https://stackoverflow.com/questions/61964889/testing-telegram-login-widget-locally
+#### WebAuthn security keys
+* Optionally register a hardware security key or biometric authenticator.
+* Enables passwordless login via the WebAuthn API.
 
 ### Calendar integration
 Teams expose a read-only iCalendar feed. A token is generated automatically

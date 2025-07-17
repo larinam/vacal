@@ -19,7 +19,7 @@ from pydantic.functional_validators import field_validator, model_validator
 
 from .dependencies import create_access_token, get_current_active_user_check_tenant, get_tenant, TenantMiddleware
 from .model import User, Tenant
-from .routers import users, daytypes, management, teams
+from .routers import users, daytypes, management, teams, webauthn
 from .routers.teams import (
     TeamMemberWriteDTO,
     DayEntryDTO,
@@ -70,6 +70,7 @@ app.add_middleware(TenantMiddleware)
 app.include_router(users.router)
 app.include_router(daytypes.router)
 app.include_router(teams.router)
+app.include_router(webauthn.router)
 if MULTITENANCY_ENABLED:
     app.include_router(management.router)
 Instrumentator().instrument(app).expose(app)

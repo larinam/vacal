@@ -7,7 +7,7 @@ os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
 from fastapi.testclient import TestClient
 from .main import app
-from .model import User, AuthDetails
+from .model import User, AuthDetails, WebAuthnCredential
 import pytest
 
 client = TestClient(app)
@@ -60,3 +60,21 @@ def test_login_for_access_token_invalid_credentials():
         assert response.status_code == 401
         error_data = response.json()
         assert error_data["detail"] == "Incorrect username or password"
+
+
+def test_webauthn_register_options():
+    user = User(auth_details=AuthDetails(username="alice"))
+    with patch.object(User, 'get_by_username', return_value=user), \
+         patch.object(WebAuthnCredential, 'objects', return_value=[]):
+        response = client.post("/webauthn/register-options", json={"username": "alice"})
+        assert response.status_code == 200
+        data = response.json()
+        assert "challenge" in data
+
+
+def test_webauthn_authenticate_options_no_creds():
+    user = User(auth_details=AuthDetails(username="bob"))
+    with patch.object(User, 'get_by_username', return_value=user), \
+         patch.object(WebAuthnCredential, 'objects', return_value=[]):
+        response = client.post("/webauthn/authenticate-options", json={"username": "bob"})
+        assert response.status_code == 400

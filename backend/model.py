@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
-    LongField, DateTimeField, IntField, DateField, DecimalField
+    LongField, DateTimeField, IntField, DateField, DecimalField, BinaryField
 import mongomock
 from passlib.context import CryptContext
 from pymongo import MongoClient
@@ -253,6 +253,20 @@ class PasswordResetToken(Document):
     def mark_as_used(self):
         self.status = "used"
         self.save()
+
+
+class WebAuthnCredential(Document):
+    """Stores registered WebAuthn credentials."""
+
+    user = ReferenceField(User, required=True, reverse_delete_rule=mongoengine.CASCADE)
+    credential_id = StringField(required=True, unique=True)
+    credential_data = BinaryField(required=True)
+    sign_count = IntField(default=0)
+
+    meta = {
+        "indexes": ["user", "credential_id"],
+        "index_background": True,
+    }
 
 
 def generate_random_hex_color():

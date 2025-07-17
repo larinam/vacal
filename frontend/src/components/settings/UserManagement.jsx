@@ -2,9 +2,10 @@ import React, {useEffect, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import UserModal from './UserModal';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faEdit, faKey, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
+import {faEdit, faKey, faTrashAlt, faFingerprint} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from "../../contexts/AuthContext";
 import PasswordChangeModal from "./PasswordChangeModal";
+import SecurityKeyModal from "./SecurityKeyModal";
 import InviteUserModal from './InviteUserModal';
 import InviteManagement from './InviteManagement';
 import {useLocation, useNavigate} from "react-router-dom";
@@ -18,6 +19,7 @@ const UserManagement = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [refreshInvites, setRefreshInvites] = useState(false);
 
@@ -127,6 +129,11 @@ const UserManagement = () => {
                                  className="actionIcon"
                 />
               )}
+              {u._id === user._id && (
+                <FontAwesomeIcon icon={faFingerprint}
+                                 onClick={() => setShowKeyModal(true)}
+                                 className="actionIcon"/>
+              )}
             </td>
           </tr>
         ))}
@@ -149,6 +156,12 @@ const UserManagement = () => {
         <PasswordChangeModal
           isOpen={showPasswordModal}
           onClose={() => setShowPasswordModal(false)}
+        />
+      )}
+      {showKeyModal && (
+        <SecurityKeyModal
+          isOpen={showKeyModal}
+          onClose={() => setShowKeyModal(false)}
         />
       )}
     </div>

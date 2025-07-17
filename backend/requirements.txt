@@ -16,3 +16,5 @@ pyjwt
 python-dateutil
 mongomock
 ics
+
+fido2

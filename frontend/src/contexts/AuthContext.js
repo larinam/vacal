@@ -85,7 +85,52 @@ export const AuthProvider = ({children}) => {
             setIsAuthenticated(false);
             setAuthHeader('');
         }
-    }
+    };
+
+    const webAuthnBufferToBase64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const webAuthnBase64ToBuffer = (b64) => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+
+    const handleWebAuthnLogin = async (username) => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/webauthn/authenticate-options`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username})
+            });
+            if (!res.ok) throw new Error();
+            const options = await res.json();
+            options.challenge = webAuthnBase64ToBuffer(options.challenge);
+            if (options.allowCredentials) {
+                options.allowCredentials = options.allowCredentials.map(c => ({...c, id: webAuthnBase64ToBuffer(c.id)}));
+            }
+            const cred = await navigator.credentials.get({publicKey: options});
+            const credential = {
+                id: webAuthnBufferToBase64(cred.rawId),
+                rawId: webAuthnBufferToBase64(cred.rawId),
+                type: cred.type,
+                response: {
+                    clientDataJSON: webAuthnBufferToBase64(cred.response.clientDataJSON),
+                    authenticatorData: webAuthnBufferToBase64(cred.response.authenticatorData),
+                    signature: webAuthnBufferToBase64(cred.response.signature)
+                }
+            };
+            const res2 = await fetch(`${process.env.REACT_APP_API_URL}/webauthn/authenticate`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, credential})
+            });
+            if (!res2.ok) throw new Error();
+            const data = await res2.json();
+            const newAuthHeader = `Bearer ${data.access_token}`;
+            setAuthHeader(newAuthHeader);
+            setIsAuthenticated(true);
+            await fetchCurrentUser(newAuthHeader);
+            return true;
+        } catch (e) {
+            toast.error('Authentication failed');
+            return false;
+        }
+    };
 
     const handleLogout = () => {
         setIsAuthenticated(false);
@@ -94,7 +139,7 @@ export const AuthProvider = ({children}) => {
     };
 
     return (
-        <AuthContext.Provider value={{isAuthenticated, authHeader, currentTenant, handleLogin, handleTelegramLogin, handleLogout, setCurrentTenant, user}}>
+        <AuthContext.Provider value={{isAuthenticated, authHeader, currentTenant, handleLogin, handleTelegramLogin, handleWebAuthnLogin, handleLogout, setCurrentTenant, user}}>
             {children}
         </AuthContext.Provider>
     );
