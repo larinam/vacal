@@ -288,9 +288,15 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const dateStr = formatDate(date);
     const dayEntry = member.days[dateStr] || {};
     const dayTypes = dayEntry?.day_types || [];
+    const comment = (dayEntry?.comment || '').trim();
 
     if (dayTypes && dayTypes.length > 0) {
-      return dayTypes.map(dt => dt.name).join(', '); // Join multiple day types with a comma
+      const dayTypesText = dayTypes.map(dt => dt.name).join(', '); // Join multiple day types with a comma
+      return comment ? `${dayTypesText}: ${comment}` : dayTypesText;
+    }
+
+    if (comment) {
+      return comment;
     }
 
     const holidayName = getHolidayName(member.country, date);
