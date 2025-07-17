@@ -30,7 +30,7 @@ def test_available_days_without_usage():
     member, _, tenant = setup_member()
     token = tenant_var.set(tenant)
     member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
-    with patch("backend.main.get_today", return_value=datetime.date(2025, 1, 1)):
+    with patch("backend.utils.get_today", return_value=datetime.date(2025, 1, 1)):
         assert member_dto.vacation_available_days == 30
     tenant_var.reset(token)
 
@@ -47,7 +47,7 @@ def test_available_days_with_usage_and_plans():
 
     token = tenant_var.set(tenant)
     member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
-    with patch("backend.main.get_today", return_value=datetime.date(2025, 1, 1)):
+    with patch("backend.utils.get_today", return_value=datetime.date(2025, 1, 1)):
         # 30 total budget - 5 used - 5 planned = 20
         assert member_dto.vacation_available_days == 20
     tenant_var.reset(token)
@@ -61,6 +61,6 @@ def test_future_year_plans_ignored():
 
     token = tenant_var.set(tenant)
     member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
-    with patch("backend.main.get_today", return_value=datetime.date(2025, 9, 1)):
+    with patch("backend.utils.get_today", return_value=datetime.date(2025, 9, 1)):
         assert member_dto.vacation_available_days == 30
     tenant_var.reset(token)
