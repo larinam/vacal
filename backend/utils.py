@@ -1,9 +1,15 @@
 import logging
+import datetime
 
 import holidays
 import pycountry
 
 log = logging.getLogger(__name__)
+
+
+def get_today() -> datetime.date:
+    """Return today's date. Extracted for easier testing."""
+    return datetime.date.today()
 
 
 def get_country_holidays(country_name, year) -> holidays.HolidayBase:

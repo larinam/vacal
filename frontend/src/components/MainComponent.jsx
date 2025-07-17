@@ -39,7 +39,7 @@ const MainComponent = () => {
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
         try {
-            const data = await apiCall('/', 'GET', null, false, signal);
+            const data = await apiCall('/teams', 'GET', null, false, signal);
             if (!signal.aborted) {
                 setData(data);
             }
@@ -71,7 +71,7 @@ const MainComponent = () => {
 
     const handleGenerateReport = async (startDate, endDate) => {
         setShowReportModal(false);
-        const reportUrl = `/export-vacations?start_date=${startDate}&end_date=${endDate}`;
+        const reportUrl = `/teams/export-vacations?start_date=${startDate}&end_date=${endDate}`;
 
         try {
             const blob = await apiCall(reportUrl, 'GET', null, true); // Set isBlob to true

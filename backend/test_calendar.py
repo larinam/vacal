@@ -21,8 +21,8 @@ def setup_team():
 
 def test_calendar_feed_deterministic():
     setup_team()
-    resp1 = client.get("/calendar/tok123")
-    resp2 = client.get("/calendar/tok123")
+    resp1 = client.get("/teams/calendar/tok123")
+    resp2 = client.get("/teams/calendar/tok123")
     assert resp1.status_code == 200
     assert resp1.status_code == resp2.status_code
     assert resp1.text == resp2.text

@@ -390,7 +390,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
   const handleCopyCalendarLink = (token) => {
-    const link = `${process.env.REACT_APP_API_URL}/calendar/${token}`;
+    const link = `${process.env.REACT_APP_API_URL}/teams/calendar/${token}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success('Calendar link copied');
     }).catch(() => {
@@ -485,7 +485,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       const confirmMove = window.confirm(`Are you sure you want to move ${memberName} to the new team?`);
       if (confirmMove) {
         try {
-          const response = await apiCall(`/move-team-member/${memberId}`, 'POST', {
+          const response = await apiCall(`/teams/move-member/${memberId}`, 'POST', {
             source_team_id: originTeamId,
             target_team_id: targetTeamId,
           });
