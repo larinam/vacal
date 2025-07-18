@@ -2,7 +2,7 @@ import React from 'react';
 import './DayTypeCheckbox.css';
 
 
-const DayTypeCheckbox = ({ type, selected, onChange = '' }) => {
+const DayTypeCheckbox = ({type, selected, onChange = () => {}}) => {
   return (
     <div className={`day-type-item`}>
       <input
@@ -13,7 +13,7 @@ const DayTypeCheckbox = ({ type, selected, onChange = '' }) => {
         checked={selected}
       />
       <label htmlFor={`dayType-${type._id}`}>
-        <span className="color-indicator" style={{ backgroundColor: type.color }} />
+        <span className="color-indicator" style={{backgroundColor: type.color}}/>
         {type.name}
       </label>
     </div>
