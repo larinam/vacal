@@ -42,3 +42,4 @@ for each new team. Regenerate it via `POST /teams/{team_id}/calendar-token`
 and subscribe to `/calendar/{calendar_token}` in external calendars like
 Google Calendar. The feed returns all stored absences, so no dates need to
 be provided in the subscription URL.
+The calendar feed includes a `X-WR-CALNAME` property set to "<Team Name> - <Tenant Name> - Vacal" so subscribed calendars display a descriptive title.
