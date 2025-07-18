@@ -87,8 +87,15 @@ export const AuthProvider = ({children}) => {
         }
     };
 
-    const webAuthnBufferToBase64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)));
-    const webAuthnBase64ToBuffer = (b64) => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const webAuthnBufferToBase64Url = (buffer) => {
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    };
+    const webAuthnBase64UrlToBuffer = (b64url) => {
+        const base64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+        return Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+    };
 
     const handleWebAuthnLogin = async (username) => {
         try {
@@ -99,19 +106,19 @@ export const AuthProvider = ({children}) => {
             });
             if (!res.ok) throw new Error();
             const options = await res.json();
-            options.challenge = webAuthnBase64ToBuffer(options.challenge);
+            options.challenge = webAuthnBase64UrlToBuffer(options.challenge);
             if (options.allowCredentials) {
-                options.allowCredentials = options.allowCredentials.map(c => ({...c, id: webAuthnBase64ToBuffer(c.id)}));
+                options.allowCredentials = options.allowCredentials.map(c => ({...c, id: webAuthnBase64UrlToBuffer(c.id)}));
             }
             const cred = await navigator.credentials.get({publicKey: options});
             const credential = {
-                id: webAuthnBufferToBase64(cred.rawId),
-                rawId: webAuthnBufferToBase64(cred.rawId),
+                id: webAuthnBufferToBase64Url(cred.rawId),
+                rawId: webAuthnBufferToBase64Url(cred.rawId),
                 type: cred.type,
                 response: {
-                    clientDataJSON: webAuthnBufferToBase64(cred.response.clientDataJSON),
-                    authenticatorData: webAuthnBufferToBase64(cred.response.authenticatorData),
-                    signature: webAuthnBufferToBase64(cred.response.signature)
+                    clientDataJSON: webAuthnBufferToBase64Url(cred.response.clientDataJSON),
+                    authenticatorData: webAuthnBufferToBase64Url(cred.response.authenticatorData),
+                    signature: webAuthnBufferToBase64Url(cred.response.signature)
                 }
             };
             const res2 = await fetch(`${process.env.REACT_APP_API_URL}/webauthn/authenticate`, {
