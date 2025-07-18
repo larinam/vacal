@@ -16,6 +16,7 @@ from bson import ObjectId
 from fastapi import APIRouter, status, Body, Depends, Query, HTTPException
 from fastapi.responses import RedirectResponse, StreamingResponse, Response
 from ics import Calendar, Event
+from ics.grammar.parse import ContentLine
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from pycountry.db import Country
@@ -481,6 +482,11 @@ async def export_vacation_report(current_user: Annotated[User, Depends(get_curre
 
 def build_team_calendar(team: Team) -> Calendar:
     cal = Calendar()
+    # Add calendar name so external clients display a meaningful title
+    cal.extra.append(ContentLine(
+        "X-WR-CALNAME",
+        value=f"{team.name} - {team.tenant.name} - Vacal",
+    ))
     for member in sorted(team.team_members, key=lambda m: m.name):
         for date_str in sorted(member.days.keys()):
             day_entry = member.days[date_str]
