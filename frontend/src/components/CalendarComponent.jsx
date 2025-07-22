@@ -656,6 +656,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                           <FontAwesomeIcon icon={faEye}/>
                       </span>
                       {team.name}
+                      <span className="team-member-count">({team.team_members.length})</span>
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
