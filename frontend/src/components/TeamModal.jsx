@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faBell, faBellOn} from '@fortawesome/free-solid-svg-icons';
+import {faBell as faSolidBell} from '@fortawesome/free-solid-svg-icons';
+import {faBell as faRegularBell} from '@fortawesome/free-regular-svg-icons';
 import {useAuth} from "../contexts/AuthContext";
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
 import {useApi} from '../hooks/useApi';
@@ -108,7 +109,7 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
               className="subscribe-button"
               onClick={handleSubscribeCurrentUser}
             >
-              <FontAwesomeIcon icon={isSubscribed ? faBellOn : faBell} style={{marginRight: '5px'}}/>
+              <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell} style={{marginRight: '5px'}}/>
               {isSubscribed ? 'Unwatch' : 'Watch'}
             </button>
             {subscribers.map(subscriber => (

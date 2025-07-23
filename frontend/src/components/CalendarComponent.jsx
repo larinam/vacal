@@ -11,9 +11,9 @@ import {
   faLink,
   faSave,
   faTrashAlt,
-  faBell,
-  faBellOn
+  faBell as faSolidBell
 } from '@fortawesome/free-solid-svg-icons';
+import { faBell as faRegularBell } from '@fortawesome/free-regular-svg-icons';
 import {toast} from 'react-toastify';
 import './CalendarComponent.css';
 import MonthSelector from './MonthSelector';
@@ -683,7 +683,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
                             onClick={() => toggleWatchTeam(team._id)}
                             title={isSubscribed ? 'Unwatch team' : 'Watch team'}>
-                          <FontAwesomeIcon icon={isSubscribed ? faBellOn : faBell}/>
+                          <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
                       </span>
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
                           <FontAwesomeIcon icon={faEdit}/>
