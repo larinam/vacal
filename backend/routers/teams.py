@@ -452,7 +452,8 @@ def auto_adjust_column_width(ws):
 @router.get("/export-vacations")
 async def export_vacation_report(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                            tenant: Annotated[Tenant, Depends(get_tenant)],
-                           start_date: datetime.date = Query(...), end_date: datetime.date = Query(...)):
+                           start_date: datetime.date = Query(...), end_date: datetime.date = Query(...),
+                           team_ids: List[str] | None = Query(None)):
     wb = Workbook()
     ws = wb.active
     ws.title = "Day Type Report"
@@ -463,7 +464,7 @@ async def export_vacation_report(current_user: Annotated[User, Depends(get_curre
                "Hours Worked"] + day_type_names
     ws.append(headers)
 
-    body_rows = await get_report_body_rows(tenant, start_date, end_date, day_type_names)
+    body_rows = await get_report_body_rows(tenant, start_date, end_date, day_type_names, team_ids)
     for r in body_rows:
         ws.append(r)
 
@@ -514,12 +515,15 @@ async def get_calendar_feed(calendar_token: str):
     return Response(cal.serialize(), media_type="text/calendar")
 
 
-async def get_report_body_rows(tenant, start_date, end_date, day_type_names):
+async def get_report_body_rows(tenant, start_date, end_date, day_type_names, team_ids: List[str] | None = None):
     body_rows = []
     vacation_day_type_id = DayType.get_vacation_day_type_id(tenant)
     country_holidays = get_holidays(tenant)
     working_hours_in_a_day = 8
-    for team in Team.objects(tenant=tenant):
+    teams_qs = Team.objects(tenant=tenant)
+    if team_ids:
+        teams_qs = teams_qs.filter(id__in=team_ids)
+    for team in teams_qs:
         for member in team.team_members:
             day_type_counts = {}
             member_holidays = country_holidays.get(member.country, [])

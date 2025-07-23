@@ -69,9 +69,10 @@ const MainComponent = () => {
         setShowReportModal(true);
     };
 
-    const handleGenerateReport = async (startDate, endDate) => {
+    const handleGenerateReport = async (startDate, endDate, teamIds) => {
         setShowReportModal(false);
-        const reportUrl = `/teams/export-vacations?start_date=${startDate}&end_date=${endDate}`;
+        const teamsQuery = teamIds && teamIds.length > 0 ? `&${teamIds.map(id => `team_ids=${id}`).join('&')}` : '';
+        const reportUrl = `/teams/export-vacations?start_date=${startDate}&end_date=${endDate}${teamsQuery}`;
 
         try {
             const blob = await apiCall(reportUrl, 'GET', null, true); // Set isBlob to true
@@ -132,6 +133,7 @@ const MainComponent = () => {
                 isOpen={showReportModal}
                 onClose={() => setShowReportModal(false)}
                 onGenerateReport={handleGenerateReport}
+                teams={data.teams}
             />
         </div>
     );
