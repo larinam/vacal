@@ -1,8 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
 
-const ReportFormModal = ({ isOpen, onClose, onGenerateReport }) => {
+const ReportFormModal = ({ isOpen, onClose, onGenerateReport, teams = [] }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [selectedTeams, setSelectedTeams] = useState([]);
     const modalContentRef = useRef(null);
 
     useEffect(() => {
@@ -27,9 +28,24 @@ const ReportFormModal = ({ isOpen, onClose, onGenerateReport }) => {
         };
     }, [onClose]);
 
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedTeams(teams.map(t => t._id));
+        }
+    }, [isOpen, teams]);
+
+    const handleTeamChange = (e) => {
+        const id = e.target.value;
+        if (e.target.checked) {
+            setSelectedTeams(prev => [...prev, id]);
+        } else {
+            setSelectedTeams(prev => prev.filter(tid => tid !== id));
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        onGenerateReport(startDate, endDate);
+        onGenerateReport(startDate, endDate, selectedTeams);
         setStartDate(''); // Reset the start date state
         setEndDate('');   // Reset the end date state
         onClose();        // Close the modal
@@ -59,6 +75,20 @@ const ReportFormModal = ({ isOpen, onClose, onGenerateReport }) => {
                             required
                         />
                     </label>
+                    <fieldset>
+                        <legend>Select Teams</legend>
+                        {teams.map(team => (
+                            <label key={team._id} style={{display: 'block'}}>
+                                <input
+                                    type="checkbox"
+                                    value={team._id}
+                                    checked={selectedTeams.includes(team._id)}
+                                    onChange={handleTeamChange}
+                                />
+                                {team.name}
+                            </label>
+                        ))}
+                    </fieldset>
                     <div className="button-container">
                         <button type="submit">Generate Report</button>
                         <button type="button" onClick={onClose}>Close</button>
