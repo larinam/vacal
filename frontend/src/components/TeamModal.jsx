@@ -6,7 +6,7 @@ import {useAuth} from "../contexts/AuthContext";
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
 import {useApi} from '../hooks/useApi';
 
-const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
+const TeamModal = ({isOpen, onClose, editingTeam}) => {
   const [teamName, setTeamName] = useState('');
   const [subscribers, setSubscribers] = useState([]);
   const modalContentRef = useRef(null);
@@ -57,7 +57,6 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
     try {
       await toggleTeamSubscription(editingTeam._id, isSubscribed);
       await fetchSubscribers(); // Reload subscribers after (un)subscribing
-      updateTeamData(); // Refresh data on calendar list
     } catch (error) {
       console.error(`Error ${isSubscribed ? 'unsubscribing' : 'subscribing'} current user:`, error);
     }
@@ -76,7 +75,6 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
       await apiCall(url, method, payload);
       setTeamName('');
       onClose();
-      updateTeamData(); // Refresh data
     } catch (error) {
       console.error('Error in team operation:', error);
     }

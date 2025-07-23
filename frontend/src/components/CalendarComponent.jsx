@@ -2,6 +2,7 @@ import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, is
 import React, {useEffect, useRef, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
+  faBell as faSolidBell,
   faChevronDown,
   faChevronRight,
   faEdit,
@@ -10,10 +11,9 @@ import {
   faInfoCircle,
   faLink,
   faSave,
-  faTrashAlt,
-  faBell as faSolidBell
+  faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
-import { faBell as faRegularBell } from '@fortawesome/free-regular-svg-icons';
+import {faBell as faRegularBell} from '@fortawesome/free-regular-svg-icons';
 import {toast} from 'react-toastify';
 import './CalendarComponent.css';
 import MonthSelector from './MonthSelector';
@@ -562,8 +562,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         onClose={() => {
           setShowAddTeamForm(false);
           setEditingTeam(null);
+          updateTeamData();
         }}
-        updateTeamData={updateTeamData}
         editingTeam={editingTeam}
       />
 
