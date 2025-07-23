@@ -520,7 +520,7 @@ async def get_report_body_rows(tenant, start_date, end_date, day_type_names, tea
     vacation_day_type_id = DayType.get_vacation_day_type_id(tenant)
     country_holidays = get_holidays(tenant)
     working_hours_in_a_day = 8
-    teams_qs = Team.objects(tenant=tenant)
+    teams_qs = Team.objects(tenant=tenant).order_by("name")
     if team_ids:
         teams_qs = teams_qs.filter(id__in=team_ids)
     for team in teams_qs:
