@@ -57,6 +57,7 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
     try {
       await toggleTeamSubscription(editingTeam._id, isSubscribed);
       await fetchSubscribers(); // Reload subscribers after (un)subscribing
+      updateTeamData(); // Refresh data on calendar list
     } catch (error) {
       console.error(`Error ${isSubscribed ? 'unsubscribing' : 'subscribing'} current user:`, error);
     }
