@@ -5,6 +5,7 @@
 * Manage teams and team members effectively.
 * Organize and track vacation days.
 * Visualize vacation days, weekends, and public holidays in an intuitive interface.
+* Watch or unwatch teams directly from the calendar view for quick notifications.
 * Ideal for both local and distributed teams, enhancing team coordination and planning.
 
 ## Technologies
