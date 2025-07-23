@@ -1,10 +1,12 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {useApi} from '../hooks/useApi';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faUserPlus, faUserTimes} from '@fortawesome/free-solid-svg-icons';
+import {faBell as faSolidBell} from '@fortawesome/free-solid-svg-icons';
+import {faBell as faRegularBell} from '@fortawesome/free-regular-svg-icons';
 import {useAuth} from "../contexts/AuthContext";
+import {useTeamSubscription} from '../hooks/useTeamSubscription';
+import {useApi} from '../hooks/useApi';
 
-const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
+const TeamModal = ({isOpen, onClose, editingTeam}) => {
   const [teamName, setTeamName] = useState('');
   const [subscribers, setSubscribers] = useState([]);
   const modalContentRef = useRef(null);
@@ -45,16 +47,15 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
     }
   };
 
+  const {toggleTeamSubscription} = useTeamSubscription();
+
   const handleSubscribeCurrentUser = async () => {
     if (!editingTeam) return;
 
-    try {
-      const isSubscribed = subscribers.some(subscriber => subscriber._id === user._id);
-      const endpoint = isSubscribed
-        ? `/teams/${editingTeam._id}/unsubscribe`
-        : `/teams/${editingTeam._id}/subscribe`;
+    const isSubscribed = subscribers.some(subscriber => subscriber._id === user._id);
 
-      await apiCall(endpoint, 'POST');
+    try {
+      await toggleTeamSubscription(editingTeam._id, isSubscribed);
       await fetchSubscribers(); // Reload subscribers after (un)subscribing
     } catch (error) {
       console.error(`Error ${isSubscribed ? 'unsubscribing' : 'subscribing'} current user:`, error);
@@ -74,7 +75,6 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
       await apiCall(url, method, payload);
       setTeamName('');
       onClose();
-      updateTeamData(); // Refresh data
     } catch (error) {
       console.error('Error in team operation:', error);
     }
@@ -108,7 +108,7 @@ const TeamModal = ({isOpen, onClose, updateTeamData, editingTeam}) => {
               className="subscribe-button"
               onClick={handleSubscribeCurrentUser}
             >
-              <FontAwesomeIcon icon={isSubscribed ? faUserTimes : faUserPlus} style={{marginRight: '5px'}}/>
+              <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell} style={{marginRight: '5px'}}/>
               {isSubscribed ? 'Unwatch' : 'Watch'}
             </button>
             {subscribers.map(subscriber => (

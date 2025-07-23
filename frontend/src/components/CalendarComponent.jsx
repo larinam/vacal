@@ -2,6 +2,7 @@ import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, is
 import React, {useEffect, useRef, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
+  faBell as faSolidBell,
   faChevronDown,
   faChevronRight,
   faEdit,
@@ -12,6 +13,7 @@ import {
   faSave,
   faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
+import {faBell as faRegularBell} from '@fortawesome/free-regular-svg-icons';
 import {toast} from 'react-toastify';
 import './CalendarComponent.css';
 import MonthSelector from './MonthSelector';
@@ -19,9 +21,12 @@ import TeamModal from './TeamModal';
 import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
 import {useApi} from '../hooks/useApi';
+import {useAuth} from '../contexts/AuthContext';
+import {useTeamSubscription} from '../hooks/useTeamSubscription';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {apiCall} = useApi();
+  const {user} = useAuth();
   const today = new Date();
   const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
   const todayYear = today.getFullYear();
@@ -404,6 +409,20 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     });
   };
 
+  const {toggleTeamSubscription} = useTeamSubscription();
+
+  const toggleWatchTeam = async (teamId) => {
+    const team = teamData.find(t => t._id === teamId);
+    if (!team) return;
+    const isSubscribed = team.subscribers?.some(sub => sub._id === user._id);
+    try {
+      await toggleTeamSubscription(teamId, isSubscribed);
+      updateTeamData();
+    } catch (error) {
+      console.error('Failed to toggle watch status:', error);
+    }
+  };
+
   const renderVacationDaysTooltip = (member) => {
     const selectedYear = displayMonth.getFullYear();
     const currentYear = new Date().getFullYear();
@@ -543,8 +562,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         onClose={() => {
           setShowAddTeamForm(false);
           setEditingTeam(null);
+          updateTeamData();
         }}
-        updateTeamData={updateTeamData}
         editingTeam={editingTeam}
       />
 
@@ -635,7 +654,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           </tr>
           </thead>
           <tbody>
-          {filterTeamsAndMembers(teamData).map(team => (
+          {filterTeamsAndMembers(teamData).map(team => {
+            const isSubscribed = team.subscribers?.some(sub => sub._id === user._id);
+            return (
             <React.Fragment key={team.id}>
               {(!focusedTeamId || focusedTeamId === team._id) && (
                 <>
@@ -659,6 +680,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       <span className="team-member-count">({team.team_members.length})</span>
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
+                      <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
+                            onClick={() => toggleWatchTeam(team._id)}
+                            title={isSubscribed ? 'Unwatch team' : 'Watch team'}>
+                          <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
+                      </span>
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
                           <FontAwesomeIcon icon={faEdit}/>
                       </span>
@@ -737,7 +763,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                 </>
               )}
             </React.Fragment>
-          ))}
+            );
+          })}
           </tbody>
         </table>
       </div>
