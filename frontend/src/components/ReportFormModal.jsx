@@ -30,9 +30,21 @@ const ReportFormModal = ({ isOpen, onClose, onGenerateReport, teams = [] }) => {
 
     useEffect(() => {
         if (isOpen) {
-            setSelectedTeams(teams.map(t => t._id));
+            const savedTeams = JSON.parse(localStorage.getItem('reportSelectedTeams') || '[]');
+            if (savedTeams.length > 0) {
+                const validTeams = teams.filter(t => savedTeams.includes(t._id)).map(t => t._id);
+                setSelectedTeams(validTeams);
+            } else {
+                setSelectedTeams(teams.map(t => t._id));
+            }
         }
     }, [isOpen, teams]);
+
+    useEffect(() => {
+        if (isOpen) {
+            localStorage.setItem('reportSelectedTeams', JSON.stringify(selectedTeams));
+        }
+    }, [selectedTeams, isOpen]);
 
     const handleTeamChange = (e) => {
         const id = e.target.value;
