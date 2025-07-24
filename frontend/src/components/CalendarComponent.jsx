@@ -23,6 +23,7 @@ import DayTypeContextMenu from './DayTypeContextMenu';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
+import {useLocalStorage} from '../hooks/useLocalStorage';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {apiCall} = useApi();
@@ -39,12 +40,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [showAddTeamForm, setShowAddTeamForm] = useState(false);
   const stickyHeaderHeight = 44;
   const [selectedTeamId, setSelectedTeamId] = useState(null);
-  const savedCollapsedTeams = JSON.parse(localStorage.getItem('collapsedTeams')) || [];
-  const [collapsedTeams, setCollapsedTeams] = useState(savedCollapsedTeams);
-  const savedFocusedTeamId = localStorage.getItem('focusedTeamId');
-  const [focusedTeamId, setFocusedTeamId] = useState(savedFocusedTeamId);
-  const savedFilter = localStorage.getItem('vacalFilter') || '';
-  const [filterInput, setFilterInput] = useState(savedFilter);
+  const [collapsedTeams, setCollapsedTeams] = useLocalStorage('collapsedTeams', []);
+  const [focusedTeamId, setFocusedTeamId] = useLocalStorage('focusedTeamId', null);
+  const [filterInput, setFilterInput] = useLocalStorage('vacalFilter', '');
   const filterInputRef = useRef(null);
   const [editingTeam, setEditingTeam] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
@@ -143,16 +141,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
 
-  const saveToLocalStorage = (key, value) => {
-    localStorage.setItem(key, value);
+  const triggerSaveIcon = () => {
     setShowSaveIcon(true);
-    setTimeout(() => setShowSaveIcon(false), 1500); // Hide icon after 1.5 seconds
-  };
-
-  const removeFromLocalStorage = (key) => {
-    localStorage.removeItem(key);
-    setShowSaveIcon(true);
-    setTimeout(() => setShowSaveIcon(false), 1500); // Hide icon after 1.5 seconds
+    setTimeout(() => setShowSaveIcon(false), 1500);
   };
 
   useEffect(() => {
@@ -166,20 +157,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   }, []);
 
   useEffect(() => {
-    saveToLocalStorage('collapsedTeams', JSON.stringify(collapsedTeams));
-  }, [collapsedTeams]);
-
-  useEffect(() => {
-    if (focusedTeamId) {
-      saveToLocalStorage('focusedTeamId', focusedTeamId);
-    } else {
-      removeFromLocalStorage('focusedTeamId');
-    }
-  }, [focusedTeamId]);
-
-  useEffect(() => {
-    saveToLocalStorage('vacalFilter', filterInput);
-  }, [filterInput]);
+    triggerSaveIcon();
+  }, [collapsedTeams, focusedTeamId, filterInput]);
 
   useEffect(() => {
     if (showAddMemberForm && addMemberFormRef.current) {
