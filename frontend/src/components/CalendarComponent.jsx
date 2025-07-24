@@ -60,12 +60,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [selectedCells, setSelectedCells] = useState([]);
   const [selectionDayTypes, setSelectionDayTypes] = useState([]);
 
-  const arraysEqual = (a = [], b = []) => {
-    if (a.length !== b.length) return false;
-    const sortedA = [...a].sort();
-    const sortedB = [...b].sort();
-    return sortedA.every((val, idx) => val === sortedB[idx]);
-  };
+  const isSubset = (subset = [], superset = []) =>
+    subset.every((val) => superset.includes(val));
 
   const isSelectableDay = (member, date, baseTypes = []) => {
     const dateStr = formatDate(date);
@@ -73,7 +69,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const dayTypeIds = (dayEntry?.day_types || []).map(dt => dt._id);
 
     if (baseTypes.length > 0) {
-      return arraysEqual(dayTypeIds, baseTypes);
+      return isSubset(baseTypes, dayTypeIds);
     }
 
     const hasExistingDayTypes = dayTypeIds.length > 0;
