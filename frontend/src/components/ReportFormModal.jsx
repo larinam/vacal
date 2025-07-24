@@ -1,9 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
+import {useLocalStorage} from '../hooks/useLocalStorage';
 
 const ReportFormModal = ({ isOpen, onClose, onGenerateReport, teams = [] }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [selectedTeams, setSelectedTeams] = useState([]);
+    const [selectedTeams, setSelectedTeams] = useLocalStorage('reportSelectedTeams', []);
     const modalContentRef = useRef(null);
 
     useEffect(() => {
@@ -30,21 +31,14 @@ const ReportFormModal = ({ isOpen, onClose, onGenerateReport, teams = [] }) => {
 
     useEffect(() => {
         if (isOpen) {
-            const savedTeams = JSON.parse(localStorage.getItem('reportSelectedTeams') || '[]');
-            if (savedTeams.length > 0) {
-                const validTeams = teams.filter(t => savedTeams.includes(t._id)).map(t => t._id);
+            if (selectedTeams.length > 0) {
+                const validTeams = teams.filter(t => selectedTeams.includes(t._id)).map(t => t._id);
                 setSelectedTeams(validTeams);
             } else {
                 setSelectedTeams(teams.map(t => t._id));
             }
         }
     }, [isOpen, teams]);
-
-    useEffect(() => {
-        if (isOpen) {
-            localStorage.setItem('reportSelectedTeams', JSON.stringify(selectedTeams));
-        }
-    }, [selectedTeams, isOpen]);
 
     const handleTeamChange = (e) => {
         const id = e.target.value;

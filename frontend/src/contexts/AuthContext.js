@@ -1,24 +1,20 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {toast} from 'react-toastify';
+import {useLocalStorage} from '../hooks/useLocalStorage';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({children}) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem("isAuthenticated") === "true");
-    const [authHeader, setAuthHeader] = useState(localStorage.getItem("authHeader") || '');
-    const [currentTenant, setCurrentTenant] = useState(localStorage.getItem("currentTenant") || '');
+    const [isAuthenticated, setIsAuthenticated] = useLocalStorage('isAuthenticated', false);
+    const [authHeader, setAuthHeader] = useLocalStorage('authHeader', '');
+    const [currentTenant, setCurrentTenant] = useLocalStorage('currentTenant', '');
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        localStorage.setItem("isAuthenticated", isAuthenticated);
-        localStorage.setItem("authHeader", authHeader);
-        if (currentTenant) {
-            localStorage.setItem("currentTenant", currentTenant);
-        }
         if (authHeader) {
             fetchCurrentUser();
         }
-    }, [isAuthenticated, authHeader, currentTenant]);
+    }, [authHeader, currentTenant]);
 
     const fetchCurrentUser = async (token) => {
         const response = await fetch(`${process.env.REACT_APP_API_URL}/users/me`, {
