@@ -21,6 +21,11 @@ const DayTypeContextMenu = ({
   const [initialComment, setInitialComment] = useState('');
   const {apiCall} = useApi();
 
+  const visibleDayTypes =
+    selectedDayInfo.dateRange.length > 1 && selectedDayInfo.existingDayTypes.length > 0
+      ? selectedDayInfo.existingDayTypes
+      : dayTypes;
+
   useEffect(() => {
     if (isOpen) {
       const dayTypeIds = selectedDayInfo.existingDayTypes.map((type) => type._id);
@@ -134,7 +139,7 @@ const DayTypeContextMenu = ({
         &times;
       </div>
 
-      {dayTypes.map((type) => {
+      {visibleDayTypes.map((type) => {
         if (type.identifier === 'vacation') {
           return (
             <DayTypeCheckbox
@@ -163,7 +168,7 @@ const DayTypeContextMenu = ({
         onBlur={handleCommentBlur}
       />
 
-      {dayTypes
+      {visibleDayTypes
         .filter((type) => type.identifier !== 'vacation' && type.identifier !== 'birthday')
         .map((type) => {
           // If it's an override type and the condition is not met, return null immediately.

@@ -58,11 +58,25 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [daysHeader, setDaysHeader] = useState([]);
   const [selectionStart, setSelectionStart] = useState(null);
   const [selectedCells, setSelectedCells] = useState([]);
+  const [selectionDayTypes, setSelectionDayTypes] = useState([]);
 
-  const isSelectableDay = (member, date) => {
+  const arraysEqual = (a = [], b = []) => {
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((val, idx) => val === sortedB[idx]);
+  };
+
+  const isSelectableDay = (member, date, baseTypes = []) => {
     const dateStr = formatDate(date);
     const dayEntry = member.days[dateStr];
-    const hasExistingDayTypes = dayEntry?.day_types && dayEntry.day_types.length > 0;
+    const dayTypeIds = (dayEntry?.day_types || []).map(dt => dt._id);
+
+    if (baseTypes.length > 0) {
+      return arraysEqual(dayTypeIds, baseTypes);
+    }
+
+    const hasExistingDayTypes = dayTypeIds.length > 0;
 
     return (
       !isWeekend(date) &&
@@ -76,7 +90,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const member = team.team_members.find((m) => m.uid === memberId);
     const memberName = member.name;
 
-    // For single day selection, we might have existing day types and comments
     let existingDayTypes = [];
     let existingComment = '';
 
@@ -85,6 +98,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       const dayEntry = member.days[dateStr] || {};
       existingDayTypes = dayEntry?.day_types || [];
       existingComment = dayEntry?.comment || '';
+    } else if (selectionDayTypes.length > 0) {
+      existingDayTypes = dayTypes.filter(dt => selectionDayTypes.includes(dt._id));
     }
 
     setSelectedDayInfo({
@@ -104,7 +119,15 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
   const handleMouseDown = (teamId, memberId, date, isSelectable) => {
-    if (!isSelectable) return;
+    const team = teamData.find(t => t._id === teamId);
+    const member = team.team_members.find(m => m.uid === memberId);
+    const dateStr = formatDate(date);
+    const dayEntry = member.days[dateStr] || {};
+    const dayTypeIds = (dayEntry.day_types || []).map(dt => dt._id);
+
+    if (!isSelectable && dayTypeIds.length === 0) return;
+
+    setSelectionDayTypes(dayTypeIds);
     setSelectionStart({teamId, memberId, date});
     setSelectedCells([{teamId, memberId, date}]);
   };
@@ -120,11 +143,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       end: startDate < endDate ? endDate : startDate,
     });
 
-    // Build the interval skipping over non-selectable days
     const newSelection = [];
     for (let d of datesInterval) {
-      if (!isSelectableDay(member, d)) {
-        continue; // Skip weekends/holidays/filled days but keep extending the selection
+      if (!isSelectableDay(member, d, selectionDayTypes)) {
+        continue;
       }
       newSelection.push({teamId, memberId, date: d});
     }
@@ -140,6 +162,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
 
     setSelectionStart(null);
+    setSelectionDayTypes([]);
   };
 
 
