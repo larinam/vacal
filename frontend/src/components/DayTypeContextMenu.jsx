@@ -21,6 +21,14 @@ const DayTypeContextMenu = ({
   const [initialComment, setInitialComment] = useState('');
   const {apiCall} = useApi();
 
+  const visibleDayTypes =
+    isOpen &&
+    selectedDayInfo &&
+    selectedDayInfo.dateRange?.length > 1 &&
+    selectedDayInfo.existingDayTypes?.length > 0
+      ? selectedDayInfo.existingDayTypes
+      : dayTypes;
+
   useEffect(() => {
     if (isOpen) {
       const dayTypeIds = selectedDayInfo.existingDayTypes.map((type) => type._id);
@@ -79,13 +87,28 @@ const DayTypeContextMenu = ({
   };
 
   const updateDayData = async (dayTypes, comment) => {
+    const baseTypeIds = selectedDayInfo.existingDayTypes.map((t) => t._id);
     const dayTypeData = {};
 
     if (selectedDayInfo.dateRange && selectedDayInfo.dateRange.length > 0) {
       selectedDayInfo.dateRange.forEach((date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
-        dayTypeData[dateStr] = {day_types: dayTypes, comment};
-        updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, dateStr, dayTypes, comment);
+        const team = teamData.find((t) => t._id === selectedDayInfo.teamId);
+        const member = team.team_members.find((m) => m.uid === selectedDayInfo.memberId);
+        const currentEntry = member.days[dateStr] || {};
+        const currentIds = (currentEntry.day_types || []).map((dt) => dt._id);
+
+        const preservedIds = currentIds.filter((id) => !baseTypeIds.includes(id));
+        const finalIds = Array.from(new Set([...dayTypes, ...preservedIds]));
+
+        dayTypeData[dateStr] = {day_types: finalIds, comment};
+        updateLocalTeamData(
+          selectedDayInfo.teamId,
+          selectedDayInfo.memberId,
+          dateStr,
+          finalIds,
+          comment,
+        );
       });
     } else {
       console.error('No valid date range provided.');
@@ -134,7 +157,7 @@ const DayTypeContextMenu = ({
         &times;
       </div>
 
-      {dayTypes.map((type) => {
+      {visibleDayTypes.map((type) => {
         if (type.identifier === 'vacation') {
           return (
             <DayTypeCheckbox
@@ -163,7 +186,7 @@ const DayTypeContextMenu = ({
         onBlur={handleCommentBlur}
       />
 
-      {dayTypes
+      {visibleDayTypes
         .filter((type) => type.identifier !== 'vacation' && type.identifier !== 'birthday')
         .map((type) => {
           // If it's an override type and the condition is not met, return null immediately.
