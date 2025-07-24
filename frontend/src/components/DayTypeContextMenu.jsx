@@ -22,7 +22,10 @@ const DayTypeContextMenu = ({
   const {apiCall} = useApi();
 
   const visibleDayTypes =
-    selectedDayInfo.dateRange.length > 1 && selectedDayInfo.existingDayTypes.length > 0
+    isOpen &&
+    selectedDayInfo &&
+    selectedDayInfo.dateRange?.length > 1 &&
+    selectedDayInfo.existingDayTypes?.length > 0
       ? selectedDayInfo.existingDayTypes
       : dayTypes;
 
