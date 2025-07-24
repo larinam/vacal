@@ -87,13 +87,28 @@ const DayTypeContextMenu = ({
   };
 
   const updateDayData = async (dayTypes, comment) => {
+    const baseTypeIds = selectedDayInfo.existingDayTypes.map((t) => t._id);
     const dayTypeData = {};
 
     if (selectedDayInfo.dateRange && selectedDayInfo.dateRange.length > 0) {
       selectedDayInfo.dateRange.forEach((date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
-        dayTypeData[dateStr] = {day_types: dayTypes, comment};
-        updateLocalTeamData(selectedDayInfo.teamId, selectedDayInfo.memberId, dateStr, dayTypes, comment);
+        const team = teamData.find((t) => t._id === selectedDayInfo.teamId);
+        const member = team.team_members.find((m) => m.uid === selectedDayInfo.memberId);
+        const currentEntry = member.days[dateStr] || {};
+        const currentIds = (currentEntry.day_types || []).map((dt) => dt._id);
+
+        const preservedIds = currentIds.filter((id) => !baseTypeIds.includes(id));
+        const finalIds = Array.from(new Set([...dayTypes, ...preservedIds]));
+
+        dayTypeData[dateStr] = {day_types: finalIds, comment};
+        updateLocalTeamData(
+          selectedDayInfo.teamId,
+          selectedDayInfo.memberId,
+          dateStr,
+          finalIds,
+          comment,
+        );
       });
     } else {
       console.error('No valid date range provided.');
