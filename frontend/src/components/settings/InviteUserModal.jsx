@@ -30,7 +30,13 @@ const InviteUserModal = ({ isOpen, onClose }) => {
             toast.success('Invitation sent successfully');
         } catch (error) {
             console.error('Error sending invitation:', error);
-            toast.error('Failed to send invitation: ' + error?.data?.detail);
+            const detail = error?.data?.detail;
+            if (detail === 'User already invited' ||
+                detail === 'User with this email already exists in the Workspace') {
+                toast.warn(detail);
+            } else {
+                toast.error('Failed to send invitation: ' + detail);
+            }
         }
     };
 
