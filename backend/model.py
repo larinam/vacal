@@ -1,17 +1,17 @@
 import logging
 import os
 import random
+import secrets
 import uuid
 from datetime import datetime, timezone, timedelta
-import secrets
 
 import mongoengine
+import mongomock
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
     LongField, DateTimeField, IntField, DateField, DecimalField
-import mongomock
 from passlib.context import CryptContext
 from pymongo import MongoClient
 
@@ -203,8 +203,8 @@ class User(Document):
 
 class UserInvite(Document):
     email = EmailField(required=True)
-    inviter = ReferenceField(User, required=True)
-    tenant = ReferenceField(Tenant, required=True, unique_with="email")
+    inviter = ReferenceField(User, required=False, reverse_delete_rule=mongoengine.NULLIFY)
+    tenant = ReferenceField(Tenant, required=True, unique_with="email", reverse_delete_rule=mongoengine.CASCADE)
     token = StringField(required=True, unique=True)
     status = StringField(choices=["pending", "accepted", "expired"], default="pending")
     expiration_date = DateTimeField(default=lambda: datetime.now(timezone.utc) + timedelta(days=7))
@@ -232,7 +232,7 @@ class UserInvite(Document):
 
 
 class PasswordResetToken(Document):
-    user = ReferenceField(User, required=True)
+    user = ReferenceField(User, required=True, reverse_delete_rule=mongoengine.CASCADE)
     token = StringField(required=True, unique=True)
     status = StringField(choices=["pending", "used", "expired"], default="pending")
     expiration_date = DateTimeField(default=lambda: datetime.now(timezone.utc) + timedelta(hours=1))
@@ -318,7 +318,7 @@ class Team(Document):
     name = StringField(required=True, unique_with="tenant")
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
-    subscribers = ListField(ReferenceField(User))
+    subscribers = ListField(ReferenceField(User, reverse_delete_rule=mongoengine.PULL))
     # Unique token used for unauthenticated calendar feeds.
     # `sparse=True` allows multiple documents with a null or empty value.
     calendar_token = StringField(unique=True, sparse=True,
