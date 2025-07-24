@@ -1,10 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {useLocalStorage} from '../hooks/useLocalStorage';
+import {useTenantLocalStorage} from '../hooks/useTenantLocalStorage';
 
 const ReportFormModal = ({ isOpen, onClose, onGenerateReport, teams = [] }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [selectedTeams, setSelectedTeams] = useLocalStorage('reportSelectedTeams', []);
+    const [selectedTeams, setSelectedTeams] = useTenantLocalStorage('reportSelectedTeams', []);
     const modalContentRef = useRef(null);
 
     useEffect(() => {

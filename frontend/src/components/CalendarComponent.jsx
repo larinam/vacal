@@ -23,7 +23,7 @@ import DayTypeContextMenu from './DayTypeContextMenu';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
-import {useLocalStorage} from '../hooks/useLocalStorage';
+import {useTenantLocalStorage} from '../hooks/useTenantLocalStorage';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {apiCall} = useApi();
@@ -40,9 +40,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [showAddTeamForm, setShowAddTeamForm] = useState(false);
   const stickyHeaderHeight = 44;
   const [selectedTeamId, setSelectedTeamId] = useState(null);
-  const [collapsedTeams, setCollapsedTeams] = useLocalStorage('collapsedTeams', []);
-  const [focusedTeamId, setFocusedTeamId] = useLocalStorage('focusedTeamId', null);
-  const [filterInput, setFilterInput] = useLocalStorage('vacalFilter', '');
+  const [collapsedTeams, setCollapsedTeams] = useTenantLocalStorage('collapsedTeams', []);
+  const [focusedTeamId, setFocusedTeamId] = useTenantLocalStorage('focusedTeamId', null);
+  const [filterInput, setFilterInput] = useTenantLocalStorage('vacalFilter', '');
   const filterInputRef = useRef(null);
   const [editingTeam, setEditingTeam] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
