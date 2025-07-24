@@ -38,7 +38,7 @@ const InviteManagement = ({ refreshTrigger }) => {
 
     return (
       <div className="inviteManagementContainer">
-          <h3>Pending invites</h3>
+          <h3>Pending invites ({invites.length})</h3>
           <table className="settingsTable">
               <thead>
               <tr>

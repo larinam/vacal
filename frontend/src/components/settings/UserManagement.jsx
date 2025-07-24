@@ -90,7 +90,7 @@ const UserManagement = () => {
     <div className="settingsUserManagementContainer">
       <h2>User Management Settings</h2>
       <InviteManagement refreshTrigger={refreshInvites}/>
-      <h3>Users</h3>
+      <h3>Users ({users.length})</h3>
       <div className="userManagementButtons">
         <button onClick={handleInviteUserClick}>Invite User</button>
       </div>
