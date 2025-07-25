@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useLayoutEffect, useState} from 'react';
 import {useAuth} from '../contexts/AuthContext';
 
 export const useTenantLocalStorage = (key, defaultValue) => {
@@ -17,11 +17,10 @@ export const useTenantLocalStorage = (key, defaultValue) => {
 
   const [value, setValue] = useState(readValue);
 
-  // Update value when tenant changes
-  useEffect(() => {
+  // Load the stored value as soon as the tenant changes
+  useLayoutEffect(() => {
     setValue(readValue());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantKey]);
+  }, [currentTenant]);
 
   // Persist value whenever it changes
   useEffect(() => {
