@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useEffect, useState} from 'react';
+import React, {createContext, useContext, useEffect} from 'react';
 import {toast} from 'react-toastify';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 
@@ -8,7 +8,7 @@ export const AuthProvider = ({children}) => {
     const [isAuthenticated, setIsAuthenticated] = useLocalStorage('isAuthenticated', false);
     const [authHeader, setAuthHeader] = useLocalStorage('authHeader', '');
     const [currentTenant, setCurrentTenant] = useLocalStorage('currentTenant', '');
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useLocalStorage('user', null);
 
     useEffect(() => {
         if (authHeader) {
