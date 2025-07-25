@@ -122,7 +122,7 @@ def send_upcoming_vacation_email_updates() -> None:
         # Identify the vacation DayType ID for the tenant
         vacation_day_type = DayType.objects(tenant=team.tenant, identifier="vacation").first()
         for member in team.team_members:
-            if not is_working_day(member, today) or is_vacation(member, today, vacation_day_type):
+            if not is_working_day(member, today) or is_vacation(member, str(today), vacation_day_type):
                 continue  # skip sending notifications on weekends, holidays and if it is already vacation for the team member
             next_working_day = get_next_working_day(member, today)
             vacations_next_day = find_vacation_periods(team, next_working_day)
