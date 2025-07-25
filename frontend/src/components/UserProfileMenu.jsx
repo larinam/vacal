@@ -52,21 +52,19 @@ const UserProfileMenu = ({setShowDropdown}) => {
         <span>Invite user</span>
       </div>
       <hr/>
-      {user.tenants.length > 1 && (
-        <>
-          {user.tenants.map((tenant) => (
-            <div
-              key={tenant.id}
-              className="dropdownItem"
-              onClick={() => handleTenantSwitch(tenant)}
-              style={{fontWeight: tenant.identifier === currentTenant ? 'bold' : 'normal'}}
-            >
-              <FontAwesomeIcon icon={faBriefcase} />
-              <span>{tenant.name} ({tenant.identifier})</span>
-            </div>
-          ))}
-        </>
-      )}
+      {user.tenants.length > 1 &&
+        user.tenants.map((tenant) => (
+          <div
+            key={tenant.identifier}
+            className="dropdownItem"
+            onClick={() => handleTenantSwitch(tenant)}
+            style={{fontWeight: tenant.identifier === currentTenant ? 'bold' : 'normal'}}
+          >
+            <FontAwesomeIcon icon={faBriefcase} />
+            <span>{tenant.name} ({tenant.identifier})</span>
+          </div>
+        ))
+      }
       <div className="dropdownItem" style={{'user-select': 'none'}} onClick={() => {
         navigate('/create-additional-workspace');
       }}>
