@@ -1,15 +1,15 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faBell as faSolidBell} from '@fortawesome/free-solid-svg-icons';
 import {faBell as faRegularBell} from '@fortawesome/free-regular-svg-icons';
 import {useAuth} from "../contexts/AuthContext";
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
 import {useApi} from '../hooks/useApi';
+import Modal from './Modal';
 
 const TeamModal = ({isOpen, onClose, editingTeam}) => {
   const [teamName, setTeamName] = useState('');
   const [subscribers, setSubscribers] = useState([]);
-  const modalContentRef = useRef(null);
   const {apiCall} = useApi();
   const {user} = useAuth();
 
@@ -23,18 +23,6 @@ const TeamModal = ({isOpen, onClose, editingTeam}) => {
     }
   }, [editingTeam]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalContentRef.current && !modalContentRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [onClose]);
 
   const fetchSubscribers = async () => {
     if (!editingTeam) return;
@@ -85,8 +73,7 @@ const TeamModal = ({isOpen, onClose, editingTeam}) => {
   const isSubscribed = subscribers.some(subscriber => subscriber._id === user._id);
 
   return (
-    <div className="modal">
-      <div className="modal-content" ref={modalContentRef}>
+    <Modal isOpen={isOpen} onClose={onClose}>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
@@ -118,8 +105,7 @@ const TeamModal = ({isOpen, onClose, editingTeam}) => {
             ))}
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 };
 

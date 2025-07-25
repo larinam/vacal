@@ -1,7 +1,8 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {toast} from "react-toastify";
 import {useApi} from '../../hooks/useApi';
 import './DayTypeModal.css'; // Import the CSS file
+import Modal from '../Modal';
 
 const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
     const [dayTypeData, setDayTypeData] = useState({
@@ -9,7 +10,6 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
         identifier: '',
         color: '',
     });
-    const modalContentRef = useRef(null);
     const { apiCall } = useApi();
 
     useEffect(() => {
@@ -22,18 +22,6 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
         }
     }, [editingDayType]);
 
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (modalContentRef.current && !modalContentRef.current.contains(event.target)) {
-                onClose();
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [onClose]);
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
@@ -57,8 +45,7 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="modal">
-            <div className="modal-content" ref={modalContentRef}>
+        <Modal isOpen={isOpen} onClose={onClose}>
                 <form onSubmit={handleFormSubmit}>
                     <input
                         autoFocus={true}
@@ -98,8 +85,7 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
                         <button type="button" onClick={onClose}>Close</button>
                     </div>
                 </form>
-            </div>
-        </div>
+        </Modal>
     );
 };
 

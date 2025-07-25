@@ -1,6 +1,7 @@
-import React, {useRef, useState} from 'react';
+import React, {useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import {toast} from "react-toastify";
+import Modal from '../Modal';
 
 const PasswordChangeModal = ({ isOpen, onClose }) => {
     const [passwords, setPasswords] = useState({
@@ -8,7 +9,6 @@ const PasswordChangeModal = ({ isOpen, onClose }) => {
         new_password: '',
         confirm_password: ''
     });
-    const modalContentRef = useRef(null);
     const { apiCall } = useApi();
 
     const handlePasswordChangeSubmit = async (e) => {
@@ -30,8 +30,7 @@ const PasswordChangeModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="modal">
-            <div className="modal-content" ref={modalContentRef}>
+        <Modal isOpen={isOpen} onClose={onClose}>
                 <form onSubmit={handlePasswordChangeSubmit}>
                     <input
                         type="password"
@@ -59,8 +58,7 @@ const PasswordChangeModal = ({ isOpen, onClose }) => {
                         <button type="button" onClick={onClose}>Close</button>
                     </div>
                 </form>
-            </div>
-        </div>
+        </Modal>
     );
 };
 

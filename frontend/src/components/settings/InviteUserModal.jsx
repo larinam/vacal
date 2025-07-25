@@ -1,25 +1,13 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import {toast} from 'react-toastify';
 import './InviteUserModal.css';
+import Modal from '../Modal';
 
 const InviteUserModal = ({ isOpen, onClose }) => {
     const [inviteEmail, setInviteEmail] = useState('');
-    const modalContentRef = useRef(null);
     const { apiCall } = useApi();
 
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (modalContentRef.current && !modalContentRef.current.contains(event.target)) {
-                onClose();
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [onClose]);
 
     const handleInviteSubmit = async (e) => {
         e.preventDefault();
@@ -43,8 +31,7 @@ const InviteUserModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="modal">
-            <div className="modal-content" ref={modalContentRef}>
+        <Modal isOpen={isOpen} onClose={onClose}>
                 <form onSubmit={handleInviteSubmit}>
                     <input
                         autoFocus={true}
@@ -59,8 +46,7 @@ const InviteUserModal = ({ isOpen, onClose }) => {
                         <button type="button" onClick={onClose}>Close</button>
                     </div>
                 </form>
-            </div>
-        </div>
+        </Modal>
     );
 };
 
