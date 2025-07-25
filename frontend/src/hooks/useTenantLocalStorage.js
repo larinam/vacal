@@ -1,4 +1,4 @@
-import {useEffect, useLayoutEffect, useState} from 'react';
+import {useMemo, useReducer} from 'react';
 import {useAuth} from '../contexts/AuthContext';
 
 export const useTenantLocalStorage = (key, defaultValue) => {
@@ -15,22 +15,22 @@ export const useTenantLocalStorage = (key, defaultValue) => {
     }
   };
 
-  const [value, setValue] = useState(readValue);
+  // Used to force a re-render when setValue changes the storage
+  const [, forceUpdate] = useReducer((c) => c + 1, 0);
 
-  // Load the stored value as soon as the tenant changes
-  useLayoutEffect(() => {
-    setValue(readValue());
-  }, [currentTenant]);
+  // Re-read the value whenever tenant changes or when storage updates
+  const value = useMemo(readValue, [tenantKey, forceUpdate]);
 
-  // Persist value whenever it changes
-  useEffect(() => {
-    if (value === undefined || value === null) {
+  const setValue = (newValue) => {
+    if (newValue === undefined || newValue === null) {
       localStorage.removeItem(tenantKey);
     } else {
-      const toStore = typeof value === 'string' ? value : JSON.stringify(value);
+      const toStore =
+        typeof newValue === 'string' ? newValue : JSON.stringify(newValue);
       localStorage.setItem(tenantKey, toStore);
     }
-  }, [tenantKey, value]);
+    forceUpdate();
+  };
 
   return [value, setValue];
 };
