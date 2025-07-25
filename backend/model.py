@@ -190,7 +190,7 @@ class User(Document):
 
     @classmethod
     def get_by_telegram_username(cls, username):
-        user = cls.objects(auth_details__telegram_username=username).first()
+        user = cls.objects(auth_details__telegram_username__iexact=username).first()
         return user
 
     def remove_tenant(self, tenant):
