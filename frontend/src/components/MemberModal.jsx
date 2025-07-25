@@ -1,6 +1,7 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useApi} from '../hooks/useApi';
 import {toast} from "react-toastify";
+import Modal from './Modal';
 
 const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMember}) => {
   const [newMemberData, setNewMemberData] = useState({
@@ -13,7 +14,6 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
     yearly_vacation_days: '',
     vac_days: []
   });
-  const modalContentRef = useRef(null);
   const {apiCall} = useApi();
 
   useEffect(() => {
@@ -33,18 +33,6 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
     }
   }, [editingMember]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalContentRef.current && !modalContentRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [onClose]);
 
   const handleAddMemberFormSubmit = async (e) => {
     e.preventDefault();
@@ -80,8 +68,7 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
   if (!isOpen) return null;
 
   return (
-    <div className="modal">
-      <div className="modal-content" ref={modalContentRef}>
+    <Modal isOpen={isOpen} onClose={onClose}>
         <form onSubmit={handleAddMemberFormSubmit}>
           <label>
             Name
@@ -156,8 +143,7 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
             <button type="button" onClick={onClose}>Close</button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
