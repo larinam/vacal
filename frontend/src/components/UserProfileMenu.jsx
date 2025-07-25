@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCog, faPlus, faQuestion, faSignOut, faUserPlus} from '@fortawesome/free-solid-svg-icons';
+import {faCog, faPlus, faQuestion, faSignOut, faUserPlus, faBriefcase} from '@fortawesome/free-solid-svg-icons';
 import './UserProfileMenu.css';
 import {useAuth} from "../contexts/AuthContext";
 
@@ -61,6 +61,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
               onClick={() => handleTenantSwitch(tenant)}
               style={{fontWeight: tenant.identifier === currentTenant ? 'bold' : 'normal'}}
             >
+              <FontAwesomeIcon icon={faBriefcase} />
               <span>{tenant.name} ({tenant.identifier})</span>
             </div>
           ))}
