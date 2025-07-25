@@ -223,7 +223,7 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
     if not user_update.telegram_username:
         user.auth_details.telegram_username = None
     else:
-        user.auth_details.telegram_username = user_update.telegram_username
+        user.auth_details.telegram_username = user_update.telegram_username.lower()
     # Don't update password here; handle password updates separately for security
     user.save()
     UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
@@ -466,7 +466,7 @@ async def register_user_via_invite(token: str, user_creation: UserCreationModel)
         user.email = invite.email
         user.auth_details = AuthDetails(
             username=user_creation.username,
-            telegram_username=user_creation.telegram_username if user_creation.telegram_username else None
+            telegram_username=(user_creation.telegram_username.lower() if user_creation.telegram_username else None)
         )
         user.hash_password(user_creation.password)
         user.save()
