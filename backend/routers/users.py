@@ -1,6 +1,7 @@
 import logging
 import os
 import secrets
+import hashlib
 from datetime import datetime
 from functools import lru_cache
 from typing import Annotated, List
@@ -312,14 +313,16 @@ async def request_password_reset(data: PasswordResetRequestModel, background_tas
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     token = secrets.token_urlsafe(32)
-    PasswordResetToken(user=user, token=token).save()
+    hashed_token = hashlib.sha256(token.encode()).hexdigest()
+    PasswordResetToken(user=user, token=hashed_token).save()
     background_tasks.add_task(send_password_reset_email, user.email, token)
     return {"message": "Password reset email sent"}
 
 
 @router.post("/password-reset/{token}")
 async def reset_password(token: str, reset: PasswordResetModel):
-    reset_token = PasswordResetToken.objects(token=token, status="pending").first()
+    hashed_token = hashlib.sha256(token.encode()).hexdigest()
+    reset_token = PasswordResetToken.objects(token=hashed_token, status="pending").first()
     if not reset_token or reset_token.is_expired():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
 
