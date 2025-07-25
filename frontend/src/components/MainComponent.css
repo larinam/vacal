@@ -19,7 +19,7 @@
     position: fixed;
     top: 10px;
     right: 20px;
-    z-index: 5000;
+    z-index: 1000;
     display: flex;
     gap: 20px; /* Adjust this value based on desired spacing between icons */
 }

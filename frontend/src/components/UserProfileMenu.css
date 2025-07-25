@@ -7,7 +7,7 @@
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     width: 200px; /* Adjust width as needed */
-    z-index: 5001; /* Above the userIcon */
+    z-index: 1001; /* Above the userIcon but below modals */
 }
 
 .dropdownItem {
