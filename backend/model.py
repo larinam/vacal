@@ -205,6 +205,7 @@ class UserInvite(Document):
     email = EmailField(required=True)
     inviter = ReferenceField(User, required=False, reverse_delete_rule=mongoengine.NULLIFY)
     tenant = ReferenceField(Tenant, required=True, unique_with="email", reverse_delete_rule=mongoengine.CASCADE)
+    # Store a hashed token for security; raw token is sent only via email
     token = StringField(required=True, unique=True)
     status = StringField(choices=["pending", "accepted", "expired"], default="pending")
     expiration_date = DateTimeField(default=lambda: datetime.now(timezone.utc) + timedelta(days=7))
