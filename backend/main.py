@@ -9,24 +9,16 @@ from copy import deepcopy
 from typing import Annotated
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
-
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from pydantic.functional_validators import field_validator, model_validator
 
-from .dependencies import create_access_token, get_current_active_user_check_tenant, get_tenant, TenantMiddleware
+from .dependencies import create_access_token, TenantMiddleware
 from .model import User, Tenant
 from .routers import users, daytypes, management, teams
-from .routers.teams import (
-    TeamMemberWriteDTO,
-    DayEntryDTO,
-    TeamMemberReadDTO,
-    TeamWriteDTO,
-    TeamReadDTO,
-)
 from .scheduled.activate_trials import activate_trials
 from .scheduled.birthdays import send_birthday_email_updates
 from .scheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
@@ -176,7 +168,7 @@ class TelegramAuthData(BaseModel):
 @app.post("/telegram-login")
 async def telegram_login(auth_data: TelegramAuthData):
     # At this point, auth_data is already validated by Pydantic
-    username = auth_data.dict().get("username").lower()  # Telegram sends the username in the auth data
+    username = auth_data.model_dump().get("username").lower()  # Telegram sends the username in the auth data
     user = User.get_by_telegram_username(username)
 
     if not user:
@@ -186,7 +178,7 @@ async def telegram_login(auth_data: TelegramAuthData):
         )
     # update Telegram ID
     if not user.auth_details.telegram_id:
-        user.auth_details.telegram_id = auth_data.dict().get("id")
+        user.auth_details.telegram_id = auth_data.model_dump().get("id")
         user.save()
     access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
