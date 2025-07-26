@@ -35,11 +35,15 @@ use_mock = str(use_mock_env).lower() in ("1", "true", "yes")
 
 if use_mock:
     log.info("Using mongomock for MongoDB connection")
-    connect(mongo_db_name or "vacal", mongo_client_class=mongomock.MongoClient)
+    connect(
+        mongo_db_name or "vacal",
+        mongo_client_class=mongomock.MongoClient,
+        uuidRepresentation="standard",
+    )
 elif mongo_uri:
     if mongo_uri.startswith('"') and mongo_uri.endswith('"'):
         mongo_uri = mongo_uri.strip('"')
-    connect(mongo_db_name, host=mongo_uri)
+    connect(mongo_db_name, host=mongo_uri, uuidRepresentation="standard")
 elif mongo_username:  # connect to some external MongoDB
     if os.getenv("MONGO_INITDB_ROOT_USERNAME") and os.getenv("MONGO_INITDB_ROOT_PASSWORD"):
         log.info("Initiating MongoDB user")
@@ -63,10 +67,10 @@ elif mongo_username:  # connect to some external MongoDB
             else:
                 log.info("MongoDB user already exists")
     mongo_connection_string = f"mongodb://{mongo_username}:{mongo_password}@{mongo_host}:{mongo_port}/"
-    connect(mongo_db_name, host=mongo_connection_string)
+    connect(mongo_db_name, host=mongo_connection_string, uuidRepresentation="standard")
 else:  # just local MongoDB
     log.info("Connecting to local MongoDB")
-    connect("vacal")
+    connect("vacal", uuidRepresentation="standard")
 
 
 def add_a_month(source_date):
