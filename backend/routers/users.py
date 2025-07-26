@@ -409,7 +409,8 @@ async def invite_user(invite_data: InviteUserRequest,
 
     # Generate a unique token for the invitation
     token = secrets.token_urlsafe(32)
-    invite = UserInvite(email=email, inviter=current_user, tenant=tenant, token=token)
+    hashed_token = hashlib.sha256(token.encode()).hexdigest()
+    invite = UserInvite(email=email, inviter=current_user, tenant=tenant, token=hashed_token)
     invite.save()
 
     # Send an invitation email in the background
@@ -420,7 +421,8 @@ async def invite_user(invite_data: InviteUserRequest,
 
 @router.get("/invite/{token}")
 async def get_invite_details(token: str):
-    invite = UserInvite.objects(token=token, status="pending").first()
+    hashed_token = hashlib.sha256(token.encode()).hexdigest()
+    invite = UserInvite.objects(token=hashed_token, status="pending").first()
 
     if not invite or invite.is_expired():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired invitation token")
@@ -442,7 +444,8 @@ async def get_invite_details(token: str):
 
 @router.post("/register/{token}")
 async def register_user_via_invite(token: str, user_creation: UserCreationModel):
-    invite = UserInvite.objects(token=token, status="pending").first()
+    hashed_token = hashlib.sha256(token.encode()).hexdigest()
+    invite = UserInvite.objects(token=hashed_token, status="pending").first()
 
     if not invite or invite.is_expired():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired invitation token")
