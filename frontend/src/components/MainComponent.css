@@ -17,11 +17,12 @@
 
 .iconContainer {
     position: fixed;
-    top: 10px;
+    top: 7px;
     right: 20px;
     z-index: 1001;
     display: flex;
     gap: 20px; /* Adjust this value based on desired spacing between icons */
+    align-items: center;
 }
 
 .reportIcon {
@@ -70,14 +71,13 @@
 }
 
 .userIcon {
-    /*width: 30px; !* Adjust size as needed *!*/
-    /*height: 30px; !* Adjust size as needed *!*/
+    width: 30px;
+    height: 30px;
     background-color: #f0f0f0;
-    border-radius: 30px; /* Makes it circular */
+    border-radius: 50%; /* Perfect circle */
     display: flex;
     align-items: center;
     justify-content: center;
-    /*font-size: 19px; !* Adjust font size as needed *!*/
     cursor: pointer;
     user-select: none;
 }
