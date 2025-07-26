@@ -12,14 +12,18 @@ from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
     LongField, DateTimeField, IntField, DateField, DecimalField
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
 from pymongo import MongoClient
 
 from .mongodb_migration_engine import run_migrations
 
 log = logging.getLogger(__name__)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Configure password hashing to use Argon2 for new hashes while
+# still accepting existing bcrypt hashes for verification.
+pwd_context = PasswordHash((Argon2Hasher(), BcryptHasher()))
 
 # in production the environments should be set and not loaded from .env
 load_dotenv()  # mostly for local development with docker-compose

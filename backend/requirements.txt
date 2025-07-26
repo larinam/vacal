@@ -11,7 +11,7 @@ apscheduler
 openpyxl
 prometheus-fastapi-instrumentator
 python-multipart
-passlib[bcrypt]
+pwdlib[argon2,bcrypt]
 pyjwt
 python-dateutil
 mongomock
