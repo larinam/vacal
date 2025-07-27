@@ -37,8 +37,8 @@
 * Tip for local testing: https://stackoverflow.com/questions/61964889/testing-telegram-login-widget-locally
 
 ### Calendar integration
-Teams expose a read-only iCalendar feed. A token is generated automatically
-for each new team. Regenerate it via `POST /teams/{team_id}/calendar-token`
-and subscribe to `/calendar/{calendar_token}` in external calendars like
-Google Calendar. The feed returns all stored absences, so no dates need to
-be provided in the subscription URL.
+Teams expose a read-only iCalendar feed. Subscribe using
+`/calendar/{team_id}?user_api_key={user_api_key}` in external calendars like
+Google Calendar. The user API key is generated for each user and allows access
+to be revoked when the user is removed. The feed returns
+all stored absences, so no dates need to be provided in the subscription URL.

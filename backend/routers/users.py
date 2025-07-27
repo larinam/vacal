@@ -40,6 +40,7 @@ class AuthDetailsDTO(BaseModel):
     telegram_id: int | None = None
     telegram_username: str | None = None
     username: str
+    api_key: str | None = None
 
 
 class UserWithoutTenantsDTO(BaseModel):
