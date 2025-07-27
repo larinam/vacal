@@ -200,7 +200,6 @@ class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
     subscribers: List[UserWithoutTenantsDTO] = []
-    calendar_token: Optional[str] = None
 
     @field_validator('team_members')
     @classmethod
@@ -299,16 +298,6 @@ async def update_team(team_id: str, team_dto: TeamWriteDTO,
         raise HTTPException(status_code=404, detail="Team not found")
 
 
-@router.post("/{team_id}/calendar-token")
-async def regenerate_calendar_token(team_id: str,
-                                    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                                    tenant: Annotated[Tenant, Depends(get_tenant)]):
-    team = Team.objects(tenant=tenant, id=team_id).first()
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-    team.calendar_token = secrets.token_urlsafe(16)
-    team.save()
-    return {"calendar_token": team.calendar_token}
 
 
 @router.put("/{team_id}/members/{team_member_id}")
@@ -504,12 +493,15 @@ def build_team_calendar(team: Team) -> Calendar:
     return cal
 
 
-@router.get("/calendar/{calendar_token}")
-async def get_calendar_feed(calendar_token: str):
-    if not calendar_token:
+@router.get("/calendar/{team_id}")
+async def get_calendar_feed(team_id: str, user_api_key: str | None = Query(None)):
+    if not team_id or not user_api_key:
         raise HTTPException(status_code=404, detail="Calendar not found")
-    team = Team.objects(calendar_token=calendar_token).first()
-    if not team or not team.calendar_token:
+    team = Team.objects(id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Calendar not found")
+    user = User.objects(auth_details__api_key=user_api_key).first()
+    if not user or user.disabled:
         raise HTTPException(status_code=404, detail="Calendar not found")
     cal = build_team_calendar(team)
     return Response(cal.serialize(), media_type="text/calendar")

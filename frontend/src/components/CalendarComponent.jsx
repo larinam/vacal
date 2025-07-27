@@ -398,8 +398,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     setFocusedTeamId(prev => (prev === teamId ? null : teamId));
   };
 
-  const handleCopyCalendarLink = (token) => {
-    const link = `${process.env.REACT_APP_API_URL}/teams/calendar/${token}`;
+  const handleCopyCalendarLink = (teamId) => {
+    const link = `${process.env.REACT_APP_API_URL}/teams/calendar/${teamId}?user_api_key=${user.auth_details.api_key}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success('Calendar link copied');
     }).catch(() => {
@@ -686,7 +686,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
                           <FontAwesomeIcon icon={faEdit}/>
                       </span>
-                      <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team.calendar_token)}
+                      <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team._id)}
                             title="Copy calendar feed link">
                           <FontAwesomeIcon icon={faLink}/>
                       </span>

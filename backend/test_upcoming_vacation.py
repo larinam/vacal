@@ -19,8 +19,8 @@ def setup_team_with_ongoing_vacation(today: datetime.date):
     subscriber = User(
         tenants=[tenant],
         name="Subscriber",
-        email="sub@example.com",
-        auth_details=AuthDetails(username="sub")
+        email=f"sub{uuid.uuid4()}@example.com",
+        auth_details=AuthDetails(username=str(uuid.uuid4()))
     ).save()
 
     start = today - datetime.timedelta(days=1)  # vacation started yesterday

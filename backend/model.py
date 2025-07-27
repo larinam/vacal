@@ -154,6 +154,8 @@ class AuthDetails(EmbeddedDocument):
     # Fields for username/password authentication
     username = StringField(unique=True, required=True, sparse=True)
     hashed_password = StringField(required=False)
+    # Unique token used for accessing calendar feeds
+    api_key = StringField(unique=True, default=lambda: secrets.token_urlsafe(16))
 
 
 class User(Document):
@@ -169,7 +171,8 @@ class User(Document):
             "auth_details.telegram_id",
             "auth_details.telegram_username",
             "auth_details.username",
-            "tenants"
+            "tenants",
+            "auth_details.api_key"
         ],
         "index_background": True
     }
@@ -327,10 +330,6 @@ class Team(Document):
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
     subscribers = ListField(ReferenceField(User, reverse_delete_rule=mongoengine.PULL))
-    # Unique token used for unauthenticated calendar feeds.
-    # `sparse=True` allows multiple documents with a null or empty value.
-    calendar_token = StringField(unique=True, sparse=True,
-                                 default=lambda: secrets.token_urlsafe(16))
 
     meta = {
         "indexes": [
