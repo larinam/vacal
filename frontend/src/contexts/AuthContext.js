@@ -108,9 +108,9 @@ export const AuthProvider = ({children}) => {
     };
 
     return (
-        <AuthContext.Provider value={{isAuthenticated, authHeader, currentTenant, handleLogin, handleTelegramLogin, handleLogout, setCurrentTenant, user}}>
+        <AuthContext value={{isAuthenticated, authHeader, currentTenant, handleLogin, handleTelegramLogin, handleLogout, setCurrentTenant, user}}>
             {children}
-        </AuthContext.Provider>
+        </AuthContext>
     );
 };
 
