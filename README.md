@@ -42,6 +42,7 @@
 * The login page first asks for your username and password. If MFA isn't configured yet,
   you'll see a QR code to scan and an OTP field. Returning users are prompted for
   their one-time code after submitting credentials.
+* MFA can be reset for a user via `POST /users/{user_id}/reset-mfa` which generates a new secret and marks MFA as unconfirmed.
 
 ### Calendar integration
 Teams expose a read-only iCalendar feed. Subscribe using

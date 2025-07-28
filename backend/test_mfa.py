@@ -77,3 +77,27 @@ def test_confirmed_user_requires_valid_mfa_code():
         headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert resp.status_code == 200
+
+
+def test_reset_mfa_regenerates_secret_and_unconfirms():
+    user, secret = create_mfa_user()
+    user.auth_details.mfa_confirmed = True
+    user.save()
+
+    totp = pyotp.TOTP(secret)
+    code = totp.now()
+    resp = client.post(
+        "/token",
+        data={"username": user.auth_details.username, "password": "pass", "otp": code},
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    token = resp.json()["access_token"]
+
+    resp = client.post(
+        f"/users/{user.id}/reset-mfa",
+        headers={"Authorization": f"Bearer {token}", "Tenant-ID": user.tenants[0].identifier}
+    )
+    assert resp.status_code == 200
+    user.reload()
+    assert user.auth_details.mfa_confirmed is False
+    assert user.auth_details.mfa_secret != secret
