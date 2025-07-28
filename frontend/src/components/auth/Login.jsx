@@ -14,6 +14,14 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+
+  const handleOtpChange = (e) => {
+    const value = e.target.value;
+    setOtp(value);
+    if (value.length === 6) {
+      handleSubmit({ preventDefault: () => {} });
+    }
+  };
   const [qrData, setQrData] = useState(null);
   const [step, setStep] = useState('credentials');
   const [message, setMessage] = useState('');
@@ -85,7 +93,7 @@ const Login = () => {
                 type="text"
                 name="otp"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={handleOtpChange}
                 placeholder="One-time code"
                 className="inputStyle"
                 autoFocus={true}
