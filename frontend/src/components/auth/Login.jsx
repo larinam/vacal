@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import QRCode from 'qrcode';
 import './Login.css';
 import {useAuth} from "../../contexts/AuthContext";
@@ -14,17 +14,21 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const formRef = useRef(null);
 
   const handleOtpChange = (e) => {
     const value = e.target.value;
     setOtp(value);
-    if (value.length === 6) {
-      handleSubmit({ preventDefault: () => {} });
-    }
   };
   const [qrData, setQrData] = useState(null);
   const [step, setStep] = useState('credentials');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (otp.length === 6) {
+      formRef.current?.requestSubmit();
+    }
+  }, [otp]);
 
 
   useEffect(() => {
@@ -69,7 +73,7 @@ const Login = () => {
       )}
       <div className="loginCenter">
         <h1>Log in to Vacal</h1>
-        <form onSubmit={handleSubmit} className="formStyle">
+        <form ref={formRef} onSubmit={handleSubmit} className="formStyle">
           <input
             type="text"
             name="username"
