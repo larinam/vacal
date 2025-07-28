@@ -12,6 +12,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import Form
+from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from pydantic.functional_validators import field_validator, model_validator
@@ -114,9 +116,18 @@ class TokenDataDTO(BaseModel):
     username: str | None = None
 
 
+class OAuth2PasswordRequestFormMFA(OAuth2PasswordRequestForm):
+    def __init__(self, grant_type: str = Form(None, regex="password"), username: str = Form(...),
+                 password: str = Form(...), scope: str = Form(""), client_id: str = Form(None),
+                 client_secret: str = Form(None), otp: str | None = Form(None)):
+        super().__init__(grant_type=grant_type, username=username, password=password,
+                         scope=scope, client_id=client_id, client_secret=client_secret)
+        self.otp = otp
+
+
 # Authentication
 @app.post("/token")
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> TokenDTO:
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestFormMFA, Depends()]) -> TokenDTO:
     user = User.authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -124,6 +135,23 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if not user.auth_details.mfa_confirmed:
+        if form_data.otp:
+            if not user.verify_mfa_code(form_data.otp):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                    detail="Invalid MFA code",
+                                    headers={"WWW-Authenticate": "Bearer"})
+            user.auth_details.mfa_confirmed = True
+            user.save()
+        else:
+            otp_uri = user.get_mfa_uri()
+            return JSONResponse(status_code=status.HTTP_403_FORBIDDEN,
+                                content={"detail": "MFA setup required", "otp_uri": otp_uri})
+    else:
+        if not form_data.otp or not user.verify_mfa_code(form_data.otp):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Invalid MFA code",
+                                headers={"WWW-Authenticate": "Bearer"})
     access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.auth_details.username}, expires_delta=access_token_expires

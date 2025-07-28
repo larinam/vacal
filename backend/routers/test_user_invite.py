@@ -8,6 +8,7 @@ os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
 from ..main import app
 from ..model import Tenant, User, AuthDetails, UserInvite
+import pyotp
 
 client = TestClient(app)
 
@@ -18,7 +19,9 @@ def setup_user_and_token():
                 auth_details=AuthDetails(username="admin"))
     user.hash_password("pass")
     user.save()
-    resp = client.post("/token", data={"username": "admin", "password": "pass"},
+    totp = pyotp.TOTP(user.auth_details.mfa_secret)
+    code = totp.now()
+    resp = client.post("/token", data={"username": "admin", "password": "pass", "otp": code},
                         headers={"Content-Type": "application/x-www-form-urlencoded"})
     token = resp.json()["access_token"]
     return tenant, token

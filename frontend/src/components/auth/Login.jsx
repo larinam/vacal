@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react';
+import QRCode from 'qrcode';
 import './Login.css';
 import {useAuth} from "../../contexts/AuthContext";
 import {useNavigate} from "react-router-dom";
@@ -11,6 +12,8 @@ const Login = () => {
   const {isMultitenancyEnabled, isTelegramEnabled, telegramBotUsername, userInitiated} = useConfig();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [qrData, setQrData] = useState(null);
 
 
   useEffect(() => {
@@ -21,8 +24,13 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await handleLogin(username, password);
-    navigate('/');
+    const result = await handleLogin(username, password, otp);
+    if (result && result.otpUri) {
+      const url = await QRCode.toDataURL(result.otpUri);
+      setQrData(url);
+    } else if (!result || result.success) {
+      navigate('/');
+    }
   };
 
   return (
@@ -55,6 +63,17 @@ const Login = () => {
             placeholder="Password"
             className="inputStyle"
           />
+          <input
+            type="text"
+            name="otp"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            placeholder="One-time code"
+            className="inputStyle"
+          />
+          {qrData && (
+            <img src={qrData} alt="Scan QR code to setup MFA" className="qrImage" />
+          )}
           <button type="submit" className="buttonStyle">Log in</button>
           <p
             className="forgotPasswordLink"
