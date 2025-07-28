@@ -61,6 +61,15 @@ export const AuthProvider = ({children}) => {
         } else if (response.status === 403) {
             const data = await response.json();
             return {otpUri: data.otp_uri};
+        } else if (response.status === 401) {
+            const data = await response.json();
+            if (data.detail === 'Invalid MFA code') {
+                return {invalidOtp: true};
+            }
+            toast('Authentication failed');
+            setIsAuthenticated(false);
+            setAuthHeader('');
+            return {success: false};
         } else {
             toast('Authentication failed');
             setIsAuthenticated(false);

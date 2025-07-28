@@ -14,6 +14,8 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [qrData, setQrData] = useState(null);
+  const [step, setStep] = useState('credentials');
+  const [message, setMessage] = useState('');
 
 
   useEffect(() => {
@@ -28,8 +30,15 @@ const Login = () => {
     if (result && result.otpUri) {
       const url = await QRCode.toDataURL(result.otpUri);
       setQrData(url);
+      setStep('mfa-setup');
+      setMessage('Scan this QR code with your authenticator app and enter the generated code.');
+    } else if (result && result.invalidOtp) {
+      setStep('mfa');
+      setMessage('Invalid or missing one-time code.');
     } else if (!result || result.success) {
       navigate('/');
+    } else {
+      setMessage('Authentication failed');
     }
   };
 
@@ -63,17 +72,23 @@ const Login = () => {
             placeholder="Password"
             className="inputStyle"
           />
-          <input
-            type="text"
-            name="otp"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            placeholder="One-time code"
-            className="inputStyle"
-          />
-          {qrData && (
-            <img src={qrData} alt="Scan QR code to setup MFA" className="qrImage" />
+          {step !== 'credentials' && (
+            <>
+              <input
+                type="text"
+                name="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="One-time code"
+                className="inputStyle"
+                autoFocus={true}
+              />
+              {qrData && (
+                <img src={qrData} alt="Scan QR code to setup MFA" className="qrImage" />
+              )}
+            </>
           )}
+          {message && <div className="errorMessage">{message}</div>}
           <button type="submit" className="buttonStyle">Log in</button>
           <p
             className="forgotPasswordLink"

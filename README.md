@@ -39,7 +39,9 @@
 * The backend uses TOTP-based MFA via `pyotp`.
 * Every user has an `mfa_secret` generated automatically and the `/token` endpoint enforces MFA.
 * On the first login, the server returns a QR code provisioning URI so you can scan it with your authenticator app and confirm the OTP.
-* The frontend login form displays a QR code and OTP field during this initial setup.
+* The login page first asks for your username and password. If MFA isn't configured yet,
+  you'll see a QR code to scan and an OTP field. Returning users are prompted for
+  their one-time code after submitting credentials.
 
 ### Calendar integration
 Teams expose a read-only iCalendar feed. Subscribe using

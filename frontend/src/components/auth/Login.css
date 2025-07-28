@@ -79,3 +79,14 @@ h3 {
 .forgotPasswordLink:hover {
     text-decoration: underline;
 }
+
+.qrImage {
+    margin-top: 10px;
+    width: 150px;
+    height: 150px;
+}
+
+.errorMessage {
+    color: red;
+    margin-top: 10px;
+}
