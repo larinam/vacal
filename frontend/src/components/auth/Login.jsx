@@ -28,20 +28,22 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await handleLogin(username, password, otp);
-    if (result && result.otpUri) {
+    if (result?.otpUri) {
       const url = await QRCode.toDataURL(result.otpUri);
       setQrData(url);
       setStep('mfa-setup');
       setMessage('Scan this QR code with your authenticator app and enter the generated code.');
-    } else if (result && result.invalidOtp) {
+    } else if (result?.invalidOtp) {
       setStep('mfa');
       if (step === 'credentials') {
         setMessage('Please enter your one-time code.');
       } else {
         toast.error('Invalid one-time code.');
       }
-    } else if (!result || result.success) {
+    } else if (result?.success) {
       navigate('/');
+    } else if (result?.error) {
+      toast.error(result.error);
     } else {
       toast.error('Authentication failed');
     }
