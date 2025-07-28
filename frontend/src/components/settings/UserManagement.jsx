@@ -136,17 +136,25 @@ const UserManagement = () => {
               <FontAwesomeIcon icon={faEdit}
                                onClick={() => handleEditUserClick(u)}
                                className="firstActionIcon"
+                               title="Edit user"
+                               aria-label="Edit user"
               />
               <FontAwesomeIcon icon={faTrashAlt}
                                onClick={() => handleDeleteUser(u._id, u.name)}
-                               className="actionIcon"/>
+                               className="actionIcon"
+                               title="Delete user"
+                               aria-label="Delete user"/>
               <FontAwesomeIcon icon={faSyncAlt}
                                onClick={() => handleResetMfa(u._id, u.name)}
-                               className="actionIcon"/>
+                               className="actionIcon"
+                               title="Reset MFA"
+                               aria-label="Reset MFA"/>
               {u._id === user._id && (
                 <FontAwesomeIcon icon={faKey}
                                  onClick={() => handlePasswordChangeClick(u)}
                                  className="actionIcon"
+                                 title="Change password"
+                                 aria-label="Change password"
                 />
               )}
             </td>
