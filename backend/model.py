@@ -16,6 +16,7 @@ from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 from pwdlib.hashers.bcrypt import BcryptHasher
 from pymongo import MongoClient
+import pyotp
 
 from .mongodb_migration_engine import run_migrations
 
@@ -156,6 +157,11 @@ class AuthDetails(EmbeddedDocument):
     hashed_password = StringField(required=False)
     # Unique token used for accessing calendar feeds
     api_key = StringField(unique=True, default=lambda: secrets.token_urlsafe(16))
+    # Secret for Time-based One-Time Password (TOTP) MFA
+    mfa_secret = StringField(required=True, default=lambda: pyotp.random_base32())
+    # Indicates whether the user has scanned the MFA secret and provided a valid
+    # one-time code at least once
+    mfa_confirmed = BooleanField(default=False)
 
 
 class User(Document):
@@ -191,6 +197,23 @@ class User(Document):
 
     def verify_password(self, plain_password):
         return pwd_context.verify(plain_password, self.auth_details.hashed_password)
+
+    def generate_mfa_secret(self):
+        secret = pyotp.random_base32()
+        self.auth_details.mfa_secret = secret
+        self.save()
+        return secret
+
+    def get_mfa_uri(self):
+        """Return provisioning URI for TOTP apps."""
+        return pyotp.totp.TOTP(self.auth_details.mfa_secret).provisioning_uri(
+            name=self.auth_details.username,
+            issuer_name="Vacal"
+        )
+
+    def verify_mfa_code(self, otp: str) -> bool:
+        totp = pyotp.TOTP(self.auth_details.mfa_secret)
+        return totp.verify(otp)
 
     @classmethod
     def authenticate_user(cls, username: str, password: str):

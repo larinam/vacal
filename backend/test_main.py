@@ -28,17 +28,19 @@ def mock_user():
     return User(
         auth_details=AuthDetails(
             username="testuser",
-            hashed_password="hashed_password"  # This should be a properly hashed password in reality
+            hashed_password="hashed_password",  # This should be a properly hashed password in reality
+            mfa_confirmed=True
         )
     )
 
 
 def test_login_for_access_token(mock_user):
     # Mock the authenticate_user method
-    with patch.object(User, 'authenticate_user', return_value=mock_user):
+    with patch.object(User, 'authenticate_user', return_value=mock_user), \
+         patch.object(mock_user, 'verify_mfa_code', return_value=True):
         response = client.post(
             "/token",
-            data={"username": "testuser", "password": "testpassword"},
+            data={"username": "testuser", "password": "testpassword", "otp": "123456"},
             headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
 
@@ -53,7 +55,7 @@ def test_login_for_access_token_invalid_credentials():
     with patch.object(User, 'authenticate_user', return_value=None):
         response = client.post(
             "/token",
-            data={"username": "wronguser", "password": "wrongpassword"},
+            data={"username": "wronguser", "password": "wrongpassword", "otp": "000000"},
             headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
 

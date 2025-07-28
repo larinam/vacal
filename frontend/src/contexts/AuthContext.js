@@ -38,11 +38,17 @@ export const AuthProvider = ({children}) => {
     };
 
 
-    const handleLogin = async (username, password) => {
+    const handleLogin = async (username, password, otp) => {
+        let body =
+            `username=${encodeURIComponent(username)}` +
+            `&password=${encodeURIComponent(password)}`;
+        if (otp) {
+            body += `&otp=${encodeURIComponent(otp)}`;
+        }
         const response = await fetch(`${process.env.REACT_APP_API_URL}/token`, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+            body,
         });
 
         if (response.ok) {
@@ -51,10 +57,22 @@ export const AuthProvider = ({children}) => {
             setAuthHeader(newAuthHeader);
             setIsAuthenticated(true);
             await fetchCurrentUser(newAuthHeader);
-        } else {
-            toast('Authentication failed');
+            return {success: true};
+        } else if (response.status === 403) {
+            const data = await response.json();
+            return {otpUri: data.otp_uri};
+        } else if (response.status === 401) {
+            const data = await response.json();
+            if (data.detail === 'Invalid MFA code') {
+                return {invalidOtp: true};
+            }
             setIsAuthenticated(false);
             setAuthHeader('');
+            return {error: data.detail || 'Authentication failed'};
+        } else {
+            setIsAuthenticated(false);
+            setAuthHeader('');
+            return {error: 'Authentication failed'};
         }
     };
 

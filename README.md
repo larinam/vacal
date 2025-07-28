@@ -35,6 +35,13 @@
 * See https://core.telegram.org/widgets/login
 * Configure TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME in the backend .env
 * Tip for local testing: https://stackoverflow.com/questions/61964889/testing-telegram-login-widget-locally
+#### Multi-factor authentication
+* The backend uses TOTP-based MFA via `pyotp`.
+* Every user has an `mfa_secret` generated automatically and the `/token` endpoint enforces MFA.
+* On the first login, the server returns a QR code provisioning URI so you can scan it with your authenticator app and confirm the OTP.
+* The login page first asks for your username and password. If MFA isn't configured yet,
+  you'll see a QR code to scan and an OTP field. Returning users are prompted for
+  their one-time code after submitting credentials.
 
 ### Calendar integration
 Teams expose a read-only iCalendar feed. Subscribe using

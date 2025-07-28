@@ -1,7 +1,9 @@
 import React, {useEffect, useState} from 'react';
+import QRCode from 'qrcode';
 import './Login.css';
 import {useAuth} from "../../contexts/AuthContext";
 import {useNavigate} from "react-router-dom";
+import {toast} from 'react-toastify';
 import TelegramLogin from "./TelegramLogin";
 import {useConfig} from "../../contexts/ConfigContext";
 
@@ -11,6 +13,10 @@ const Login = () => {
   const {isMultitenancyEnabled, isTelegramEnabled, telegramBotUsername, userInitiated} = useConfig();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [qrData, setQrData] = useState(null);
+  const [step, setStep] = useState('credentials');
+  const [message, setMessage] = useState('');
 
 
   useEffect(() => {
@@ -21,8 +27,26 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await handleLogin(username, password);
-    navigate('/');
+    const result = await handleLogin(username, password, otp);
+    if (result?.otpUri) {
+      const url = await QRCode.toDataURL(result.otpUri);
+      setQrData(url);
+      setStep('mfa-setup');
+      setMessage('Scan this QR code with your authenticator app and enter the generated code.');
+    } else if (result?.invalidOtp) {
+      setStep('mfa');
+      if (step === 'credentials') {
+        setMessage('Please enter your one-time code.');
+      } else {
+        toast.error('Invalid one-time code.');
+      }
+    } else if (result?.success) {
+      navigate('/');
+    } else if (result?.error) {
+      toast.error(result.error);
+    } else {
+      toast.error('Authentication failed');
+    }
   };
 
   return (
@@ -55,6 +79,23 @@ const Login = () => {
             placeholder="Password"
             className="inputStyle"
           />
+          {step !== 'credentials' && (
+            <>
+              <input
+                type="text"
+                name="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="One-time code"
+                className="inputStyle"
+                autoFocus={true}
+              />
+              {qrData && (
+                <img src={qrData} alt="Scan QR code to setup MFA" className="qrImage" />
+              )}
+            </>
+          )}
+          {message && <div className="infoMessage">{message}</div>}
           <button type="submit" className="buttonStyle">Log in</button>
           <p
             className="forgotPasswordLink"
