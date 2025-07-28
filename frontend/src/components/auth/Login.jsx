@@ -15,11 +15,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const formRef = useRef(null);
-
-  const handleOtpChange = (e) => {
-    const value = e.target.value;
-    setOtp(value);
-  };
   const [qrData, setQrData] = useState(null);
   const [step, setStep] = useState('credentials');
   const [message, setMessage] = useState('');
@@ -97,13 +92,13 @@ const Login = () => {
                 type="text"
                 name="otp"
                 value={otp}
-                onChange={handleOtpChange}
+                onChange={(e) => setOtp(e.target.value)}
                 placeholder="One-time code"
                 className="inputStyle"
                 autoFocus={true}
               />
               {qrData && (
-                <img src={qrData} alt="Scan QR code to setup MFA" className="qrImage" />
+                <img src={qrData} alt="Scan QR code to setup MFA" className="qrImage"/>
               )}
             </>
           )}
