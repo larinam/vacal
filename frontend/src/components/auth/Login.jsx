@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import './Login.css';
 import {useAuth} from "../../contexts/AuthContext";
 import {useNavigate} from "react-router-dom";
+import {toast} from 'react-toastify';
 import TelegramLogin from "./TelegramLogin";
 import {useConfig} from "../../contexts/ConfigContext";
 
@@ -37,12 +38,12 @@ const Login = () => {
       if (step === 'credentials') {
         setMessage('Please enter your one-time code.');
       } else {
-        setMessage('Invalid one-time code.');
+        toast.error('Invalid one-time code.');
       }
     } else if (!result || result.success) {
       navigate('/');
     } else {
-      setMessage('Authentication failed');
+      toast.error('Authentication failed');
     }
   };
 
@@ -92,7 +93,7 @@ const Login = () => {
               )}
             </>
           )}
-          {message && <div className="errorMessage">{message}</div>}
+          {message && <div className="infoMessage">{message}</div>}
           <button type="submit" className="buttonStyle">Log in</button>
           <p
             className="forgotPasswordLink"

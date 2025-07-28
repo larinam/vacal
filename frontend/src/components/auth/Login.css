@@ -86,7 +86,7 @@ h3 {
     height: 150px;
 }
 
-.errorMessage {
-    color: red;
+.infoMessage {
+    color: black;
     margin-top: 10px;
 }

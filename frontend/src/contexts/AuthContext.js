@@ -66,12 +66,12 @@ export const AuthProvider = ({children}) => {
             if (data.detail === 'Invalid MFA code') {
                 return {invalidOtp: true};
             }
-            toast('Authentication failed');
+            toast.error('Authentication failed');
             setIsAuthenticated(false);
             setAuthHeader('');
             return {success: false};
         } else {
-            toast('Authentication failed');
+            toast.error('Authentication failed');
             setIsAuthenticated(false);
             setAuthHeader('');
             return {success: false};
