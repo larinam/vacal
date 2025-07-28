@@ -295,6 +295,20 @@ async def update_password(password_update: PasswordUpdateModel,
     return {"message": "Password updated successfully"}
 
 
+@router.post("/{user_id}/reset-mfa")
+async def reset_mfa(user_id: str,
+                    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                    tenant: Annotated[Tenant, Depends(get_tenant)]):
+    user = User.objects(tenants__in=[tenant], id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.generate_mfa_secret()
+    user.auth_details.mfa_confirmed = False
+    user.save()
+    return {"message": "MFA reset successfully"}
+
+
 @router.get("/me/remove-tenant/{tenant_id}")
 async def remove_tenant(tenant_id: str, current_user: Annotated[User, Depends(get_current_active_user)]):
     try:

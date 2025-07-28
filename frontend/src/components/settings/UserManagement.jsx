@@ -2,8 +2,9 @@ import React, {useEffect, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import UserModal from './UserModal';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faEdit, faKey, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
+import {faEdit, faKey, faTrashAlt, faSyncAlt} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from "../../contexts/AuthContext";
+import {toast} from 'react-toastify';
 import PasswordChangeModal from "./PasswordChangeModal";
 import InviteUserModal from './InviteUserModal';
 import InviteManagement from './InviteManagement';
@@ -86,6 +87,24 @@ const UserManagement = () => {
     setShowPasswordModal(true);
   };
 
+  const handleResetMfa = async (userId, userName) => {
+    const isConfirmed = window.confirm(`Reset MFA for ${userName}?`);
+    if (isConfirmed) {
+      try {
+        const data = await apiCall(`/users/${userId}/reset-mfa`, 'POST');
+        toast.success(data.message);
+        fetchUsers();
+      } catch (error) {
+        console.error('Error resetting MFA:', error);
+        if (error.data && error.data.detail) {
+          toast.error(error.data.detail);
+        } else {
+          toast.error('Error resetting MFA');
+        }
+      }
+    }
+  };
+
   return (
     <div className="settingsUserManagementContainer">
       <h2>User Management Settings</h2>
@@ -120,6 +139,9 @@ const UserManagement = () => {
               />
               <FontAwesomeIcon icon={faTrashAlt}
                                onClick={() => handleDeleteUser(u._id, u.name)}
+                               className="actionIcon"/>
+              <FontAwesomeIcon icon={faSyncAlt}
+                               onClick={() => handleResetMfa(u._id, u.name)}
                                className="actionIcon"/>
               {u._id === user._id && (
                 <FontAwesomeIcon icon={faKey}
