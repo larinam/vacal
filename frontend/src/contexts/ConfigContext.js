@@ -31,7 +31,7 @@ export const ConfigProvider = ({children}) => {
   }, []);
 
   return (
-    <ConfigContext.Provider
+    <ConfigContext
       value={{
         isMultitenancyEnabled,
         isTelegramEnabled,
@@ -41,7 +41,7 @@ export const ConfigProvider = ({children}) => {
       }}
     >
       {children}
-    </ConfigContext.Provider>
+    </ConfigContext>
   );
 };
 
