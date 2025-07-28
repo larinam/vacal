@@ -34,7 +34,11 @@ const Login = () => {
       setMessage('Scan this QR code with your authenticator app and enter the generated code.');
     } else if (result && result.invalidOtp) {
       setStep('mfa');
-      setMessage('Invalid or missing one-time code.');
+      if (step === 'credentials') {
+        setMessage('Please enter your one-time code.');
+      } else {
+        setMessage('Invalid one-time code.');
+      }
     } else if (!result || result.success) {
       navigate('/');
     } else {
