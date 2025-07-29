@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { useApi } from '../hooks/useApi';
-import { format } from 'date-fns';
 import './DayHistoryModal.css';
 
 const DayHistoryModal = ({ isOpen, onClose, teamId, memberId, date }) => {
@@ -31,7 +30,16 @@ const DayHistoryModal = ({ isOpen, onClose, teamId, memberId, date }) => {
         {history.map((entry) => (
           <div key={entry._id || entry.id} className="day-history-entry">
             <div>
-              {format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm')} - {entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}
+              {new Date(entry.timestamp).toLocaleString(undefined, {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZoneName: 'short'
+              })}
+              {' '} - {entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}
             </div>
             <div>Action: {entry.action}</div>
             {(entry.old_day_types.length > 0 || entry.old_comment) && (
