@@ -73,3 +73,23 @@
   pointer-events: none;
 }
 
+.day-history-modal {
+  position: relative;
+}
+
+.day-history-modal .close-button {
+  position: absolute;
+  top: -30px;
+  right: -10px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #333;
+  padding: 3px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  line-height: 1;
+  text-align: center;
+  width: 20px;
+  height: 20px;
+}
+

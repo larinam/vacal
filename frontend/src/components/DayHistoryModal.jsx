@@ -25,10 +25,12 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3>History for {date} ({history.length} {history.length === 1 ? 'item' : 'items'})</h3>
-      <div className="day-history-list">
-        {history.length === 0 && <p>No history found.</p>}
-        {history.map((entry) => {
+      <div className="day-history-modal">
+        <div className="close-button" onClick={onClose}>&times;</div>
+        <h3>History for {date} ({history.length} {history.length === 1 ? 'item' : 'items'})</h3>
+        <div className="day-history-list">
+          {history.length === 0 && <p>No history found.</p>}
+          {history.map((entry) => {
           const dayTypesEqual = () => {
             if (entry.old_day_types.length !== entry.new_day_types.length) return false;
             const oldIds = entry.old_day_types.map((dt) => dt._id || dt.id).sort();
@@ -90,6 +92,7 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
             </div>
           );
         })}
+        </div>
       </div>
     </Modal>
   );
