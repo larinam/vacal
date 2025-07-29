@@ -79,8 +79,8 @@
 
 .day-history-modal .close-button {
   position: absolute;
-  top: 0px;
-  right: 0px;
+  top: -30px;
+  right: -10px;
   cursor: pointer;
   font-size: 20px;
   color: #333;
