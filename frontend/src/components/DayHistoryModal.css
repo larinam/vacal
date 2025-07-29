@@ -19,3 +19,27 @@
   font-size: 0.85em;
 }
 
+.action-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  text-transform: capitalize;
+}
+
+.action-created {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.action-deleted {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.action-updated {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+

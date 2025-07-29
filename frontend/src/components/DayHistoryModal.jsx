@@ -40,8 +40,8 @@ const DayHistoryModal = ({ isOpen, onClose, teamId, memberId, date }) => {
                 timeZoneName: 'short'
               })}
               {' '} - {entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}
+              <span className={`action-tag action-${entry.action}`}>{entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}</span>
             </div>
-            <div>Action: {entry.action}</div>
             {(entry.old_day_types.length > 0 || entry.old_comment) && (
               <div>
                 Old:{' '}
