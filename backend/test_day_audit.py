@@ -37,17 +37,31 @@ def test_update_days_creates_audit():
     )
     assert resp.status_code == 200
 
-    audit = DayAudit.objects(tenant=team.tenant, team=team, member_uid=str(member.uid), date=datetime.date(2025,1,1)).first()
-    assert audit is not None
-    assert audit.action == "created"
-    assert [str(dt.id) for dt in audit.new_day_types] == [day_type_id]
+    resp = client.put(
+        f"/teams/{team.id}/members/{member.uid}/days",
+        json={"2025-01-01": {"day_types": [day_type_id], "comment": "changed"}},
+        headers={"Tenant-ID": team.tenant.identifier},
+    )
+    assert resp.status_code == 200
+
+    audits = DayAudit.objects(
+        tenant=team.tenant,
+        team=team,
+        member_uid=str(member.uid),
+        date=datetime.date(2025, 1, 1),
+    ).order_by("timestamp")
+    assert audits.count() == 2
+    assert audits[0].action == "created"
+    assert audits[1].action == "updated"
     hist_resp = client.get(
         f"/teams/{team.id}/members/{member.uid}/days/2025-01-01/history",
         headers={"Tenant-ID": team.tenant.identifier},
     )
     assert hist_resp.status_code == 200
     history = hist_resp.json()
-    assert len(history) == 1
-    assert history[0]["action"] == "created"
+    assert len(history) == 2
+    # newest entry first
+    assert history[0]["action"] == "updated"
+    assert history[1]["action"] == "created"
 
     app.dependency_overrides = {}

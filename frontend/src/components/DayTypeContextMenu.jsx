@@ -163,9 +163,11 @@ const DayTypeContextMenu = ({
       {selectedDayInfo && (
         <div className="display-date-info">
           {displayDate}
-          <span className="history-icon" onClick={openHistoryModal}>
-            <FontAwesomeIcon icon={faHistory}/>
-          </span>
+          {selectedDayInfo.dateRange && selectedDayInfo.dateRange.length === 1 && (
+            <span className="history-icon" onClick={openHistoryModal}>
+              <FontAwesomeIcon icon={faHistory}/>
+            </span>
+          )}
         </div>
       )}
       <div className="close-button" onClick={onClose}>

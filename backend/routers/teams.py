@@ -672,7 +672,7 @@ async def get_day_history(team_id: str, team_member_id: str, date: str,
         team=team,
         member_uid=str(team_member.uid),
         date=date_obj
-    ).order_by("timestamp")
+    ).order_by("-timestamp")
 
     return [mongo_to_pydantic(a, DayAuditDTO) for a in audits]
 
