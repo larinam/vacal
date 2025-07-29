@@ -25,7 +25,7 @@ const DayHistoryModal = ({ isOpen, onClose, teamId, memberId, date }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3>History for {date}</h3>
+      <h3>History for {date} ({history.length} {history.length === 1 ? 'item' : 'items'})</h3>
       <div className="day-history-list">
         {history.length === 0 && <p>No history found.</p>}
         {history.map((entry) => (
