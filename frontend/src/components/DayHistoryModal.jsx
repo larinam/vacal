@@ -55,14 +55,10 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
                   className={`action-tag action-${entry.action}`}>{entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}</span>
               </div>
               {showDiff && (
-                <table className="diff-table">
-                  <thead>
-                  <tr>
-                    <th>Old</th>
-                    <th>New</th>
-                  </tr>
-                  </thead>
-                  <tbody>
+                <div className="diff-container">
+                  <span className="diff-arrow">&rarr;</span>
+                  <table className="diff-table">
+                    <tbody>
                   {showDayTypesRow && (
                     <tr>
                       <td>
@@ -87,8 +83,9 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
                       <td>{entry.new_comment}</td>
                     </tr>
                   )}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           );
