@@ -42,3 +42,8 @@
   border-radius: 4px;
   font-size: 0.9em;
 }
+
+.history-icon {
+  margin-left: 5px;
+  cursor: pointer;
+}

@@ -3,7 +3,10 @@ import './DayTypeContextMenu.css';
 import {useApi} from '../hooks/useApi';
 import {format, isWeekend} from 'date-fns';
 import {toast} from 'react-toastify';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faHistory} from '@fortawesome/free-solid-svg-icons';
 import DayTypeCheckbox from './DayTypeCheckbox';
+import DayHistoryModal from './DayHistoryModal';
 
 const DayTypeContextMenu = ({
                               contextMenuRef,
@@ -19,6 +22,7 @@ const DayTypeContextMenu = ({
   const [selectedDayTypes, setSelectedDayTypes] = useState([]);
   const [comment, setComment] = useState('');
   const [initialComment, setInitialComment] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
   const {apiCall} = useApi();
 
   const visibleDayTypes =
@@ -86,6 +90,9 @@ const DayTypeContextMenu = ({
     }
   };
 
+  const openHistoryModal = () => setShowHistory(true);
+  const closeHistoryModal = () => setShowHistory(false);
+
   const updateDayData = async (dayTypes, comment) => {
     const baseTypeIds = selectedDayInfo.existingDayTypes.map((t) => t._id);
     const dayTypeData = {};
@@ -151,8 +158,16 @@ const DayTypeContextMenu = ({
   }
 
   return (
+    <>
     <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
-      {selectedDayInfo && <div className="display-date-info">{displayDate}</div>}
+      {selectedDayInfo && (
+        <div className="display-date-info">
+          {displayDate}
+          <span className="history-icon" onClick={openHistoryModal}>
+            <FontAwesomeIcon icon={faHistory}/>
+          </span>
+        </div>
+      )}
       <div className="close-button" onClick={onClose}>
         &times;
       </div>
@@ -210,6 +225,14 @@ const DayTypeContextMenu = ({
         })}
 
     </div>
+    <DayHistoryModal
+      isOpen={showHistory}
+      onClose={closeHistoryModal}
+      teamId={selectedDayInfo?.teamId}
+      memberId={selectedDayInfo?.memberId}
+      date={selectedDayInfo?.dateRange && selectedDayInfo.dateRange.length > 0 ? format(selectedDayInfo.dateRange[0], 'yyyy-MM-dd') : ''}
+    />
+    </>
   );
 };
 

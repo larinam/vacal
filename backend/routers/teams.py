@@ -25,7 +25,7 @@ from pydantic.functional_validators import field_validator, model_validator
 from starlette.concurrency import run_in_threadpool
 
 from ..dependencies import get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, tenant_var
-from ..model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry
+from ..model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry, DayAudit
 from ..routers.daytypes import DayTypeReadDTO, get_all_day_types
 from ..routers.users import UserWithoutTenantsDTO
 from ..utils import get_country_holidays
@@ -215,6 +215,37 @@ class TeamReadDTO(TeamWriteDTO):
                 if isinstance(subscriber, ObjectId):
                     converted_subscribers.append(UserWithoutTenantsDTO.from_mongo_reference_field(subscriber))
             return converted_subscribers
+        return v
+
+
+class DayAuditDTO(BaseModel):
+    id: str = Field(alias="_id", default=None)
+    timestamp: datetime.datetime
+    date: datetime.date
+    user: UserWithoutTenantsDTO | None = None
+    member_uid: str
+    old_day_types: List[DayTypeReadDTO] = []
+    old_comment: str = ''
+    new_day_types: List[DayTypeReadDTO] = []
+    new_comment: str = ''
+    action: str
+
+    @field_validator('user', mode="before")
+    @classmethod
+    def convert_user(cls, v):
+        if isinstance(v, ObjectId):
+            return UserWithoutTenantsDTO.from_mongo_reference_field(v)
+        return v
+
+    @field_validator('old_day_types', 'new_day_types', mode="before")
+    @classmethod
+    def convert_day_types(cls, v):
+        if v and isinstance(v, list):
+            converted = []
+            for dt in v:
+                if isinstance(dt, ObjectId):
+                    converted.append(DayTypeReadDTO.from_mongo_reference_field(dt))
+            return converted
         return v
 
 
@@ -566,19 +597,82 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, Dict[st
         raise HTTPException(status_code=404, detail="Team member not found")
 
     updated_days = {}
+    audits: List[DayAudit] = []
     for date_str, day_entry_dto in days.items():
         validate_date(date_str)
-        filtered_ids = filter_out_birthdays(tenant, day_entry_dto["day_types"])
+        filtered_ids = list(filter_out_birthdays(tenant, day_entry_dto["day_types"]))
         day_types = DayType.objects(tenant=tenant, id__in=filtered_ids).order_by("name")
-        day_entry: DayEntry = team_member.days.get(date_str, DayEntry())
+        old_entry: DayEntry | None = team_member.days.get(date_str)
+        new_comment = day_entry_dto.get("comment", '')
+
+        if not day_types and new_comment == "":
+            if old_entry:
+                audits.append(DayAudit(
+                    tenant=tenant,
+                    team=team,
+                    member_uid=str(team_member.uid),
+                    date=datetime.date.fromisoformat(date_str),
+                    user=current_user,
+                    old_day_types=list(old_entry.day_types),
+                    old_comment=old_entry.comment or "",
+                    new_day_types=[],
+                    new_comment="",
+                    action="deleted",
+                ))
+                team_member.days.pop(date_str, None)
+            continue
+
+        day_entry = DayEntry()
         day_entry.day_types = day_types
-        day_entry.comment = day_entry_dto.get("comment", '')
+        day_entry.comment = new_comment
         updated_days[date_str] = day_entry
 
-    if not team_member.days:
-        team_member.days = updated_days
-    else:
-        team_member.days.update(updated_days)
+        audits.append(DayAudit(
+            tenant=tenant,
+            team=team,
+            member_uid=str(team_member.uid),
+            date=datetime.date.fromisoformat(date_str),
+            user=current_user,
+            old_day_types=list(old_entry.day_types) if old_entry else [],
+            old_comment=old_entry.comment if old_entry else "",
+            new_day_types=list(day_entry.day_types),
+            new_comment=day_entry.comment,
+            action="created" if old_entry is None else "updated",
+        ))
+
+    if updated_days:
+        if not team_member.days:
+            team_member.days = updated_days
+        else:
+            team_member.days.update(updated_days)
+
     team.save()
+    for audit in audits:
+        audit.save()
+
     return {"message": "Days modified successfully"}
+
+
+@router.get("/{team_id}/members/{team_member_id}/days/{date}/history")
+async def get_day_history(team_id: str, team_member_id: str, date: str,
+                          current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                          tenant: Annotated[Tenant, Depends(get_tenant)]):
+    team: Team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team_member: TeamMember = team.team_members.get(uid=team_member_id)
+    if not team_member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    validate_date(date)
+    date_obj = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+    audits = DayAudit.objects(
+        tenant=tenant,
+        team=team,
+        member_uid=str(team_member.uid),
+        date=date_obj
+    ).order_by("timestamp")
+
+    return [mongo_to_pydantic(a, DayAuditDTO) for a in audits]
 

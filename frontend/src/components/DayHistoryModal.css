@@ -1,0 +1,11 @@
+.day-history-entry {
+  margin-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.day-history-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+

@@ -378,6 +378,27 @@ def get_unique_countries(tenant):
     return list(unique_countries)
 
 
+class DayAudit(Document):
+    tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
+    team = ReferenceField(Team, required=True, reverse_delete_rule=mongoengine.CASCADE)
+    member_uid = StringField(required=True)
+    date = DateField(required=True)
+    user = ReferenceField(User, required=True, reverse_delete_rule=mongoengine.NULLIFY)
+    timestamp = DateTimeField(required=True, default=lambda: datetime.now(timezone.utc))
+    old_day_types = ListField(ReferenceField(DayType))
+    old_comment = StringField(default='')
+    new_day_types = ListField(ReferenceField(DayType))
+    new_comment = StringField(default='')
+    action = StringField(required=True, choices=['created', 'updated', 'deleted'])
+
+    meta = {
+        "indexes": [
+            ("tenant", "team", "member_uid", "date"),
+        ],
+        "index_background": True,
+    }
+
+
 def get_team_id_and_member_uid_by_email(tenant, email):
     for team in Team.objects(tenant=tenant):
         for member in team.team_members:
