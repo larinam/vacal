@@ -4,6 +4,7 @@
 
 * Manage teams and team members effectively.
 * Organize and track vacation days.
+* Keep a history of all day modifications. Timestamps are shown in your local timezone.
 * Visualize vacation days, weekends, and public holidays in an intuitive interface.
 * Ideal for both local and distributed teams, enhancing team coordination and planning.
 

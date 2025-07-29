@@ -10,10 +10,10 @@ from typing import Annotated
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import Form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from pydantic.functional_validators import field_validator, model_validator
@@ -78,6 +78,7 @@ app.add_middleware(
 
 log = logging.getLogger(__name__)
 
+
 @app.get("/health", status_code=status.HTTP_200_OK)
 async def health_check():
     """
@@ -93,7 +94,6 @@ class GeneralApplicationConfigDTO(BaseModel):
     telegram_bot_username: str
     user_initiated: bool
     multitenancy_enabled: bool = False
-
 
 
 # General Application Configuration
@@ -214,5 +214,3 @@ async def telegram_login(auth_data: TelegramAuthData):
     )
 
     return TokenDTO(access_token=access_token, token_type="bearer")
-
-
