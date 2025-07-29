@@ -39,7 +39,9 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
               <div>
                 Old:{' '}
                 {entry.old_day_types.map((dt) => (
-                  <span key={dt._id} className="day-type-tag">{dt.name}</span>
+                  <span key={dt._id} className="day-type-tag" style={{backgroundColor: dt.color}}>
+                    {dt.name}
+                  </span>
                 ))}
                 {entry.old_comment && <span>{entry.old_comment}</span>}
               </div>
@@ -48,7 +50,9 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
               <div>
                 New:{' '}
                 {entry.new_day_types.map((dt) => (
-                  <span key={dt._id} className="day-type-tag">{dt.name}</span>
+                  <span key={dt._id} className="day-type-tag" style={{backgroundColor: dt.color}}>
+                    {dt.name}
+                  </span>
                 ))}
                 {entry.new_comment && <span>{entry.new_comment}</span>}
               </div>
