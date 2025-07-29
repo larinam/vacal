@@ -44,12 +44,20 @@ const DayHistoryModal = ({ isOpen, onClose, teamId, memberId, date }) => {
             <div>Action: {entry.action}</div>
             {(entry.old_day_types.length > 0 || entry.old_comment) && (
               <div>
-                Old: {entry.old_day_types.map((dt) => dt.name).join(', ')} {entry.old_comment}
+                Old:{' '}
+                {entry.old_day_types.map((dt) => (
+                  <span key={dt._id} className="day-type-tag">{dt.name}</span>
+                ))}
+                {entry.old_comment && <span>{entry.old_comment}</span>}
               </div>
             )}
             {(entry.new_day_types.length > 0 || entry.new_comment) && (
               <div>
-                New: {entry.new_day_types.map((dt) => dt.name).join(', ')} {entry.new_comment}
+                New:{' '}
+                {entry.new_day_types.map((dt) => (
+                  <span key={dt._id} className="day-type-tag">{dt.name}</span>
+                ))}
+                {entry.new_comment && <span>{entry.new_comment}</span>}
               </div>
             )}
           </div>
