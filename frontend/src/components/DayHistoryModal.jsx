@@ -31,7 +31,7 @@ const DayHistoryModal = ({ isOpen, onClose, teamId, memberId, date }) => {
         {history.map((entry) => (
           <div key={entry._id || entry.id} className="day-history-entry">
             <div>
-              {format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm')} - {entry.user ? entry.user.username : 'Unknown'}
+              {format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm')} - {entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}
             </div>
             <div>Action: {entry.action}</div>
             {(entry.old_day_types.length > 0 || entry.old_comment) && (
