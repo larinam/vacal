@@ -29,9 +29,24 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
       <div className="day-history-list">
         {history.length === 0 && <p>No history found.</p>}
         {history.map((entry) => {
-          const hasDayTypes = entry.old_day_types.length > 0 || entry.new_day_types.length > 0;
-          const hasComments = (entry.old_comment && entry.old_comment !== '') || (entry.new_comment && entry.new_comment !== '');
-          const showDiff = hasDayTypes || hasComments;
+          const dayTypesEqual = () => {
+            if (entry.old_day_types.length !== entry.new_day_types.length) return false;
+            const oldIds = entry.old_day_types.map((dt) => dt._id || dt.id).sort();
+            const newIds = entry.new_day_types.map((dt) => dt._id || dt.id).sort();
+            return oldIds.every((id, idx) => id === newIds[idx]);
+          };
+
+          const showDayTypesRow =
+            (entry.old_day_types.length > 0 || entry.new_day_types.length > 0) &&
+            !dayTypesEqual();
+
+          const showCommentsRow =
+            ((entry.old_comment && entry.old_comment !== '') ||
+              (entry.new_comment && entry.new_comment !== '')) &&
+            entry.old_comment !== entry.new_comment;
+
+          const showDiff = showDayTypesRow || showCommentsRow;
+
           return (
             <div key={entry._id || entry.id} className="day-history-entry">
               <div>
@@ -48,7 +63,7 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
                   </tr>
                   </thead>
                   <tbody>
-                  {hasDayTypes && (
+                  {showDayTypesRow && (
                     <tr>
                       <td>
                         {entry.old_day_types.map((dt) => (
@@ -66,7 +81,7 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
                       </td>
                     </tr>
                   )}
-                  {hasComments && (
+                  {showCommentsRow && (
                     <tr>
                       <td>{entry.old_comment}</td>
                       <td>{entry.new_comment}</td>
