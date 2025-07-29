@@ -42,3 +42,25 @@
   color: #0c5460;
 }
 
+.diff-table {
+  width: 100%;
+  margin-top: 5px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.diff-table th,
+.diff-table td {
+  width: 50%;
+  padding: 4px 8px;
+  vertical-align: top;
+  word-break: break-word;
+  border: 1px solid #d0d7de;
+}
+
+.diff-table th {
+  background-color: #f6f8fa;
+  font-weight: 600;
+  text-align: left;
+}
+
