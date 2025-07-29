@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
-import secrets
 import time
 from collections import defaultdict
 from decimal import Decimal
@@ -230,6 +229,17 @@ class DayAuditDTO(BaseModel):
     new_comment: str = ''
     action: str
 
+    model_config = {
+        "json_encoders": {
+            datetime.datetime: lambda v: (
+                # force UTC tz, then drop the “+00:00” in favor of “Z”
+                v.astimezone(datetime.timezone.utc)
+                .isoformat(timespec="microseconds")
+                .replace("+00:00", "Z")
+            )
+        }
+    }
+
     @field_validator('user', mode="before")
     @classmethod
     def convert_user(cls, v):
@@ -256,7 +266,8 @@ def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
     for country in countries:
         country_holidays_obj = get_country_holidays(country, year)
         if country == "Sweden":
-            country_holidays = {date: name for date, name in country_holidays_obj.items() if name not in ["Söndag", "Sunday"]}
+            country_holidays = {date: name for date, name in country_holidays_obj.items() if
+                                name not in ["Söndag", "Sunday"]}
         else:
             country_holidays = dict(country_holidays_obj)
         holidays_dict.update({country: country_holidays})
@@ -327,8 +338,6 @@ async def update_team(team_id: str, team_dto: TeamWriteDTO,
         return {"message": "Team modified successfully"}
     else:
         raise HTTPException(status_code=404, detail="Team not found")
-
-
 
 
 @router.put("/{team_id}/members/{team_member_id}")
@@ -418,10 +427,10 @@ async def list_team_subscribers(
 
 @router.post("/move-member/{team_member_uid}")
 async def transfer_team_member(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                           tenant: Annotated[Tenant, Depends(get_tenant)],
-                           team_member_uid: str,
-                           target_team_id: str = Body(...),
-                           source_team_id: str = Body(...)):
+                               tenant: Annotated[Tenant, Depends(get_tenant)],
+                               team_member_uid: str,
+                               target_team_id: str = Body(...),
+                               source_team_id: str = Body(...)):
     source_team = Team.objects(tenant=tenant, id=source_team_id).first()
     target_team = Team.objects(tenant=tenant, id=target_team_id).first()
 
@@ -471,9 +480,9 @@ def auto_adjust_column_width(ws):
 
 @router.get("/export-vacations")
 async def export_vacation_report(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                           tenant: Annotated[Tenant, Depends(get_tenant)],
-                           start_date: datetime.date = Query(...), end_date: datetime.date = Query(...),
-                           team_ids: List[str] | None = Query(None)):
+                                 tenant: Annotated[Tenant, Depends(get_tenant)],
+                                 start_date: datetime.date = Query(...), end_date: datetime.date = Query(...),
+                                 team_ids: List[str] | None = Query(None)):
     wb = Workbook()
     ws = wb.active
     ws.title = "Day Type Report"
@@ -675,4 +684,3 @@ async def get_day_history(team_id: str, team_member_id: str, date: str,
     ).order_by("-timestamp")
 
     return [mongo_to_pydantic(a, DayAuditDTO) for a in audits]
-

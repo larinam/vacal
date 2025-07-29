@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import Modal from './Modal';
-import { useApi } from '../hooks/useApi';
+import {useApi} from '../hooks/useApi';
 import './DayHistoryModal.css';
+import {format} from 'date-fns';
 
-const DayHistoryModal = ({ isOpen, onClose, teamId, memberId, date }) => {
-  const { apiCall } = useApi();
+const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
+  const {apiCall} = useApi();
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
@@ -30,17 +31,9 @@ const DayHistoryModal = ({ isOpen, onClose, teamId, memberId, date }) => {
         {history.map((entry) => (
           <div key={entry._id || entry.id} className="day-history-entry">
             <div>
-              {new Date(entry.timestamp).toLocaleString(undefined, {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-                timeZoneName: 'short'
-              })}
-              {' '} - {entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}
-              <span className={`action-tag action-${entry.action}`}>{entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}</span>
+              {format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm')} - {entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}
+              <span
+                className={`action-tag action-${entry.action}`}>{entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}</span>
             </div>
             {(entry.old_day_types.length > 0 || entry.old_comment) && (
               <div>
