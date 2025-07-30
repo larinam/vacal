@@ -7,6 +7,7 @@
 * Keep a history of all day modifications. Timestamps are shown in your local timezone.
 * Visualize vacation days, weekends, and public holidays in an intuitive interface.
 * Ideal for both local and distributed teams, enhancing team coordination and planning.
+* Receive optional daily email digests summarizing recent day changes for your subscribed teams.
 
 ## Technologies
 * Uses Python [FastAPI](https://github.com/tiangolo/fastapi) on the backend and [MongoDB](https://github.com/mongodb/mongo) as storage.

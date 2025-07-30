@@ -394,6 +394,7 @@ class DayAudit(Document):
     meta = {
         "indexes": [
             ("tenant", "team", "member_uid", "date"),
+            ("team", "timestamp"),
         ],
         "index_background": True,
     }
