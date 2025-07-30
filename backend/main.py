@@ -24,6 +24,7 @@ from .routers import users, daytypes, management, teams
 from .scheduled.activate_trials import activate_trials
 from .scheduled.birthdays import send_birthday_email_updates
 from .scheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
+from .scheduled.day_audit_changes import send_day_audit_email_updates
 from .scheduled.vacation_starts import send_vacation_email_updates, send_upcoming_vacation_email_updates
 
 origins = [
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(send_vacation_email_updates, 'cron', hour=6, minute=0)
     scheduler.add_job(send_upcoming_vacation_email_updates, 'cron', hour=6, minute=1)
     scheduler.add_job(send_birthday_email_updates, 'cron', hour=6, minute=5)
+    scheduler.add_job(send_day_audit_email_updates, 'cron', hour=6, minute=30)
     if MULTITENANCY_ENABLED:
         scheduler.add_job(run_update_max_team_members_numbers, 'cron', hour=1, minute=5)
         scheduler.add_job(activate_trials, 'cron', hour=2, minute=5)
