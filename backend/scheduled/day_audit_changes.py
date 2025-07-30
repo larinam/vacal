@@ -4,7 +4,7 @@ import os
 from collections import defaultdict
 
 from ..email_service import send_email
-from ..model import DayAudit, Team
+from ..model import DayAudit, Team, DayType
 
 log = logging.getLogger(__name__)
 
@@ -12,27 +12,41 @@ cors_origin = os.getenv("CORS_ORIGIN")
 
 
 def _summaries_for_team(team: Team, start: datetime.datetime, end: datetime.datetime) -> list[str]:
-    audits = DayAudit.objects(team=team, timestamp__gte=start, timestamp__lte=end).order_by("timestamp")
-    if not audits:
+    pipeline = [
+        {
+            "$match": {
+                "team": team.id,
+                "timestamp": {"$gte": start, "$lte": end},
+            }
+        },
+        {"$sort": {"member_uid": 1, "date": 1, "timestamp": 1}},
+        {
+            "$group": {
+                "_id": {"uid": "$member_uid", "date": "$date"},
+                "first_old_types": {"$first": "$old_day_types"},
+                "first_old_comment": {"$first": "$old_comment"},
+                "last_new_types": {"$last": "$new_day_types"},
+                "last_new_comment": {"$last": "$new_comment"},
+            }
+        },
+    ]
+
+    results = list(DayAudit.objects.aggregate(*pipeline))
+    if not results:
         return []
 
-    # Index team members by uid for fast lookup
+    # Index team members and day types for fast lookup
     member_lookup = {str(m.uid): m for m in team.team_members}
-
-    changes: defaultdict[tuple[str, datetime.date], list[DayAudit]] = defaultdict(list)
-    for audit in audits:
-        changes[(audit.member_uid, audit.date)].append(audit)
+    daytype_lookup = {str(dt.id): dt.name for dt in DayType.objects(tenant=team.tenant)}
 
     summaries = []
-    for (member_uid, date), audit_list in changes.items():
-        audit_list.sort(key=lambda a: a.timestamp)
-        first = audit_list[0]
-        last = audit_list[-1]
-
-        old_types = [dt.name for dt in first.old_day_types]
-        new_types = [dt.name for dt in last.new_day_types]
-        old_comment = first.old_comment or ""
-        new_comment = last.new_comment or ""
+    for res in results:
+        member_uid = res["_id"]["uid"]
+        date = res["_id"]["date"]
+        old_types = [daytype_lookup.get(str(dt), str(dt)) for dt in res.get("first_old_types", [])]
+        new_types = [daytype_lookup.get(str(dt), str(dt)) for dt in res.get("last_new_types", [])]
+        old_comment = res.get("first_old_comment") or ""
+        new_comment = res.get("last_new_comment") or ""
 
         if set(old_types) == set(new_types) and old_comment == new_comment:
             continue
