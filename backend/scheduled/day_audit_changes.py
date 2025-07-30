@@ -55,12 +55,12 @@ def _summaries_for_team(team: Team, start: datetime.datetime, end: datetime.date
         old_types_text = ", ".join(old_types) if old_types else "none"
         new_types_text = ", ".join(new_types) if new_types else "none"
 
-        summary = f"{member_name} on {date}: {old_types_text}"
+        summary = f"{member_name} {date} changed from {old_types_text}"
         if old_comment:
-            summary += f" (\"{old_comment}\")"
-        summary += f" -> {new_types_text}"
+            summary += f' ("{old_comment}")'
+        summary += f" to {new_types_text}"
         if old_comment != new_comment and new_comment:
-            summary += f" (\"{new_comment}\")"
+            summary += f' ("{new_comment}")'
         summaries.append(summary)
     return summaries
 
