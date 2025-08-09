@@ -81,3 +81,31 @@ def test_read_users(mock_user, mock_tenant):
         # Verify that the correct query was made
         mock_user_objects.assert_called_once()
         mock_user_objects.assert_called_once_with(tenants__in=[mock_tenant])
+
+
+def test_remove_tenant(mock_user, mock_tenant):
+    other_tenant = Tenant(
+        id=ObjectId(),
+        name="Other Tenant",
+        identifier="other-tenant",
+    )
+    mock_user.tenants = [mock_tenant, other_tenant]
+
+    with patch('backend.dependencies.get_current_user', return_value=mock_user), \
+         patch('backend.dependencies.get_current_active_user', return_value=mock_user), \
+         patch('backend.dependencies.oauth2_scheme', return_value="mocked_token"), \
+         patch('backend.model.Tenant.objects') as mock_tenant_objects, \
+         patch('backend.model.User.get_by_username', return_value=mock_user), \
+         patch('jwt.decode', return_value={"sub": "testuser"}), \
+         patch.object(mock_user, 'remove_tenant') as mock_remove_tenant:
+
+        mock_tenant_objects.return_value.first.return_value = other_tenant
+
+        response = client.delete(
+            f"/users/me/remove-tenant/{other_tenant.identifier}",
+            headers={"Authorization": "Bearer mocked_token"}
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "Tenant removed."}
+    mock_remove_tenant.assert_called_once_with(other_tenant)
