@@ -14,7 +14,7 @@ const PasswordResetRequest = () => {
     e.preventDefault();
     try {
       await apiCall('/users/password-reset/request', 'POST', {email});
-      toast.success('Password reset email sent');
+      toast.success('If the email is registered, you will receive a password reset email');
       navigate('/login');
     } catch (error) {
       if (error.data && error.data.detail) {

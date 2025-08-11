@@ -31,12 +31,30 @@ def test_password_reset_token_hashed_and_usable():
     with patch("backend.routers.users.send_password_reset_email", fake_send_email):
         resp = client.post("/users/password-reset/request", json={"email": "user@example.com"})
         assert resp.status_code == 200
+        assert resp.json() == {
+            "message": "If the email is registered, you will receive a password reset email"
+        }
 
     prt = PasswordResetToken.objects(user=user).first()
     assert prt is not None
     assert prt.token == hashlib.sha256(captured["token"].encode()).hexdigest()
 
-    resp = client.post(f"/users/password-reset/{captured['token']}", json={"new_password": "newpass", "confirm_password": "newpass"})
+    resp = client.post(
+        f"/users/password-reset/{captured['token']}",
+        json={"new_password": "newpass", "confirm_password": "newpass"},
+    )
     assert resp.status_code == 200
     user.reload()
     assert user.verify_password("newpass")
+
+
+def test_password_reset_request_generic_for_unknown_email():
+    PasswordResetToken.objects.delete()
+    User.objects.delete()
+
+    resp = client.post("/users/password-reset/request", json={"email": "missing@example.com"})
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "message": "If the email is registered, you will receive a password reset email"
+    }
+    assert PasswordResetToken.objects.count() == 0
