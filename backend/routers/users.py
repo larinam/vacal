@@ -323,15 +323,18 @@ async def remove_tenant(tenant_id: str, current_user: Annotated[User, Depends(ge
 
 @router.post("/password-reset/request")
 async def request_password_reset(data: PasswordResetRequestModel, background_tasks: BackgroundTasks):
+    """Request a password reset without revealing if the email exists."""
     user = User.objects(email=data.email).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    # Generate a token regardless of user existence to keep timing similar
     token = secrets.token_urlsafe(32)
     hashed_token = hashlib.sha256(token.encode()).hexdigest()
-    PasswordResetToken(user=user, token=hashed_token).save()
-    background_tasks.add_task(send_password_reset_email, user.email, token)
-    return {"message": "Password reset email sent"}
+
+    if user:
+        PasswordResetToken(user=user, token=hashed_token).save()
+        background_tasks.add_task(send_password_reset_email, user.email, token)
+
+    return {"message": "If the email is registered, you will receive a password reset email"}
 
 
 @router.post("/password-reset/{token}")
