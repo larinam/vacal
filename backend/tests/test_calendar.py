@@ -1,11 +1,8 @@
-import os
-os.environ.setdefault("MONGO_MOCK", "1")
-os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
-
 from fastapi.testclient import TestClient
 import uuid
-from .main import app
-from .model import Tenant, DayType, Team, TeamMember, DayEntry, User, AuthDetails
+
+from backend.main import app
+from backend.model import Tenant, DayType, Team, TeamMember, DayEntry, User, AuthDetails
 
 client = TestClient(app)
 

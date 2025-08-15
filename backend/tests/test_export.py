@@ -1,11 +1,9 @@
-import os
-os.environ.setdefault("MONGO_MOCK", "1")
-os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
-
 from fastapi.testclient import TestClient
+
 from openpyxl import load_workbook
-from .main import app
-from .model import Tenant, DayType, Team, TeamMember, DayEntry, User
+from backend.main import app
+from backend.model import Tenant, DayType, Team, TeamMember, DayEntry, User
+from backend.dependencies import get_current_active_user_check_tenant, get_tenant
 import uuid
 
 client = TestClient(app)
@@ -22,9 +20,6 @@ def setup_teams():
     team2 = Team(tenant=tenant, name="Team2", team_members=[member2])
     team2.save()
     return team1, team2
-
-
-from backend.dependencies import get_current_active_user_check_tenant, get_tenant
 
 
 def test_export_selected_team():

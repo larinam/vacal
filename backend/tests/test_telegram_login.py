@@ -1,16 +1,10 @@
-import os
 import time
 import hashlib
 import hmac
 
-os.environ.setdefault("MONGO_MOCK", "1")
-os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
-os.environ.setdefault("TELEGRAM_BOT_TOKEN", "testtoken")
-os.environ.setdefault("TELEGRAM_BOT_USERNAME", "testbot")
-
 from fastapi.testclient import TestClient
-from .main import app, TELEGRAM_BOT_TOKEN
-from .model import User, AuthDetails
+from backend.main import app, TELEGRAM_BOT_TOKEN
+from backend.model import User, AuthDetails
 
 client = TestClient(app)
 

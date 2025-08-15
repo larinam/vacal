@@ -1,13 +1,9 @@
-import os
-os.environ.setdefault("MONGO_MOCK", "1")
-os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
-
 import hashlib
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 
-from .main import app
-from .model import Tenant, User, AuthDetails, PasswordResetToken
+from backend.main import app
+from backend.model import Tenant, User, AuthDetails, PasswordResetToken
 
 client = TestClient(app)
 

@@ -1,16 +1,10 @@
-import os
-
-from backend.routers.teams import TeamMemberReadDTO
-
-os.environ.setdefault("MONGO_MOCK", "1")
-os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
-
 import datetime
 from unittest.mock import patch
+import uuid
+from backend.routers.teams import TeamMemberReadDTO
 
 from backend.model import Tenant, DayType, TeamMember, DayEntry
 from backend.dependencies import mongo_to_pydantic, tenant_var
-import uuid
 
 
 def setup_member(days=None):
