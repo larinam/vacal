@@ -1,7 +1,3 @@
-import os
-os.environ.setdefault("MONGO_MOCK", "1")
-os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
-
 import datetime
 import uuid
 from unittest.mock import patch
