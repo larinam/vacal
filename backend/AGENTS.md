@@ -27,7 +27,7 @@ pytest backend
   Update any tests affected by your changes: adjust assertions or setup, refactor, or remove obsolete tests.
 
 * **Best practices**
-  * Tests should reside in the same package as the module they test.
+  * Store tests under `backend/tests`, using subdirectories that mirror the application's modules.
   * Use pytest fixtures and mocks to isolate external dependencies.
   * Give tests clear, descriptive names.
   * Keep tests fast, deterministic, and focused on a single behavior.

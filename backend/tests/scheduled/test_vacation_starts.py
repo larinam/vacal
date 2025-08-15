@@ -6,7 +6,10 @@ import os
 os.environ.setdefault("MONGO_MOCK", "1")
 os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
-from .vacation_starts import get_next_working_day, only_for_team_member
+from backend.scheduled.vacation_starts import (
+    get_next_working_day,
+    only_for_team_member,
+)
 
 
 def test_get_next_working_day():

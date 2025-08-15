@@ -9,8 +9,8 @@ import pytest
 from bson.objectid import ObjectId
 from fastapi.testclient import TestClient
 
-from ..main import app
-from ..model import User, AuthDetails, Tenant
+from backend.main import app
+from backend.model import User, AuthDetails, Tenant
 
 client = TestClient(app)
 

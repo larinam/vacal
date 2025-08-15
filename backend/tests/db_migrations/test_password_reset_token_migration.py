@@ -6,7 +6,7 @@ import importlib
 
 os.environ.setdefault("MONGO_MOCK", "1")
 
-from . import db_utils
+from backend.db_migrations import db_utils
 
 
 def test_hash_pending_password_reset_tokens_migration():
