@@ -26,6 +26,13 @@ const TelegramLogin = ({telegramBotUsername}) => {
 
     // Append the script to the ref element
     telegramWidgetRef.current.appendChild(script);
+
+    return () => {
+      if (telegramWidgetRef.current) {
+        telegramWidgetRef.current.removeChild(script);
+      }
+      delete window.onTelegramAuth;
+    };
   }, []);
 
   return (
