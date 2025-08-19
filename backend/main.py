@@ -187,7 +187,7 @@ class TelegramAuthData(BaseModel):
         secret_key = hashlib.sha256(TELEGRAM_BOT_TOKEN.encode()).digest()
         calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
-        if calculated_hash != telegram_hash:
+        if not hmac.compare_digest(calculated_hash, telegram_hash):
             raise ValueError("Data is NOT from Telegram")
 
         return input_values
