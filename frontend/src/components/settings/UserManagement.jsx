@@ -24,6 +24,7 @@ const UserManagement = () => {
 
   const query = new URLSearchParams(location.search);
   const inviteUser = query.get('inviteUser');
+  const profile = query.get('profile');
 
 
   const fetchUsers = async () => {
@@ -43,7 +44,10 @@ const UserManagement = () => {
     if (inviteUser) {
       handleInviteUserClick();
     }
-  }, [inviteUser]);
+    if (profile) {
+      handleEditUserClick(user);
+    }
+  }, [inviteUser, profile]);
 
   const handleInviteUserClick = () => {
     setShowInviteModal(true);
@@ -60,15 +64,18 @@ const UserManagement = () => {
     fetchUsers();
     setRefreshInvites(!refreshInvites); // Trigger refresh of invites
 
-    // Remove inviteUser from the URL
+    // Remove inviteUser/profile from the URL
     const params = new URLSearchParams(location.search);
     if (params.has('inviteUser')) {
       params.delete('inviteUser');
-      navigate({
-        pathname: location.pathname,
-        search: params.toString(),
-      });
     }
+    if (params.has('profile')) {
+      params.delete('profile');
+    }
+    navigate({
+      pathname: location.pathname,
+      search: params.toString(),
+    });
   }
 
   const handleDeleteUser = async (userId, userName) => {
