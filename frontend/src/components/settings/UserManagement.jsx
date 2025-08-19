@@ -2,10 +2,11 @@ import React, {useEffect, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import UserModal from './UserModal';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faEdit, faKey, faTrashAlt, faSyncAlt} from '@fortawesome/free-solid-svg-icons';
+import {faEdit, faKey, faTrashAlt, faSyncAlt, faLock} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from "../../contexts/AuthContext";
 import {toast} from 'react-toastify';
 import PasswordChangeModal from "./PasswordChangeModal";
+import ApiKeyModal from './ApiKeyModal';
 import InviteUserModal from './InviteUserModal';
 import InviteManagement from './InviteManagement';
 import {useLocation, useNavigate} from "react-router-dom";
@@ -19,6 +20,7 @@ const UserManagement = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [refreshInvites, setRefreshInvites] = useState(false);
 
@@ -94,6 +96,10 @@ const UserManagement = () => {
     setShowPasswordModal(true);
   };
 
+  const handleApiKeyClick = () => {
+    setShowApiKeyModal(true);
+  };
+
   const handleResetMfa = async (userId, userName) => {
     const isConfirmed = window.confirm(`Reset MFA for ${userName}?`);
     if (isConfirmed) {
@@ -157,12 +163,20 @@ const UserManagement = () => {
                                title="Reset MFA"
                                aria-label="Reset MFA"/>
               {u._id === user._id && (
-                <FontAwesomeIcon icon={faKey}
-                                 onClick={() => handlePasswordChangeClick(u)}
-                                 className="actionIcon"
-                                 title="Change password"
-                                 aria-label="Change password"
-                />
+                <>
+                  <FontAwesomeIcon icon={faLock}
+                                   onClick={() => handlePasswordChangeClick(u)}
+                                   className="actionIcon"
+                                   title="Change password"
+                                   aria-label="Change password"
+                  />
+                  <FontAwesomeIcon icon={faKey}
+                                   onClick={handleApiKeyClick}
+                                   className="actionIcon"
+                                   title="Show API key"
+                                   aria-label="Show API key"
+                  />
+                </>
               )}
             </td>
           </tr>
@@ -186,6 +200,12 @@ const UserManagement = () => {
         <PasswordChangeModal
           isOpen={showPasswordModal}
           onClose={() => setShowPasswordModal(false)}
+        />
+      )}
+      {showApiKeyModal && (
+        <ApiKeyModal
+          isOpen={showApiKeyModal}
+          onClose={() => setShowApiKeyModal(false)}
         />
       )}
     </div>
