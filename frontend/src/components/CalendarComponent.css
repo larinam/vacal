@@ -140,7 +140,8 @@
 .member-name-cell .drag-icon,
 .member-name-cell .edit-icon,
 .member-name-cell .delete-icon,
-.member-name-cell .info-icon {
+.member-name-cell .info-icon,
+.member-name-cell .history-icon {
     visibility: hidden;
 }
 
@@ -152,7 +153,8 @@
 .member-name-cell:hover .drag-icon,
 .member-name-cell:hover .edit-icon,
 .member-name-cell:hover .delete-icon,
-.member-name-cell:hover .info-icon {
+.member-name-cell:hover .info-icon,
+.member-name-cell:hover .history-icon {
     visibility: visible;
 }
 
@@ -205,6 +207,12 @@
 .info-icon {
     margin-left: 10px;
     cursor: help;
+    color: grey;
+}
+
+.history-icon {
+    margin-left: 10px;
+    cursor: pointer;
     color: grey;
 }
 
