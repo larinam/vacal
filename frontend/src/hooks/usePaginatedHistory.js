@@ -9,8 +9,8 @@ export const usePaginatedHistory = (isActive, endpoint) => {
   const listRef = useRef(null);
   const limit = 100;
 
-  const load = async (skip = 0) => {
-    if (isFetching || !hasMore) return;
+  const load = async (skip = 0, force = false) => {
+    if (isFetching || (!hasMore && !force)) return;
     setIsFetching(true);
     try {
       const result = await apiCall(`${endpoint}?skip=${skip}&limit=${limit}`, 'GET');
@@ -33,7 +33,7 @@ export const usePaginatedHistory = (isActive, endpoint) => {
     if (!isActive) return;
     setHistory([]);
     setHasMore(true);
-    load(0);
+    load(0, true);
   }, [isActive, endpoint]);
 
   const handleScroll = () => {
