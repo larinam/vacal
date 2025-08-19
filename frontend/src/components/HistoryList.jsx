@@ -1,8 +1,8 @@
 import React from 'react';
 import {format} from 'date-fns';
 
-const HistoryList = ({history, showDate = false}) => (
-  <div className="day-history-list">
+const HistoryList = React.forwardRef(({history, showDate = false, onScroll}, ref) => (
+  <div className="day-history-list" ref={ref} onScroll={onScroll}>
     {history.length === 0 && <p>No history found.</p>}
     {history.map((entry) => {
       const dayTypesEqual = () => {
@@ -77,6 +77,6 @@ const HistoryList = ({history, showDate = false}) => (
       );
     })}
   </div>
-);
+));
 
 export default HistoryList;
