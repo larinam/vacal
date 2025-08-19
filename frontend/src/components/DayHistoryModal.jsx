@@ -1,25 +1,12 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import Modal from './Modal';
-import {useApi} from '../hooks/useApi';
 import './DayHistoryModal.css';
 import HistoryList from './HistoryList';
+import {usePaginatedHistory} from '../hooks/usePaginatedHistory';
 
 const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
-  const {apiCall} = useApi();
-  const [history, setHistory] = useState([]);
-
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (!isOpen) return;
-      try {
-        const result = await apiCall(`/teams/${teamId}/members/${memberId}/days/${date}/history`, 'GET');
-        setHistory(result);
-      } catch (error) {
-        console.error('Error fetching day history:', error);
-      }
-    };
-    fetchHistory();
-  }, [isOpen, teamId, memberId, date]);
+  const endpoint = `/teams/${teamId}/members/${memberId}/days/${date}/history`;
+  const {history, listRef, handleScroll} = usePaginatedHistory(isOpen, endpoint);
 
   if (!isOpen) return null;
 
@@ -28,7 +15,7 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
       <div className="day-history-modal">
         <div className="close-button" onClick={onClose}>&times;</div>
         <h3>History for {date} ({history.length} {history.length === 1 ? 'item' : 'items'})</h3>
-        <HistoryList history={history} />
+        <HistoryList history={history} ref={listRef} onScroll={handleScroll} />
       </div>
     </Modal>
   );
