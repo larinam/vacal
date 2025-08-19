@@ -272,6 +272,24 @@ async def read_users_me(current_user: Annotated[User, Depends(get_current_active
     return mongo_to_pydantic(current_user, UserDTO)
 
 
+@router.get("/me/api-key")
+async def get_api_key(current_user: Annotated[User, Depends(get_current_active_user)]):
+    api_key = current_user.auth_details.api_key or ""
+    if len(api_key) > 8:
+        masked = api_key[:4] + "*" * (len(api_key) - 8) + api_key[-4:]
+    else:
+        masked = "*" * len(api_key)
+    return {"api_key": masked}
+
+
+@router.post("/me/api-key")
+async def regenerate_api_key(current_user: Annotated[User, Depends(get_current_active_user)]):
+    new_key = secrets.token_urlsafe(16)
+    current_user.auth_details.api_key = new_key
+    current_user.save()
+    return {"api_key": new_key}
+
+
 @router.post("/me/password")
 async def update_password(password_update: PasswordUpdateModel,
                           current_user: Annotated[User, Depends(get_current_active_user)]):
