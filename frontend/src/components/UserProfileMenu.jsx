@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCog, faPlus, faQuestion, faSignOut, faUserPlus, faBriefcase} from '@fortawesome/free-solid-svg-icons';
+import {faCog, faPlus, faQuestion, faSignOut, faUserPlus, faBriefcase, faUser} from '@fortawesome/free-solid-svg-icons';
 import './UserProfileMenu.css';
 import {useAuth} from "../contexts/AuthContext";
 
@@ -36,6 +36,13 @@ const UserProfileMenu = ({setShowDropdown}) => {
     <div className="dropdownMenu" ref={dropdownRef}>
       <div className="dropdownItem" style={{cursor: 'default', backgroundColor: 'transparent', transition: 'none'}}>
         <span>{user.name}{user.tenants.length > 1 ? ` (${currentTenant})` : ''}</span>
+      </div>
+      <div className="dropdownItem" onClick={() => {
+        navigate('/main/settings/usermanagement?profile=true');
+        setShowDropdown(false);
+      }}>
+        <FontAwesomeIcon icon={faUser}/>
+        <span>My profile</span>
       </div>
       <div className="dropdownItem" onClick={() => {
         navigate('/main/settings');
