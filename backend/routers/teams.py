@@ -684,3 +684,24 @@ async def get_day_history(team_id: str, team_member_id: str, date: str,
     ).order_by("-timestamp")
 
     return [mongo_to_pydantic(a, DayAuditDTO) for a in audits]
+
+
+@router.get("/{team_id}/members/{team_member_id}/history")
+async def get_member_history(team_id: str, team_member_id: str,
+                             current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                             tenant: Annotated[Tenant, Depends(get_tenant)]):
+    team: Team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team_member: TeamMember = team.team_members.get(uid=team_member_id)
+    if not team_member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    audits = DayAudit.objects(
+        tenant=tenant,
+        team=team,
+        member_uid=str(team_member.uid),
+    ).order_by("-timestamp")
+
+    return [mongo_to_pydantic(a, DayAuditDTO) for a in audits]

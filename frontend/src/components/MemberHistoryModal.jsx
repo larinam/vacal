@@ -4,7 +4,7 @@ import {useApi} from '../hooks/useApi';
 import './DayHistoryModal.css';
 import HistoryList from './HistoryList';
 
-const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
+const MemberHistoryModal = ({isOpen, onClose, teamId, memberId, memberName}) => {
   const {apiCall} = useApi();
   const [history, setHistory] = useState([]);
 
@@ -12,14 +12,14 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
     const fetchHistory = async () => {
       if (!isOpen) return;
       try {
-        const result = await apiCall(`/teams/${teamId}/members/${memberId}/days/${date}/history`, 'GET');
+        const result = await apiCall(`/teams/${teamId}/members/${memberId}/history`, 'GET');
         setHistory(result);
       } catch (error) {
-        console.error('Error fetching day history:', error);
+        console.error('Error fetching member history:', error);
       }
     };
     fetchHistory();
-  }, [isOpen, teamId, memberId, date]);
+  }, [isOpen, teamId, memberId]);
 
   if (!isOpen) return null;
 
@@ -27,11 +27,11 @@ const DayHistoryModal = ({isOpen, onClose, teamId, memberId, date}) => {
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="day-history-modal">
         <div className="close-button" onClick={onClose}>&times;</div>
-        <h3>History for {date} ({history.length} {history.length === 1 ? 'item' : 'items'})</h3>
-        <HistoryList history={history} />
+        <h3>History for {memberName} ({history.length} {history.length === 1 ? 'item' : 'items'})</h3>
+        <HistoryList history={history} showDate />
       </div>
     </Modal>
   );
 };
 
-export default DayHistoryModal;
+export default MemberHistoryModal;

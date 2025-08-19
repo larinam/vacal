@@ -9,6 +9,7 @@ import {
   faEye,
   faGripVertical,
   faInfoCircle,
+  faHistory,
   faLink,
   faSave,
   faTrashAlt
@@ -20,6 +21,7 @@ import MonthSelector from './MonthSelector';
 import TeamModal from './TeamModal';
 import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
+import MemberHistoryModal from './MemberHistoryModal';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
@@ -47,6 +49,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [editingTeam, setEditingTeam] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
   const [selectedDayInfo, setSelectedDayInfo] = useState(null);
+  const [showMemberHistory, setShowMemberHistory] = useState(false);
+  const [memberHistoryInfo, setMemberHistoryInfo] = useState({teamId: null, memberId: null, memberName: ''});
   const contextMenuRef = useRef(null);
   const [contextMenuPosition, setContextMenuPosition] = useState({x: 0, y: 0});
   const [showContextMenu, setShowContextMenu] = useState(false);
@@ -157,6 +161,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
     setSelectionStart(null);
     setSelectionDayTypes([]);
+  };
+
+  const openMemberHistory = (teamId, member) => {
+    setMemberHistoryInfo({teamId, memberId: member.uid, memberName: member.name});
+    setShowMemberHistory(true);
   };
 
 
@@ -575,6 +584,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         updateTeamData={updateTeamData}
         editingMember={editingMember}
       />
+      <MemberHistoryModal
+        isOpen={showMemberHistory}
+        onClose={() => setShowMemberHistory(false)}
+        teamId={memberHistoryInfo.teamId}
+        memberId={memberHistoryInfo.memberId}
+        memberName={memberHistoryInfo.memberName}
+      />
       <DayTypeContextMenu
         contextMenuRef={contextMenuRef}
         isOpen={showContextMenu}
@@ -712,6 +728,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         {member.name} <span title={member.country}>{member.country_flag}</span>
                         <span className="info-icon">
                             <FontAwesomeIcon icon={faInfoCircle} title={renderVacationDaysTooltip(member)}/>
+                        </span>
+                        <span className="history-icon" onClick={() => openMemberHistory(team._id, member)} title="View history">
+                          <FontAwesomeIcon icon={faHistory}/>
                         </span>
                         <span
                           className="drag-icon"

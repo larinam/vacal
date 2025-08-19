@@ -60,4 +60,14 @@ def test_update_days_creates_audit():
     assert history[0]["action"] == "updated"
     assert history[1]["action"] == "created"
 
+    member_hist_resp = client.get(
+        f"/teams/{team.id}/members/{member.uid}/history",
+        headers={"Tenant-ID": team.tenant.identifier},
+    )
+    assert member_hist_resp.status_code == 200
+    member_history = member_hist_resp.json()
+    assert len(member_history) == 2
+    assert member_history[0]["action"] == "updated"
+    assert member_history[1]["action"] == "created"
+
     app.dependency_overrides = {}
