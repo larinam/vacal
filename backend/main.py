@@ -17,6 +17,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from pydantic.functional_validators import field_validator, model_validator
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from .dependencies import create_access_token, TenantMiddleware
 from .model import User, Tenant
@@ -41,6 +43,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 365
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 
 MULTITENANCY_ENABLED = os.getenv("MULTITENANCY_ENABLED", False)
 
@@ -114,6 +117,10 @@ class TokenDTO(BaseModel):
 
 class TokenDataDTO(BaseModel):
     username: str | None = None
+
+
+class GoogleAuthDTO(BaseModel):
+    token: str
 
 
 class OAuth2PasswordRequestFormMFA(OAuth2PasswordRequestForm):
@@ -208,6 +215,41 @@ async def telegram_login(auth_data: TelegramAuthData):
     if not user.auth_details.telegram_id:
         user.auth_details.telegram_id = auth_data.model_dump().get("id")
         user.save()
+    access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.auth_details.username}, expires_delta=access_token_expires
+    )
+
+    return TokenDTO(access_token=access_token, token_type="bearer")
+
+
+@app.post("/google-login")
+async def google_login(token_data: GoogleAuthDTO):
+    try:
+        id_info = id_token.verify_oauth2_token(token_data.token, google_requests.Request(), GOOGLE_CLIENT_ID)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
+
+    google_id = id_info.get("sub")
+    email = id_info.get("email")
+    if not google_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google ID not found in token")
+
+    user = User.get_by_google_id(google_id)
+    if not user and email:
+        user = User.objects(auth_details__google_email=email).first() or User.objects(email=email).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The user with your Google account is not found in our system")
+
+    if not user.auth_details.google_id:
+        user.auth_details.google_id = google_id
+    if email:
+        user.auth_details.google_email = email
+        if not user.email:
+            user.email = email
+    user.save()
+
     access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.auth_details.username}, expires_delta=access_token_expires
