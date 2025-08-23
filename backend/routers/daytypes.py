@@ -80,32 +80,35 @@ async def update_day_type(day_type_id: str, day_type_dto: DayTypeWriteDTO,
     return {"message": "DayType updated successfully"}
 
 
-def flatten_list(list_of_lists):
-    return [item for sublist in list_of_lists for item in sublist]
+def _is_day_type_in_use(tenant: Tenant, day_type_id: str) -> bool:
+    """Return True if the given DayType id is referenced anywhere in the tenant."""
+    for team in Team.objects(tenant=tenant):
+        if any(str(dt.id) == day_type_id for dt in team.available_day_types):
+            return True
+        for member in team.team_members:
+            if any(str(dt.id) == day_type_id for dt in member.available_day_types):
+                return True
+            for entry in member.days.values():
+                if any(str(dt.id) == day_type_id for dt in entry.day_types):
+                    return True
+    return False
 
 
 @router.delete("/{day_type_id}")
 async def delete_day_type(day_type_id: str,
                           current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                           tenant: Annotated[Tenant, Depends(get_tenant)]):
-    # Check if DayType is used in any TeamMember's days or available_day_types, or in any Team's available_day_types
-    if any(
-            day_type_id in (str(day_type) for day_type in flatten_list(member.days.values()))
-            for team in Team.objects(tenant=tenant)
-            for member in team.team_members
-    ):
+    day_type = DayType.objects(tenant=tenant, id=day_type_id).first()
+    if not day_type:
+        raise HTTPException(status_code=404, detail="DayType not found")
+    if day_type.identifier in DayType.SYSTEM_DAY_TYPE_IDENTIFIERS:
+        raise HTTPException(status_code=400, detail="Can't delete the system DayType")
+    if _is_day_type_in_use(tenant, day_type_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="DayType is in use and cannot be deleted")
 
-    day_type = DayType.objects(tenant=tenant, id=day_type_id).get()
-    if day_type.identifier in DayType.SYSTEM_DAY_TYPE_IDENTIFIERS:
-        raise HTTPException(status_code=400, detail="Can't delete the system DayType")
-
-    # Proceed with deletion if DayType is not in use
-    result = day_type.delete()
-    if result == 0:
-        raise HTTPException(status_code=404, detail="DayType not found")
+    day_type.delete()
     DayTypeReadDTO.from_mongo_reference_field.cache_clear()
     return {"message": "DayType deleted successfully"}
 
