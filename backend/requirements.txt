@@ -17,3 +17,5 @@ python-dateutil
 mongomock
 ics
 pyotp
+google-auth
+requests
