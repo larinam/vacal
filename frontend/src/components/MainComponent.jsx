@@ -71,14 +71,14 @@ const MainComponent = () => {
     const handleGenerateReport = async (startDate, endDate, teamIds) => {
         setShowReportModal(false);
         const teamsQuery = teamIds && teamIds.length > 0 ? `&${teamIds.map(id => `team_ids=${id}`).join('&')}` : '';
-        const reportUrl = `/teams/export-vacations?start_date=${startDate}&end_date=${endDate}${teamsQuery}`;
+        const reportUrl = `/teams/export-absences?start_date=${startDate}&end_date=${endDate}${teamsQuery}`;
 
         try {
             const blob = await apiCall(reportUrl, 'GET', null, true); // Set isBlob to true
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `vacations_${startDate}_${endDate}.xlsx`; // Set the desired file name
+            a.download = `absences_${startDate}_${endDate}.xlsx`; // Set the desired file name
             document.body.appendChild(a);
             a.click();
             a.remove();
