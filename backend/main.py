@@ -20,7 +20,7 @@ from pydantic.functional_validators import field_validator, model_validator
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
-from .dependencies import create_access_token, TenantMiddleware
+from .dependencies import create_access_token, TenantMiddleware, get_current_active_user
 from .model import User, Tenant
 from .routers import users, daytypes, management, teams
 from .scheduled.activate_trials import activate_trials
@@ -121,6 +121,29 @@ class TokenDataDTO(BaseModel):
 
 class GoogleAuthDTO(BaseModel):
     token: str
+
+
+def verify_google_token(token: str) -> tuple[str, str | None]:
+    try:
+        id_info = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
+
+    google_id = id_info.get("sub")
+    email = id_info.get("email")
+    if not google_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google ID not found in token")
+    return google_id, email
+
+
+def link_google_account(user: User, google_id: str, email: str | None):
+    if not user.auth_details.google_id:
+        user.auth_details.google_id = google_id
+    if email:
+        user.auth_details.google_email = email
+        if not user.email:
+            user.email = email
+    user.save()
 
 
 class OAuth2PasswordRequestFormMFA(OAuth2PasswordRequestForm):
@@ -225,16 +248,7 @@ async def telegram_login(auth_data: TelegramAuthData):
 
 @app.post("/google-login")
 async def google_login(token_data: GoogleAuthDTO):
-    try:
-        id_info = id_token.verify_oauth2_token(token_data.token, google_requests.Request(), GOOGLE_CLIENT_ID)
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
-
-    google_id = id_info.get("sub")
-    email = id_info.get("email")
-    if not google_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google ID not found in token")
-
+    google_id, email = verify_google_token(token_data.token)
     user = User.get_by_google_id(google_id)
     if not user and email:
         user = User.objects(auth_details__google_email=email).first() or User.objects(email=email).first()
@@ -242,13 +256,7 @@ async def google_login(token_data: GoogleAuthDTO):
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The user with your Google account is not found in our system")
 
-    if not user.auth_details.google_id:
-        user.auth_details.google_id = google_id
-    if email:
-        user.auth_details.google_email = email
-        if not user.email:
-            user.email = email
-    user.save()
+    link_google_account(user, google_id, email)
 
     access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -256,3 +264,21 @@ async def google_login(token_data: GoogleAuthDTO):
     )
 
     return TokenDTO(access_token=access_token, token_type="bearer")
+
+
+@app.post("/google-connect")
+async def google_connect(
+    token_data: GoogleAuthDTO,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    google_id, email = verify_google_token(token_data.token)
+
+    existing_user = User.get_by_google_id(google_id)
+    if existing_user and existing_user.id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google account already linked to another user",
+        )
+
+    link_google_account(current_user, google_id, email)
+    return {"detail": "Google account linked successfully"}
