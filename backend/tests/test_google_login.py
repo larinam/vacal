@@ -11,11 +11,12 @@ client = TestClient(app)
 def test_google_login_links_existing_user(monkeypatch):
     tenant = Tenant(name=str(uuid.uuid4()), identifier=str(uuid.uuid4())).save()
     email = f"{uuid.uuid4()}@example.com"
+    username = str(uuid.uuid4())
     user = User(
         tenants=[tenant],
         name="Google User",
         email=email,
-        auth_details=AuthDetails(username="existing")
+        auth_details=AuthDetails(username=username)
     ).save()
 
     def mock_verify_oauth2_token(token, request, audience):
