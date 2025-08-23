@@ -16,6 +16,7 @@ class DayTypeWriteDTO(BaseModel):
     name: str
     identifier: str
     color: str
+    is_absence: bool = False
 
 
 class DayTypeReadDTO(DayTypeWriteDTO):
@@ -29,7 +30,8 @@ class DayTypeReadDTO(DayTypeWriteDTO):
             return cls(_id=str(day_type_document.id),
                        name=day_type_document.name,
                        identifier=day_type_document.identifier,
-                       color=day_type_document.color)
+                       color=day_type_document.color,
+                       is_absence=day_type_document.is_absence)
         return None
 
 
@@ -68,6 +70,7 @@ async def update_day_type(day_type_id: str, day_type_dto: DayTypeWriteDTO,
     day_type.name = day_type_dto.name
     day_type.identifier = day_type_dto.identifier
     day_type.color = day_type_dto.color
+    day_type.is_absence = day_type_dto.is_absence
     day_type.save()
     DayTypeReadDTO.from_mongo_reference_field.cache_clear()
     return {"message": "DayType updated successfully"}
