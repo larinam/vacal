@@ -1,11 +1,12 @@
-# vacal - Vacation Calendar
+# vacal - Vacation Calendar: Absence Tracking System
 
-[Vacal](https://vacal.antonlarin.com) is a modern tool for managing calendar-based scheduling processes.
+[Vacal](https://vacal.antonlarin.com) is a modern absence tracking system for managing calendar-based scheduling processes.
+Despite the name, it supports tracking all kinds of absences, not just vacations.
 
 * Manage teams and team members effectively.
-* Organize and track vacation days.
+* Organize and track vacations and other absences.
 * Keep a history of all day modifications. Timestamps are shown in your local timezone.
-* Visualize vacation days, weekends, and public holidays in an intuitive interface.
+* Visualize absences (vacations, sick leave, etc.), weekends, and public holidays in an intuitive interface.
 * Ideal for both local and distributed teams, enhancing team coordination and planning.
 
 ## Technologies
