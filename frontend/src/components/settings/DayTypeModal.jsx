@@ -82,7 +82,7 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
                             className="color-picker"
                         />
                     </div>
-                    <label>
+                    <label className="absence-checkbox">
                         <input
                             type="checkbox"
                             name="is_absence"
