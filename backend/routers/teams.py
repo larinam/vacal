@@ -478,11 +478,11 @@ def auto_adjust_column_width(ws):
         ws.column_dimensions[get_column_letter(column)].width = max_length
 
 
-@router.get("/export-vacations")
-async def export_vacation_report(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                                 tenant: Annotated[Tenant, Depends(get_tenant)],
-                                 start_date: datetime.date = Query(...), end_date: datetime.date = Query(...),
-                                 team_ids: List[str] | None = Query(None)):
+@router.get("/export-absences")
+async def export_absence_report(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                                tenant: Annotated[Tenant, Depends(get_tenant)],
+                                start_date: datetime.date = Query(...), end_date: datetime.date = Query(...),
+                                team_ids: List[str] | None = Query(None)):
     wb = Workbook()
     ws = wb.active
     ws.title = "Day Type Report"
@@ -505,9 +505,13 @@ async def export_vacation_report(current_user: Annotated[User, Depends(get_curre
     wb.save(b_io)
     b_io.seek(0)
 
-    return StreamingResponse(b_io, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                             headers={
-                                 "Content-Disposition": f"attachment; filename=vacations_{start_date}_{end_date}.xlsx"})
+    return StreamingResponse(
+        b_io,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename=absences_{start_date}_{end_date}.xlsx"
+        },
+    )
 
 
 def build_team_calendar(team: Team) -> Calendar:
