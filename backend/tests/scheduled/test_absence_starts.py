@@ -6,7 +6,7 @@ import os
 os.environ.setdefault("MONGO_MOCK", "1")
 os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
-from backend.scheduled.vacation_starts import (
+from backend.scheduled.absence_starts import (
     get_next_working_day,
     only_for_team_member,
 )
@@ -35,16 +35,16 @@ class Member:
 
 def test_only_for_team_member():
     member = Member(name="John Doe", email="john.doe@example.com")
-    team_vacations = [
-        {"name": "John Doe", "email": "john.doe@example.com", "vacation": "2024-07-01"},
-        {"name": "Jane Doe", "email": "jane.doe@example.com", "vacation": "2024-07-02"},
-        {"name": "John Doe", "email": "john.doe@example.com", "vacation": "2024-08-01"},
+    team_absences = [
+        {"name": "John Doe", "email": "john.doe@example.com", "absence": "2024-07-01"},
+        {"name": "Jane Doe", "email": "jane.doe@example.com", "absence": "2024-07-02"},
+        {"name": "John Doe", "email": "john.doe@example.com", "absence": "2024-08-01"},
     ]
 
-    result = only_for_team_member(member, team_vacations)
+    result = only_for_team_member(member, team_absences)
     expected = [
-        {"name": "John Doe", "email": "john.doe@example.com", "vacation": "2024-07-01"},
-        {"name": "John Doe", "email": "john.doe@example.com", "vacation": "2024-08-01"},
+        {"name": "John Doe", "email": "john.doe@example.com", "absence": "2024-07-01"},
+        {"name": "John Doe", "email": "john.doe@example.com", "absence": "2024-08-01"},
     ]
 
     assert result == expected

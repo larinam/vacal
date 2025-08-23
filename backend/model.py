@@ -299,6 +299,7 @@ class DayType(Document):
     name = StringField(required=True, unique_with="tenant")
     identifier = StringField(required=True, unique_with="tenant")
     color = StringField(default=generate_random_hex_color)
+    is_absence = BooleanField(default=False)
 
     meta = {
         "indexes": [
@@ -313,10 +314,10 @@ class DayType(Document):
     def init_day_types(cls, tenant):
         if cls.objects(tenant=tenant).count() == 0:
             initial_day_types = [
-                cls(tenant=tenant, name='Vacation', identifier='vacation', color="#FF6666"),
-                cls(tenant=tenant, name='Compensatory leave', identifier='compensatory_leave', color="#CC99FF"),
-                cls(tenant=tenant, name='Holiday override', identifier='override', color="#EEEEEE"),
-                cls(tenant=tenant, name='Birthday', identifier='birthday', color="#FFC0CB"),
+                cls(tenant=tenant, name='Vacation', identifier='vacation', color="#FF6666", is_absence=True),
+                cls(tenant=tenant, name='Compensatory leave', identifier='compensatory_leave', color="#CC99FF", is_absence=True),
+                cls(tenant=tenant, name='Holiday override', identifier='override', color="#EEEEEE", is_absence=False),
+                cls(tenant=tenant, name='Birthday', identifier='birthday', color="#FFC0CB", is_absence=False),
             ]
             cls.objects.insert(initial_day_types, load_bulk=False)
 
