@@ -89,8 +89,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
         tenant_identifier = request.headers.get("Tenant-ID")
         tenant = Tenant.objects(identifier=tenant_identifier).first()
         token = tenant_var.set(tenant)
-        response = await call_next(request)
-        tenant_var.reset(token)
+        try:
+            response = await call_next(request)
+        finally:
+            tenant_var.reset(token)
         return response
 
 
