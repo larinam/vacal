@@ -152,6 +152,10 @@ class AuthDetails(EmbeddedDocument):
     # Stores various authentication details
     telegram_id = LongField(unique=True, sparse=True)
     telegram_username = StringField(unique=True, required=False, sparse=True)
+    # Fields for Google authentication
+    google_id = StringField(unique=True, required=False, sparse=True)
+    google_email = EmailField(unique=True, required=False, sparse=True)
+    google_refresh_token = StringField(required=False)
     # Fields for username/password authentication
     username = StringField(unique=True, required=True, sparse=True)
     hashed_password = StringField(required=False)
@@ -178,7 +182,9 @@ class User(Document):
             "auth_details.telegram_username",
             "auth_details.username",
             "tenants",
-            "auth_details.api_key"
+            "auth_details.api_key",
+            "auth_details.google_id",
+            "auth_details.google_email"
         ],
         "index_background": True
     }
@@ -190,6 +196,11 @@ class User(Document):
     @classmethod
     def get_by_username(cls, username: str):
         user = cls.objects(auth_details__username=username).first()
+        return user
+
+    @classmethod
+    def get_by_google_id(cls, google_id: str):
+        user = cls.objects(auth_details__google_id=google_id).first()
         return user
 
     def hash_password(self, plain_password):
