@@ -67,6 +67,10 @@ async def update_day_type(day_type_id: str, day_type_dto: DayTypeWriteDTO,
     if day_type.identifier in DayType.SYSTEM_DAY_TYPE_IDENTIFIERS and day_type.identifier != day_type_dto.identifier:
         raise HTTPException(status_code=400, detail="Can't change the identifier for the system DayType")
 
+    if (day_type.identifier in DayType.SYSTEM_DAY_TYPE_IDENTIFIERS and
+            day_type.is_absence != day_type_dto.is_absence):
+        raise HTTPException(status_code=400, detail="Can't change the is_absence flag for the system DayType")
+
     day_type.name = day_type_dto.name
     day_type.identifier = day_type_dto.identifier
     day_type.color = day_type_dto.color
