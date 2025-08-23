@@ -487,9 +487,9 @@ async def export_vacation_report(current_user: Annotated[User, Depends(get_curre
     ws = wb.active
     ws.title = "Day Type Report"
 
-    day_type_names = sorted(DayType.objects(tenant=tenant, identifier__ne="vacation").distinct("name"))
+    day_type_names = sorted(DayType.objects(tenant=tenant).distinct("name"))
 
-    headers = ["Team", "Team Member Name", "Country", "Vacation Days", "Working Days", "Days Worked",
+    headers = ["Team", "Team Member Name", "Country", "Absence Days", "Working Days", "Days Worked",
                "Hours Worked"] + day_type_names
     ws.append(headers)
 
@@ -549,7 +549,6 @@ async def get_calendar_feed(team_id: str, user_api_key: str | None = Query(None)
 
 async def get_report_body_rows(tenant, start_date, end_date, day_type_names, team_ids: List[str] | None = None):
     body_rows = []
-    vacation_day_type_id = DayType.get_vacation_day_type_id(tenant)
     country_holidays = get_holidays(tenant)
     working_hours_in_a_day = 8
     teams_qs = Team.objects(tenant=tenant).order_by("name")
@@ -559,24 +558,27 @@ async def get_report_body_rows(tenant, start_date, end_date, day_type_names, tea
         for member in team.team_members:
             day_type_counts = {}
             member_holidays = country_holidays.get(member.country, [])
-            vac_days_count = 0
+            absence_days_count = 0
             for date_str, day_entry in member.days.items():
                 date = datetime.date.fromisoformat(date_str)
                 if start_date <= date <= end_date:
+                    is_absence_day = False
                     for day_type in day_entry.day_types:
-                        if vacation_day_type_id == str(day_type.id):
-                            vac_days_count += 1
-                            continue
+                        if day_type.is_absence:
+                            is_absence_day = True
                         day_type_name = day_type.name
                         if day_type_name in day_type_counts:
                             day_type_counts[day_type_name] += 1
                         else:
                             day_type_counts[day_type_name] = 1
+                    if is_absence_day:
+                        absence_days_count += 1
             working_days = get_working_days(start_date, end_date, member_holidays)
             body_rows.append(
-                [team.name, member.name, member.country, vac_days_count, working_days, working_days - vac_days_count,
-                 (working_days - vac_days_count) * working_hours_in_a_day] + [day_type_counts.get(n, 0) for n in
-                                                                              day_type_names])
+                [team.name, member.name, member.country, absence_days_count, working_days,
+                 working_days - absence_days_count,
+                 (working_days - absence_days_count) * working_hours_in_a_day] +
+                [day_type_counts.get(n, 0) for n in day_type_names])
     return body_rows
 
 
