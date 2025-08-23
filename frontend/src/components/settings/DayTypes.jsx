@@ -60,6 +60,7 @@ const DayTypes = () => {
                     <th>Name</th>
                     <th>Identifier</th>
                     <th>Color</th>
+                    <th>Absence</th>
                     <th>Actions</th>
                 </tr>
                 </thead>
@@ -72,6 +73,7 @@ const DayTypes = () => {
                               <div className="colorCircle" style={{backgroundColor: dayType.color}}></div>
                               {dayType.color}
                           </td>
+                          <td>{dayType.is_absence ? 'Yes' : 'No'}</td>
                           <td>
                               <FontAwesomeIcon icon={faEdit} onClick={() => handleEditDayTypeClick(dayType)}
                                                className="firstActionIcon"

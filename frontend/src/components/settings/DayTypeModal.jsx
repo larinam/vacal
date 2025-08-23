@@ -9,6 +9,7 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
         name: '',
         identifier: '',
         color: '',
+        is_absence: false,
     });
     const { apiCall } = useApi();
 
@@ -18,6 +19,7 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
                 name: editingDayType.name,
                 identifier: editingDayType.identifier,
                 color: editingDayType.color,
+                is_absence: editingDayType.is_absence,
             });
         }
     }, [editingDayType]);
@@ -38,8 +40,8 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setDayTypeData({ ...dayTypeData, [name]: value });
+        const { name, type, checked, value } = e.target;
+        setDayTypeData({ ...dayTypeData, [name]: type === 'checkbox' ? checked : value });
     };
 
     if (!isOpen) return null;
@@ -80,6 +82,15 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
                             className="color-picker"
                         />
                     </div>
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="is_absence"
+                            checked={dayTypeData.is_absence}
+                            onChange={handleChange}
+                        />
+                        Absence
+                    </label>
                     <div className="button-container">
                         <button type="submit">{editingDayType ? 'Update' : 'Add'} Day Type</button>
                         <button type="button" onClick={onClose}>Close</button>
