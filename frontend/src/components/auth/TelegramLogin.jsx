@@ -12,8 +12,10 @@ const TelegramLogin = ({telegramBotUsername}) => {
   useEffect(() => {
     // Define the onTelegramAuth function
     window.onTelegramAuth = async (user) => {
-      await handleTelegramLogin(user);
-      navigate('/');
+      const result = await handleTelegramLogin(user);
+      if (result?.success) {
+        navigate('/');
+      }
     };
 
     const script = document.createElement('script');

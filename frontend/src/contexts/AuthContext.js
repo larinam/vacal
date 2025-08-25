@@ -38,6 +38,14 @@ export const AuthProvider = ({children}) => {
     };
 
 
+    const loginSucceeded = async (accessToken) => {
+        const newAuthHeader = `Bearer ${accessToken}`;
+        setAuthHeader(newAuthHeader);
+        setIsAuthenticated(true);
+        await fetchCurrentUser(newAuthHeader);
+        return {success: true};
+    };
+
     const handleLogin = async (username, password, otp) => {
         let body =
             `username=${encodeURIComponent(username)}` +
@@ -53,11 +61,7 @@ export const AuthProvider = ({children}) => {
 
         if (response.ok) {
             const data = await response.json();
-            const newAuthHeader = `Bearer ${data.access_token}`;
-            setAuthHeader(newAuthHeader);
-            setIsAuthenticated(true);
-            await fetchCurrentUser(newAuthHeader);
-            return {success: true};
+            return await loginSucceeded(data.access_token);
         } else if (response.status === 403) {
             const data = await response.json();
             return {otpUri: data.otp_uri};
@@ -87,8 +91,7 @@ export const AuthProvider = ({children}) => {
 
         if (response.ok) {
             const data = await response.json();
-            setAuthHeader(`Bearer ${data.access_token}`);
-            setIsAuthenticated(true);
+            return await loginSucceeded(data.access_token);
         } else {
             if (response.status === 404) {
                 const errorData = await response.json();
@@ -98,8 +101,9 @@ export const AuthProvider = ({children}) => {
             }
             setIsAuthenticated(false);
             setAuthHeader('');
+            return {error: 'Authentication failed'};
         }
-    }
+    };
 
     const handleGoogleLogin = async (tokenResponse) => {
         try {
@@ -118,10 +122,7 @@ export const AuthProvider = ({children}) => {
 
             if (response.ok) {
                 const data = await response.json();
-                const newAuthHeader = `Bearer ${data.access_token}`;
-                setAuthHeader(newAuthHeader);
-                setIsAuthenticated(true);
-                await fetchCurrentUser(newAuthHeader);
+                return await loginSucceeded(data.access_token);
             } else {
                 if (response.status === 404) {
                     const errorData = await response.json();
@@ -131,14 +132,16 @@ export const AuthProvider = ({children}) => {
                 }
                 setIsAuthenticated(false);
                 setAuthHeader('');
+                return {error: 'Authentication failed'};
             }
         } catch (error) {
             console.error('Error during Google login', error);
             toast.error('Authentication failed');
             setIsAuthenticated(false);
             setAuthHeader('');
+            return {error: 'Authentication failed'};
         }
-    }
+    };
 
     const handleLogout = () => {
         setIsAuthenticated(false);
