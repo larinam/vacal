@@ -15,6 +15,13 @@ const AppProviders = () => {
   if (!configLoaded) {
     return null;
   }
+  if (!googleClientId) {
+    return (
+      <AuthProvider>
+        <App/>
+      </AuthProvider>
+    );
+  }
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
       <AuthProvider>

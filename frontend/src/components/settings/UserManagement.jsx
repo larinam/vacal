@@ -104,32 +104,44 @@ const UserManagement = () => {
     setShowApiKeyModal(true);
   };
 
-  const googleConnect = useGoogleLogin({
-    scope: 'openid email profile',
-    onSuccess: async (tokenResponse) => {
-      try {
-        const idToken = tokenResponse.id_token;
-        if (!idToken) {
-          toast.error('No ID token received from Google');
-          return;
-        }
-        await apiCall('/google-connect', 'POST', {token: idToken});
-        toast.success('Google account connected');
-        fetchUsers();
-      } catch (error) {
-        console.error('Error connecting Google account:', error);
-        if (error.data && error.data.detail) {
-          toast.error(error.data.detail);
-        } else {
-          toast.error('Error connecting Google account');
-        }
+  const handleGoogleConnect = async (tokenResponse) => {
+    try {
+      const idToken = tokenResponse.id_token;
+      if (!idToken) {
+        toast.error('No ID token received from Google');
+        return;
       }
-    },
-    onError: (error) => {
-      console.error('Google login failed', error);
-      toast.error('Google login failed');
+      await apiCall('/google-connect', 'POST', {token: idToken});
+      toast.success('Google account connected');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error connecting Google account:', error);
+      if (error.data && error.data.detail) {
+        toast.error(error.data.detail);
+      } else {
+        toast.error('Error connecting Google account');
+      }
     }
-  });
+  };
+
+  const GoogleConnectButton = () => {
+    const googleConnect = useGoogleLogin({
+      scope: 'openid email profile',
+      onSuccess: handleGoogleConnect,
+      onError: (error) => {
+        console.error('Google login failed', error);
+        toast.error('Google login failed');
+      }
+    });
+    return (
+      <FontAwesomeIcon icon={faGoogle}
+                       onClick={() => googleConnect()}
+                       className="actionIcon"
+                       title="Connect Google account"
+                       aria-label="Connect Google account"
+      />
+    );
+  };
 
   const handleResetMfa = async (userId, userName) => {
     const isConfirmed = window.confirm(`Reset MFA for ${userName}?`);
@@ -208,12 +220,7 @@ const UserManagement = () => {
                                    aria-label="Show API key"
                   />
                   {googleClientId && !u.auth_details?.google_id && (
-                    <FontAwesomeIcon icon={faGoogle}
-                                     onClick={() => googleConnect()}
-                                     className="actionIcon"
-                                     title="Connect Google account"
-                                     aria-label="Connect Google account"
-                    />
+                    <GoogleConnectButton/>
                   )}
                 </>
               )}
