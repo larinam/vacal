@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import {useAuth} from "../../contexts/AuthContext";
 import {useNavigate} from "react-router-dom";
-import './TelegramLogin.css';
+import './SocialLogin.css';
 
 
 const TelegramLogin = ({telegramBotUsername}) => {
@@ -36,7 +36,7 @@ const TelegramLogin = ({telegramBotUsername}) => {
   }, []);
 
   return (
-    <div className="telegramLoginContainer">
+    <div className="socialLoginContainer">
       <h3>Log in to your existing Vacal account with Telegram</h3>
       <div ref={telegramWidgetRef}></div>
     </div>
