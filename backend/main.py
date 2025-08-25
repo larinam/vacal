@@ -148,6 +148,13 @@ def link_google_account(user: User, google_id: str, email: str | None):
     user.save()
 
 
+def unlink_google_account(user: User):
+    user.auth_details.google_id = None
+    user.auth_details.google_email = None
+    user.auth_details.google_refresh_token = None
+    user.save()
+
+
 class OAuth2PasswordRequestFormMFA(OAuth2PasswordRequestForm):
     def __init__(self, grant_type: str = Form(None, regex="password"), username: str = Form(...),
                  password: str = Form(...), scope: str = Form(""), client_id: str = Form(None),
@@ -284,3 +291,11 @@ async def google_connect(
 
     link_google_account(current_user, google_id, email)
     return {"detail": "Google account linked successfully"}
+
+
+@app.delete("/google-connect")
+async def google_disconnect(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    unlink_google_account(current_user)
+    return {"detail": "Google account disconnected successfully"}
