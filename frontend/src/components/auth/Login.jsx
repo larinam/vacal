@@ -5,12 +5,13 @@ import {useAuth} from "../../contexts/AuthContext";
 import {useNavigate} from "react-router-dom";
 import {toast} from 'react-toastify';
 import TelegramLogin from "./TelegramLogin";
+import GoogleLogin from "./GoogleLogin";
 import {useConfig} from "../../contexts/ConfigContext";
 
 const Login = () => {
   const {handleLogin} = useAuth();
   const navigate = useNavigate();
-  const {isMultitenancyEnabled, isTelegramEnabled, telegramBotUsername, userInitiated} = useConfig();
+  const {isMultitenancyEnabled, isTelegramEnabled, telegramBotUsername, userInitiated, googleClientId} = useConfig();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -111,6 +112,7 @@ const Login = () => {
             Forgot password?
           </p>
         </form>
+        {googleClientId && <GoogleLogin/>}
         {isTelegramEnabled && <TelegramLogin telegramBotUsername={telegramBotUsername}/>}
       </div>
     </div>

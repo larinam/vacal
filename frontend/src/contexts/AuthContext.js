@@ -101,6 +101,45 @@ export const AuthProvider = ({children}) => {
         }
     }
 
+    const handleGoogleLogin = async (tokenResponse) => {
+        try {
+            const idToken = tokenResponse.id_token;
+            if (!idToken) {
+                toast.error('No ID token received from Google');
+                return;
+            }
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/google-login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({token: idToken})
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const newAuthHeader = `Bearer ${data.access_token}`;
+                setAuthHeader(newAuthHeader);
+                setIsAuthenticated(true);
+                await fetchCurrentUser(newAuthHeader);
+            } else {
+                if (response.status === 404) {
+                    const errorData = await response.json();
+                    toast.error(`Authentication failed: ${errorData.detail}`);
+                } else {
+                    toast.error('Authentication failed');
+                }
+                setIsAuthenticated(false);
+                setAuthHeader('');
+            }
+        } catch (error) {
+            console.error('Error during Google login', error);
+            toast.error('Authentication failed');
+            setIsAuthenticated(false);
+            setAuthHeader('');
+        }
+    }
+
     const handleLogout = () => {
         setIsAuthenticated(false);
         setAuthHeader('');
@@ -108,7 +147,7 @@ export const AuthProvider = ({children}) => {
     };
 
     return (
-        <AuthContext value={{isAuthenticated, authHeader, currentTenant, handleLogin, handleTelegramLogin, handleLogout, setCurrentTenant, user}}>
+        <AuthContext value={{isAuthenticated, authHeader, currentTenant, handleLogin, handleTelegramLogin, handleGoogleLogin, handleLogout, setCurrentTenant, user}}>
             {children}
         </AuthContext>
     );

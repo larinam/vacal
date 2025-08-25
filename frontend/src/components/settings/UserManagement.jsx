@@ -11,8 +11,8 @@ import ApiKeyModal from './ApiKeyModal';
 import InviteUserModal from './InviteUserModal';
 import InviteManagement from './InviteManagement';
 import {useLocation, useNavigate} from "react-router-dom";
-import {useGoogleLogin} from '@react-oauth/google';
 import {faGoogle} from '@fortawesome/free-brands-svg-icons';
+import useGoogleAuth from '../../hooks/useGoogleAuth';
 
 const UserManagement = () => {
   const location = useLocation();
@@ -125,14 +125,7 @@ const UserManagement = () => {
   };
 
   const GoogleConnectButton = () => {
-    const googleConnect = useGoogleLogin({
-      scope: 'openid email profile',
-      onSuccess: handleGoogleConnect,
-      onError: (error) => {
-        console.error('Google login failed', error);
-        toast.error('Google login failed');
-      }
-    });
+    const googleConnect = useGoogleAuth(handleGoogleConnect);
     return (
       <FontAwesomeIcon icon={faGoogle}
                        onClick={() => googleConnect()}
