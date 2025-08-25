@@ -4,17 +4,31 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import {AuthProvider} from './contexts/AuthContext';
-import {ConfigProvider} from "./contexts/ConfigContext";
+import {ConfigProvider, useConfig} from "./contexts/ConfigContext";
+import {GoogleOAuthProvider} from '@react-oauth/google';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
+const AppProviders = () => {
+  const {googleClientId, configLoaded} = useConfig();
+  if (!configLoaded) {
+    return null;
+  }
+  return (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <AuthProvider>
+        <App/>
+      </AuthProvider>
+    </GoogleOAuthProvider>
+  );
+};
+
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <ConfigProvider>
-        <App/>
-      </ConfigProvider>
-    </AuthProvider>
+    <ConfigProvider>
+      <AppProviders/>
+    </ConfigProvider>
   </React.StrictMode>
 );
 

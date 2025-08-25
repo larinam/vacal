@@ -15,7 +15,8 @@ def test_read_config():
     config = response.json()
     assert config, "Response JSON should not be empty"
     assert isinstance(config, dict), "Response should be a JSON object"
-    assert len(config) == 4, "Config should contain four key-value pairs"
+    assert len(config) == 5, "Config should contain five key-value pairs"
+    assert config["google_client_id"] == "test-google-client"
 
 
 @pytest.fixture

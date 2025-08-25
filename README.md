@@ -41,6 +41,7 @@ Despite the name, it supports tracking all kinds of absences, not just vacations
 * Create an OAuth 2.0 Client ID in the Google Cloud Console and set `GOOGLE_CLIENT_ID` in the backend environment.
 * The frontend should obtain an ID token from Google and send it to the `/google-login` endpoint.
 * On first login the backend links the Google account to an existing user; later logins use the stored Google ID.
+* Logged-in users can link their Google account from the user management settings via the `/google-connect` endpoint.
 #### Multi-factor authentication
 * The backend uses TOTP-based MFA via `pyotp`.
 * Every user has an `mfa_secret` generated automatically and the `/token` endpoint enforces MFA.
