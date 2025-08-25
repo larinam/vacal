@@ -4,18 +4,22 @@ import UserModal from './UserModal';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEdit, faKey, faTrashAlt, faSyncAlt, faLock} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from "../../contexts/AuthContext";
+import {useConfig} from "../../contexts/ConfigContext";
 import {toast} from 'react-toastify';
 import PasswordChangeModal from "./PasswordChangeModal";
 import ApiKeyModal from './ApiKeyModal';
 import InviteUserModal from './InviteUserModal';
 import InviteManagement from './InviteManagement';
 import {useLocation, useNavigate} from "react-router-dom";
+import {useGoogleLogin} from '@react-oauth/google';
+import {faGoogle} from '@fortawesome/free-brands-svg-icons';
 
 const UserManagement = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const {apiCall} = useApi();
   const {user} = useAuth(); // this is the current user
+  const {googleClientId} = useConfig();
   const [users, setUsers] = useState([]);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -100,6 +104,33 @@ const UserManagement = () => {
     setShowApiKeyModal(true);
   };
 
+  const googleConnect = useGoogleLogin({
+    scope: 'openid email profile',
+    onSuccess: async (tokenResponse) => {
+      try {
+        const idToken = tokenResponse.id_token;
+        if (!idToken) {
+          toast.error('No ID token received from Google');
+          return;
+        }
+        await apiCall('/google-connect', 'POST', {token: idToken});
+        toast.success('Google account connected');
+        fetchUsers();
+      } catch (error) {
+        console.error('Error connecting Google account:', error);
+        if (error.data && error.data.detail) {
+          toast.error(error.data.detail);
+        } else {
+          toast.error('Error connecting Google account');
+        }
+      }
+    },
+    onError: (error) => {
+      console.error('Google login failed', error);
+      toast.error('Google login failed');
+    }
+  });
+
   const handleResetMfa = async (userId, userName) => {
     const isConfirmed = window.confirm(`Reset MFA for ${userName}?`);
     if (isConfirmed) {
@@ -176,6 +207,14 @@ const UserManagement = () => {
                                    title="Show API key"
                                    aria-label="Show API key"
                   />
+                  {googleClientId && !u.auth_details?.google_id && (
+                    <FontAwesomeIcon icon={faGoogle}
+                                     onClick={() => googleConnect()}
+                                     className="actionIcon"
+                                     title="Connect Google account"
+                                     aria-label="Connect Google account"
+                    />
+                  )}
                 </>
               )}
             </td>

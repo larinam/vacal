@@ -97,6 +97,7 @@ class GeneralApplicationConfigDTO(BaseModel):
     telegram_bot_username: str
     user_initiated: bool
     multitenancy_enabled: bool = False
+    google_client_id: str | None = None
 
 
 # General Application Configuration
@@ -107,7 +108,8 @@ async def get_config():
     return {"telegram_enabled": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME),
             "telegram_bot_username": TELEGRAM_BOT_USERNAME,
             "user_initiated": tenant_exists and user_exists,
-            "multitenancy_enabled": MULTITENANCY_ENABLED}
+            "multitenancy_enabled": MULTITENANCY_ENABLED,
+            "google_client_id": GOOGLE_CLIENT_ID}
 
 
 class TokenDTO(BaseModel):

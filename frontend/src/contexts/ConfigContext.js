@@ -8,6 +8,8 @@ export const ConfigProvider = ({children}) => {
   const [isTelegramEnabled, setIsTelegramEnabled] = useState(false);
   const [telegramBotUsername, setTelegramBotUsername] = useState('');
   const [userInitiated, setUserInitiated] = useState(true); // Default to true
+  const [googleClientId, setGoogleClientId] = useState('');
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -21,9 +23,12 @@ export const ConfigProvider = ({children}) => {
         setIsTelegramEnabled(config.telegram_enabled);
         setTelegramBotUsername(config.telegram_bot_username);
         setUserInitiated(config.user_initiated);
+        setGoogleClientId(config.google_client_id);
       } catch (error) {
         console.error('Error fetching configuration:', error);
         toast.error('Failed to load configuration');
+      } finally {
+        setConfigLoaded(true);
       }
     };
 
@@ -38,6 +43,8 @@ export const ConfigProvider = ({children}) => {
         telegramBotUsername,
         userInitiated,
         setUserInitiated,
+        googleClientId,
+        configLoaded,
       }}
     >
       {children}
