@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import UserModal from './UserModal';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faEdit, faKey, faTrashAlt, faSyncAlt, faLock} from '@fortawesome/free-solid-svg-icons';
+import {faEdit, faKey, faTrashAlt, faSyncAlt, faLock, faUnlink} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from "../../contexts/AuthContext";
 import {useConfig} from "../../contexts/ConfigContext";
 import {toast} from 'react-toastify';
@@ -124,6 +124,21 @@ const UserManagement = () => {
     }
   };
 
+  const handleGoogleDisconnect = async () => {
+    try {
+      await apiCall('/google-connect', 'DELETE');
+      toast.success('Google account disconnected');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error disconnecting Google account:', error);
+      if (error.data && error.data.detail) {
+        toast.error(error.data.detail);
+      } else {
+        toast.error('Error disconnecting Google account');
+      }
+    }
+  };
+
   const GoogleConnectButton = () => {
     const googleConnect = useGoogleAuth(handleGoogleConnect);
     return (
@@ -132,6 +147,17 @@ const UserManagement = () => {
                        className="actionIcon"
                        title="Connect Google account"
                        aria-label="Connect Google account"
+      />
+    );
+  };
+
+  const GoogleDisconnectButton = () => {
+    return (
+      <FontAwesomeIcon icon={faUnlink}
+                       onClick={handleGoogleDisconnect}
+                       className="actionIcon"
+                       title="Disconnect Google account"
+                       aria-label="Disconnect Google account"
       />
     );
   };
@@ -169,6 +195,7 @@ const UserManagement = () => {
           <th>Email</th>
           <th>Username</th>
           <th>Telegram Username</th>
+          <th>Google Email</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -180,6 +207,7 @@ const UserManagement = () => {
             <td>{u.email}</td>
             <td>{u.username}</td>
             <td>{u.telegram_username}</td>
+            <td>{u.auth_details?.google_email ?? ''}</td>
             <td>{u.disabled ? 'Disabled' : 'Active'}</td>
             <td>
               <FontAwesomeIcon icon={faEdit}
@@ -214,6 +242,9 @@ const UserManagement = () => {
                   />
                   {googleClientId && !u.auth_details?.google_id && (
                     <GoogleConnectButton/>
+                  )}
+                  {googleClientId && u.auth_details?.google_id && (
+                    <GoogleDisconnectButton/>
                   )}
                 </>
               )}

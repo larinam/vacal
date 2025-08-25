@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import Annotated, List
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from pydantic import field_validator, BaseModel, Field, computed_field
+from pydantic import field_validator, BaseModel, Field, computed_field, field_serializer
 from starlette import status
 
 from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant, \
@@ -41,6 +41,16 @@ class AuthDetailsDTO(BaseModel):
     telegram_username: str | None = None
     username: str
     api_key: str | None = None
+    google_id: str | None = None
+    google_email: str | None = None
+
+    @field_serializer('google_email')
+    def mask_google_email(self, email: str | None):
+        if not email or '@' not in email:
+            return email
+        local, domain = email.split('@', 1)
+        masked_local = local[0] + '*' * max(len(local) - 2, 1) + local[-1]
+        return f"{masked_local}@{domain}"
 
 
 class UserWithoutTenantsDTO(BaseModel):
