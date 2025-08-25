@@ -1,12 +1,17 @@
 import React from 'react';
 import {useAuth} from "../../contexts/AuthContext";
+import {useNavigate} from "react-router-dom";
 import useGoogleAuth from "../../hooks/useGoogleAuth";
 import './SocialLogin.css';
 
 const GoogleLogin = () => {
   const {handleGoogleLogin} = useAuth();
+  const navigate = useNavigate();
   const googleLogin = useGoogleAuth(async (tokenResponse) => {
-    await handleGoogleLogin(tokenResponse);
+    const result = await handleGoogleLogin(tokenResponse);
+    if (result?.success) {
+      navigate('/');
+    }
   });
 
   return (
