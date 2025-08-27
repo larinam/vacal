@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import {useGoogleOAuth} from '@react-oauth/google';
 import {toast} from 'react-toastify';
+import {extractGoogleIdToken} from '../utils/google';
 
 // Custom hook that triggers Google Identity Services and returns an ID token.
 // On success it calls the supplied callback with an object containing `id_token`.
@@ -17,9 +18,8 @@ const useGoogleAuth = (onSuccess) => {
       client_id: clientId,
       ux_mode: 'popup',
       callback: (response) => {
-        const idToken = response.credential;
+        const idToken = extractGoogleIdToken(response);
         if (!idToken) {
-          toast.error('No ID token received from Google');
           return;
         }
         onSuccess({id_token: idToken});

@@ -10,12 +10,7 @@ const GoogleLogin = () => {
   const navigate = useNavigate();
 
   const onSuccess = async (credentialResponse) => {
-    const idToken = credentialResponse.credential;
-    if (!idToken) {
-      toast.error('No ID token received from Google');
-      return;
-    }
-    const result = await handleGoogleLogin({id_token: idToken});
+    const result = await handleGoogleLogin(credentialResponse);
     if (result?.success) {
       navigate('/');
     }
