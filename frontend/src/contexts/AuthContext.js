@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useEffect} from 'react';
 import {toast} from 'react-toastify';
+import {extractGoogleIdToken} from '../utils/google';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 
 export const AuthContext = createContext();
@@ -107,9 +108,8 @@ export const AuthProvider = ({children}) => {
 
     const handleGoogleLogin = async (tokenResponse) => {
         try {
-            const idToken = tokenResponse.id_token;
+            const idToken = extractGoogleIdToken(tokenResponse);
             if (!idToken) {
-                toast.error('No ID token received from Google');
                 return;
             }
             const response = await fetch(`${process.env.REACT_APP_API_URL}/google-login`, {

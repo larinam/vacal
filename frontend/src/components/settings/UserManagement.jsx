@@ -13,6 +13,7 @@ import InviteManagement from './InviteManagement';
 import {useLocation, useNavigate} from "react-router-dom";
 import {faGoogle} from '@fortawesome/free-brands-svg-icons';
 import useGoogleAuth from '../../hooks/useGoogleAuth';
+import {extractGoogleIdToken} from '../../utils/google';
 
 const UserManagement = () => {
   const location = useLocation();
@@ -106,9 +107,8 @@ const UserManagement = () => {
 
   const handleGoogleConnect = async (tokenResponse) => {
     try {
-      const idToken = tokenResponse.id_token;
+      const idToken = extractGoogleIdToken(tokenResponse);
       if (!idToken) {
-        toast.error('No ID token received from Google');
         return;
       }
       await apiCall('/google-connect', 'POST', {token: idToken});
