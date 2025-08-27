@@ -23,7 +23,11 @@ const GoogleLogin = () => {
   return (
     <div className="socialLoginContainer">
       <h3>Log in to your existing Vacal account with Google</h3>
-      <GoogleLoginButton onSuccess={onSuccess} onError={onError}/>
+      <GoogleLoginButton
+        onSuccess={onSuccess}
+        onError={onError}
+        size="large"
+      />
     </div>
   );
 };
