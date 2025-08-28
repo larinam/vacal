@@ -3,6 +3,7 @@ import {useApi} from '../../hooks/useApi';
 import UserModal from './UserModal';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEdit, faKey, faTrashAlt, faSyncAlt, faLock, faUnlink} from '@fortawesome/free-solid-svg-icons';
+import {faGoogle, faTelegram} from '@fortawesome/free-brands-svg-icons';
 import {useAuth} from "../../contexts/AuthContext";
 import {useConfig} from "../../contexts/ConfigContext";
 import {toast} from 'react-toastify';
@@ -11,16 +12,17 @@ import ApiKeyModal from './ApiKeyModal';
 import InviteUserModal from './InviteUserModal';
 import InviteManagement from './InviteManagement';
 import {useLocation, useNavigate} from "react-router-dom";
-import {faGoogle} from '@fortawesome/free-brands-svg-icons';
 import useGoogleAuth from '../../hooks/useGoogleAuth';
 import {extractGoogleIdToken} from '../../utils/google';
+import TelegramLogin from '../auth/TelegramLogin';
+import Modal from '../Modal';
 
 const UserManagement = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const {apiCall} = useApi();
   const {user} = useAuth(); // this is the current user
-  const {googleClientId} = useConfig();
+  const {googleClientId, isTelegramEnabled, telegramBotUsername} = useConfig();
   const [users, setUsers] = useState([]);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -28,11 +30,11 @@ const UserManagement = () => {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [refreshInvites, setRefreshInvites] = useState(false);
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   const query = new URLSearchParams(location.search);
   const inviteUser = query.get('inviteUser');
   const profile = query.get('profile');
-
 
   const fetchUsers = async () => {
     try {
@@ -83,7 +85,7 @@ const UserManagement = () => {
       pathname: location.pathname,
       search: params.toString(),
     });
-  }
+  };
 
   const handleDeleteUser = async (userId, userName) => {
     const isConfirmed = window.confirm(`Are you sure you want to delete the user: ${userName}?`);
@@ -139,6 +141,37 @@ const UserManagement = () => {
     }
   };
 
+  const handleTelegramConnect = async (telegramUser) => {
+    try {
+      await apiCall('/telegram-connect', 'POST', telegramUser);
+      toast.success('Telegram account connected');
+      setShowTelegramModal(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error connecting Telegram account:', error);
+      if (error.data && error.data.detail) {
+        toast.error(error.data.detail);
+      } else {
+        toast.error('Error connecting Telegram account');
+      }
+    }
+  };
+
+  const handleTelegramDisconnect = async () => {
+    try {
+      await apiCall('/telegram-connect', 'DELETE');
+      toast.success('Telegram account disconnected');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error disconnecting Telegram account:', error);
+      if (error.data && error.data.detail) {
+        toast.error(error.data.detail);
+      } else {
+        toast.error('Error disconnecting Telegram account');
+      }
+    }
+  };
+
   const GoogleConnectButton = () => {
     const googleConnect = useGoogleAuth(handleGoogleConnect);
     return (
@@ -161,6 +194,31 @@ const UserManagement = () => {
       />
     );
   };
+
+  const TelegramConnectButton = () => (
+    <>
+      <FontAwesomeIcon icon={faTelegram}
+                       onClick={() => setShowTelegramModal(true)}
+                       className="actionIcon"
+                       title="Connect Telegram account"
+                       aria-label="Connect Telegram account"
+      />
+      <Modal isOpen={showTelegramModal} onClose={() => setShowTelegramModal(false)}>
+        <TelegramLogin telegramBotUsername={telegramBotUsername}
+                       onAuth={handleTelegramConnect}
+                       title="Connect your Telegram account"/>
+      </Modal>
+    </>
+  );
+
+  const TelegramDisconnectButton = () => (
+    <FontAwesomeIcon icon={faUnlink}
+                     onClick={handleTelegramDisconnect}
+                     className="actionIcon"
+                     title="Disconnect Telegram account"
+                     aria-label="Disconnect Telegram account"
+    />
+  );
 
   const handleResetMfa = async (userId, userName) => {
     const isConfirmed = window.confirm(`Reset MFA for ${userName}?`);
@@ -245,6 +303,12 @@ const UserManagement = () => {
                   )}
                   {googleClientId && u.auth_details?.google_id && (
                     <GoogleDisconnectButton/>
+                  )}
+                  {isTelegramEnabled && !u.auth_details?.telegram_id && (
+                    <TelegramConnectButton/>
+                  )}
+                  {isTelegramEnabled && u.auth_details?.telegram_id && (
+                    <TelegramDisconnectButton/>
                   )}
                 </>
               )}
