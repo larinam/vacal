@@ -138,21 +138,31 @@ def verify_google_token(token: str) -> tuple[str, str | None]:
     return google_id, email
 
 
-def link_google_account(user: User, google_id: str, email: str | None):
-    if not user.auth_details.google_id:
-        user.auth_details.google_id = google_id
-    if email:
-        user.auth_details.google_email = email
-        if not user.email:
-            user.email = email
+def update_auth_details(user: User, **fields):
+    for field, value in fields.items():
+        setattr(user.auth_details, field, value)
+        if field == "google_email" and value and not user.email:
+            user.email = value
     user.save()
+
+
+def link_google_account(user: User, google_id: str, email: str | None):
+    updates = {"google_id": google_id}
+    if email:
+        updates["google_email"] = email
+    update_auth_details(user, **updates)
 
 
 def unlink_google_account(user: User):
-    user.auth_details.google_id = None
-    user.auth_details.google_email = None
-    user.auth_details.google_refresh_token = None
-    user.save()
+    update_auth_details(user, google_id=None, google_email=None, google_refresh_token=None)
+
+
+def link_telegram_account(user: User, telegram_id: int, username: str):
+    update_auth_details(user, telegram_id=telegram_id, telegram_username=username)
+
+
+def unlink_telegram_account(user: User):
+    update_auth_details(user, telegram_id=None, telegram_username=None)
 
 
 class OAuth2PasswordRequestFormMFA(OAuth2PasswordRequestForm):
@@ -253,6 +263,36 @@ async def telegram_login(auth_data: TelegramAuthData):
     )
 
     return TokenDTO(access_token=access_token, token_type="bearer")
+
+
+@app.post("/telegram-connect")
+async def telegram_connect(
+    auth_data: TelegramAuthData,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    username = auth_data.username
+    existing_user = User.get_by_telegram_username(username)
+    if existing_user and existing_user.id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Telegram account already linked to another user",
+        )
+    existing_by_id = User.get_by_telegram_id(auth_data.id)
+    if existing_by_id and existing_by_id.id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Telegram account already linked to another user",
+        )
+    link_telegram_account(current_user, auth_data.id, username)
+    return {"detail": "Telegram account linked successfully"}
+
+
+@app.delete("/telegram-connect")
+async def telegram_disconnect(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    unlink_telegram_account(current_user)
+    return {"detail": "Telegram account disconnected successfully"}
 
 
 @app.post("/google-login")
