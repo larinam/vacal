@@ -203,6 +203,11 @@ class User(Document):
         user = cls.objects(auth_details__google_id=google_id).first()
         return user
 
+    @classmethod
+    def get_by_telegram_id(cls, telegram_id: int):
+        user = cls.objects(auth_details__telegram_id=telegram_id).first()
+        return user
+
     def hash_password(self, plain_password):
         self.auth_details.hashed_password = pwd_context.hash(plain_password)
 
