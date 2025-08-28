@@ -245,18 +245,19 @@ class TelegramAuthData(BaseModel):
 @app.post("/telegram-login")
 async def telegram_login(auth_data: TelegramAuthData):
     # At this point, auth_data is already validated by Pydantic
-    username = auth_data.model_dump().get("username").lower()  # Telegram sends the username in the auth data
-    user = User.get_by_telegram_username(username)
+    telegram_id = auth_data.id
+    username = auth_data.username.lower()
 
+    user = User.get_by_telegram_id(telegram_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"The user with your Telegram username: {username} is not found in our system"
-        )
-    # update Telegram ID
+        user = User.get_by_telegram_username(username)
+        if not user or user.auth_details.telegram_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="The user with your Telegram credentials is not found in our system"
+            )
     if not user.auth_details.telegram_id:
-        user.auth_details.telegram_id = auth_data.model_dump().get("id")
-        user.save()
+        update_auth_details(user, telegram_id=telegram_id)
     access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.auth_details.username}, expires_delta=access_token_expires
