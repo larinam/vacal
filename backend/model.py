@@ -374,6 +374,7 @@ class Team(Document):
     meta = {
         "indexes": [
             "tenant",
+            ("tenant", "team_members.email"),
         ],
         "index_background": True
     }
@@ -388,11 +389,13 @@ class Team(Document):
 
 
 def get_unique_countries(tenant):
-    unique_countries = set()
-    for team in Team.objects(tenant=tenant):
-        for member in team.team_members:
-            unique_countries.add(member.country)
-    return list(unique_countries)
+    pipeline = [
+        {"$match": {"tenant": tenant.id}},
+        {"$unwind": "$team_members"},
+        {"$group": {"_id": None, "countries": {"$addToSet": "$team_members.country"}}},
+    ]
+    result = list(Team.objects.aggregate(pipeline))
+    return result[0]["countries"] if result else []
 
 
 class DayAudit(Document):
@@ -417,10 +420,14 @@ class DayAudit(Document):
 
 
 def get_team_id_and_member_uid_by_email(tenant, email):
-    for team in Team.objects(tenant=tenant):
-        for member in team.team_members:
-            if member.email == email:
-                return str(team.id), str(member.uid)
+    team = Team.objects(tenant=tenant, team_members__email=email).only(
+        "id", "team_members__email", "team_members__uid"
+    ).first()
+    if not team:
+        return None, None
+    for member in team.team_members:
+        if member.email == email:
+            return str(team.id), str(member.uid)
     return None, None
 
 
