@@ -10,6 +10,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
         username: '',
         password: '',
         telegram_username: '',
+        disabled: false,
     });
     const { apiCall } = useApi();
 
@@ -21,6 +22,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                 username: editingUser.username,
                 password: '',
                 telegram_username: editingUser.telegram_username || '',
+                disabled: editingUser.disabled || false,
             });
         }
     }, [editingUser]);
@@ -83,6 +85,14 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                             value={newUserData.telegram_username}
                             onChange={(e) => setNewUserData({ ...newUserData, telegram_username: e.target.value })}
                             placeholder="Enter Telegram username"
+                        />
+                    </label>
+                    <label>
+                        Disabled
+                        <input
+                            type="checkbox"
+                            checked={newUserData.disabled}
+                            onChange={(e) => setNewUserData({ ...newUserData, disabled: e.target.checked })}
                         />
                     </label>
                     <div className="button-container">

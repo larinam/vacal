@@ -184,6 +184,8 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestFormM
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if user.disabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     if not user.auth_details.mfa_confirmed:
         if form_data.otp:
             if not user.verify_mfa_code(form_data.otp):
@@ -256,6 +258,8 @@ async def telegram_login(auth_data: TelegramAuthData):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="The user with your Telegram credentials is not found in our system"
             )
+    if user.disabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     if not user.auth_details.telegram_id:
         update_auth_details(user, telegram_id=telegram_id)
     access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -305,7 +309,8 @@ async def google_login(token_data: GoogleAuthDTO):
 
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The user with your Google account is not found in our system")
-
+    if user.disabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     link_google_account(user, google_id, email)
 
     access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

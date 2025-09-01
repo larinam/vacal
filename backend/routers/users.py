@@ -108,6 +108,7 @@ class UserUpdateModel(BaseModel):
     email: str
     username: str
     telegram_username: str | None = None
+    disabled: bool | None = None
 
 
 # noinspection PyNestedDecorators
@@ -235,6 +236,8 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
         user.auth_details.telegram_username = None
     else:
         user.auth_details.telegram_username = user_update.telegram_username.lower()
+    if user_update.disabled is not None:
+        user.disabled = user_update.disabled
     # Don't update password here; handle password updates separately for security
     user.save()
     UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
