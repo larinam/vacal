@@ -46,6 +46,19 @@ def test_login_for_access_token(mock_user):
         assert token_data["token_type"] == "bearer"
 
 
+def test_login_for_access_token_disabled_user(mock_user):
+    mock_user.disabled = True
+    with patch.object(User, 'authenticate_user', return_value=mock_user):
+        response = client.post(
+            "/token",
+            data={"username": "testuser", "password": "testpassword", "otp": "123456"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Inactive user"
+
+
 def test_login_for_access_token_invalid_credentials():
     # Mock the authenticate_user method to return None (invalid credentials)
     with patch.object(User, 'authenticate_user', return_value=None):

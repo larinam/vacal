@@ -76,3 +76,21 @@ def test_telegram_login_fails_if_username_has_different_id():
     response = client.post("/telegram-login", json=payload)
     assert response.status_code == 404
 
+
+def test_telegram_login_fails_for_disabled_user():
+    User.drop_collection()
+    user = User(
+        name="TG User",
+        email="tg4@example.com",
+        auth_details=AuthDetails(username="tguser4", telegram_username="telegramuser"),
+        disabled=True,
+    ).save()
+
+    payload = _generate_payload("telegramuser", 111)
+
+    response = client.post("/telegram-login", json=payload)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Inactive user"
+    user.reload()
+    assert user.auth_details.telegram_id is None
+
