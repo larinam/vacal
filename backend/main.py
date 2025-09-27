@@ -27,6 +27,7 @@ from .scheduled.activate_trials import activate_trials
 from .scheduled.birthdays import send_birthday_email_updates
 from .scheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
 from .scheduled.absence_starts import send_absence_email_updates, send_upcoming_absence_email_updates
+from .scheduled.day_audit_notifications import send_recent_absence_notifications
 
 origins = [
     "http://localhost",
@@ -51,6 +52,7 @@ MULTITENANCY_ENABLED = os.getenv("MULTITENANCY_ENABLED", False)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
+    scheduler.add_job(send_recent_absence_notifications, 'cron', minute=0)
     scheduler.add_job(send_absence_email_updates, 'cron', hour=6, minute=0)
     scheduler.add_job(send_upcoming_absence_email_updates, 'cron', hour=6, minute=1)
     scheduler.add_job(send_birthday_email_updates, 'cron', hour=6, minute=5)
