@@ -12,7 +12,7 @@ from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from .model import User, Tenant
+from .model import User, Tenant, UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 AUTHENTICATION_SECRET_KEY = os.getenv("AUTHENTICATION_SECRET_KEY")
@@ -66,6 +66,19 @@ async def get_tenant(tenant_id: str = Header(None, alias="Tenant-ID")) -> Tenant
 
 def get_current_active_user_check_tenant(current_user: Annotated[User, Depends(get_current_active_user)],
                                          tenant: Annotated[Tenant, Depends(get_tenant)]):
+    if tenant not in current_user.tenants:
+        raise HTTPException(status_code=400, detail="User tenant mismatch with current")
+    return current_user
+
+
+def get_current_active_manager(current_user: Annotated[User, Depends(get_current_active_user)]):
+    if current_user.role != UserRole.MANAGER:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+    return current_user
+
+
+def get_current_active_manager_check_tenant(current_user: Annotated[User, Depends(get_current_active_manager)],
+                                            tenant: Annotated[Tenant, Depends(get_tenant)]):
     if tenant not in current_user.tenants:
         raise HTTPException(status_code=400, detail="User tenant mismatch with current")
     return current_user

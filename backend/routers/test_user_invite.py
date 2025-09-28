@@ -7,7 +7,7 @@ os.environ.setdefault("MONGO_MOCK", "1")
 os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
 from ..main import app
-from ..model import Tenant, User, AuthDetails, UserInvite
+from ..model import Tenant, User, AuthDetails, UserInvite, UserRole
 import pyotp
 
 client = TestClient(app)
@@ -16,7 +16,7 @@ client = TestClient(app)
 def setup_user_and_token():
     tenant = Tenant(name="Tenant", identifier="tenant").save()
     user = User(tenants=[tenant], name="Admin", email="admin@example.com",
-                auth_details=AuthDetails(username="admin"))
+                auth_details=AuthDetails(username="admin"), role=UserRole.MANAGER)
     user.hash_password("pass")
     user.save()
     totp = pyotp.TOTP(user.auth_details.mfa_secret)

@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
     LongField, DateTimeField, IntField, DateField, DecimalField
+from enum import Enum
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 from pwdlib.hashers.bcrypt import BcryptHasher
@@ -164,12 +165,18 @@ class AuthDetails(EmbeddedDocument):
     mfa_confirmed = BooleanField(default=False)
 
 
+class UserRole(str, Enum):
+    EMPLOYEE = "employee"
+    MANAGER = "manager"
+
+
 class User(Document):
     tenants = ListField(ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.PULL))
     name = StringField(required=True)
     email = EmailField(unique=True, required=False, sparse=True, default=None)
     auth_details = EmbeddedDocumentField(AuthDetails)
     disabled = BooleanField(default=False)
+    role = StringField(required=True, choices=[role.value for role in UserRole], default=UserRole.EMPLOYEE.value)
 
     meta = {
         "indexes": [

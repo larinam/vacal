@@ -10,6 +10,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
         username: '',
         password: '',
         telegram_username: '',
+        role: 'employee',
     });
     const { apiCall } = useApi();
 
@@ -21,6 +22,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                 username: editingUser.username,
                 password: '',
                 telegram_username: editingUser.telegram_username || '',
+                role: editingUser.role || 'employee',
             });
         }
     }, [editingUser]);
@@ -84,6 +86,16 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                             onChange={(e) => setNewUserData({ ...newUserData, telegram_username: e.target.value })}
                             placeholder="Enter Telegram username"
                         />
+                    </label>
+                    <label>
+                        Role
+                        <select
+                            value={newUserData.role}
+                            onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
+                        >
+                            <option value="employee">Employee</option>
+                            <option value="manager">Manager</option>
+                        </select>
                     </label>
                     <div className="button-container">
                         <button type="submit">Update User</button>

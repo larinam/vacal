@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 from fastapi.testclient import TestClient
 
 from ..main import app
-from ..model import User, AuthDetails, Tenant
+from ..model import User, AuthDetails, Tenant, UserRole
 
 client = TestClient(app)
 
@@ -24,6 +24,9 @@ def test_create_initial_user():
                            )
     assert response.status_code == 200
     assert response.json() == {"message": "Initial user created successfully"}
+
+    user = User.objects().first()
+    assert user.role == UserRole.MANAGER
 
 
 @pytest.fixture
@@ -43,7 +46,8 @@ def mock_user(mock_tenant):
         email="test@example.com",
         auth_details=AuthDetails(username="testuser"),
         tenants=[mock_tenant],  # Use the mock_tenant here
-        disabled=False
+        disabled=False,
+        role=UserRole.MANAGER,
     )
 
 
@@ -76,11 +80,54 @@ def test_read_users(mock_user, mock_tenant):
         assert users[0]["name"] == "Test User"
         assert users[0]["email"] == "test@example.com"
         assert users[0]["username"] == "testuser"
+        assert users[0]["role"] == UserRole.MANAGER.value
         assert "_id" in users[0]
 
         # Verify that the correct query was made
         mock_user_objects.assert_called_once()
         mock_user_objects.assert_called_once_with(tenants__in=[mock_tenant])
+
+
+def test_update_user_role(mock_tenant):
+    tenant = Tenant(name="Role Tenant", identifier="role-tenant")
+    tenant.save()
+
+    user = User(
+        name="Employee",
+        email="employee@example.com",
+        auth_details=AuthDetails(username="employee"),
+        tenants=[tenant],
+        role=UserRole.EMPLOYEE,
+    )
+    user.save()
+
+    manager = User(
+        name="Manager",
+        email="manager@example.com",
+        auth_details=AuthDetails(username="manager"),
+        tenants=[tenant],
+        role=UserRole.MANAGER,
+    )
+    manager.save()
+
+    with patch('backend.routers.users.get_current_active_user_check_tenant', return_value=manager), \
+         patch('backend.routers.users.get_tenant', return_value=tenant), \
+         patch('jwt.decode', return_value={"sub": "manager"}):
+        response = client.put(
+            f"/users/{user.id}",
+            headers={"Authorization": "Bearer mocked_token", "Tenant-ID": tenant.identifier},
+            json={
+                "name": "Employee",
+                "email": "employee@example.com",
+                "username": "employee",
+                "telegram_username": None,
+                "role": UserRole.MANAGER.value,
+            },
+        )
+
+    assert response.status_code == 200
+    user.reload()
+    assert user.role == UserRole.MANAGER
 
 
 def test_remove_tenant(mock_user, mock_tenant):

@@ -13,7 +13,7 @@ from starlette import status
 from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant, \
     tenant_var
 from ..email_service import send_email
-from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember, UserInvite, PasswordResetToken
+from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember, UserInvite, PasswordResetToken, UserRole
 
 log = logging.getLogger(__name__)
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
@@ -49,6 +49,7 @@ class UserWithoutTenantsDTO(BaseModel):
     email: str | None = None
     disabled: bool | None = None
     auth_details: AuthDetailsDTO
+    role: UserRole = Field(default=UserRole.EMPLOYEE)
 
     @computed_field
     @property
@@ -98,6 +99,7 @@ class UserUpdateModel(BaseModel):
     email: str
     username: str
     telegram_username: str | None = None
+    role: UserRole
 
 
 # noinspection PyNestedDecorators
@@ -154,6 +156,7 @@ async def create_initial_user(user_creation: UserCreationModel):
     user.email = user_creation.email
     user.auth_details = AuthDetails(username=user_creation.username)
     user.hash_password(user_creation.password)
+    user.role = UserRole.MANAGER
     user.save()
 
     await init_business_objects(tenant, user_creation)
@@ -221,6 +224,7 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
     user.name = user_update.name
     user.email = user_update.email
     user.auth_details.username = user_update.username
+    user.role = user_update.role
     if not user_update.telegram_username:
         user.auth_details.telegram_username = None
     else:
@@ -490,6 +494,7 @@ async def register_user_via_invite(token: str, user_creation: UserCreationModel)
             telegram_username=(user_creation.telegram_username.lower() if user_creation.telegram_username else None)
         )
         user.hash_password(user_creation.password)
+        user.role = UserRole.EMPLOYEE
         user.save()
 
     # Mark invite as accepted
