@@ -6,6 +6,7 @@ import pytest
 
 from backend.model import (
     DayAudit,
+    DayEntry,
     DayType,
     Team,
     TeamMember,
@@ -59,6 +60,12 @@ def test_send_recent_absence_notifications_dispatch_and_content():
         team_members=[member_alice, member_bob],
         subscribers=[subscriber],
     ).save()
+
+    alice_day = str(datetime.date(2025, 5, 12))
+    bob_day = str(datetime.date(2025, 5, 13))
+    team.team_members[0].days = {alice_day: DayEntry(day_types=[vacation], comment="Enjoy your vacation!")}
+    team.team_members[1].days = {bob_day: DayEntry(day_types=[compensatory])}
+    team.save()
 
     window_start = datetime.datetime(2025, 5, 10, 10, 0, tzinfo=datetime.timezone.utc)
     DayAudit(
@@ -130,6 +137,9 @@ def test_send_recent_absence_notifications_ignores_non_matching_audits():
         subscribers=[subscriber],
     ).save()
 
+    team.team_members[0].days = {}
+    team.save()
+
     window_start = datetime.datetime(2025, 5, 10, 10, 0, tzinfo=datetime.timezone.utc)
     # Timestamp in the immediately preceding hour should be ignored
     DayAudit(
@@ -159,6 +169,63 @@ def test_send_recent_absence_notifications_ignores_non_matching_audits():
         old_comment="Old",
         new_comment="Updated comment",
         action="updated",
+    ).save()
+
+    with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email:
+        send_recent_absence_notifications(now=now)
+
+    mock_send_email.assert_not_called()
+
+
+def test_send_recent_absence_notifications_skips_removed_absences():
+    now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+
+    subscriber = _create_user("Subscriber", tenant)
+    manager = _create_user("Manager Example", tenant)
+
+    member = TeamMember(name="Dana Example", country="Sweden", email="dana@example.com")
+    team = Team(
+        tenant=tenant,
+        name="Team Gamma",
+        team_members=[member],
+        subscribers=[subscriber],
+    ).save()
+
+    # Final state without absences for the day
+    team.team_members[0].days = {}
+    team.save()
+
+    window_start = datetime.datetime(2025, 5, 10, 10, 0, tzinfo=datetime.timezone.utc)
+
+    DayAudit(
+        tenant=tenant,
+        team=team,
+        member_uid=str(member.uid),
+        date=datetime.date(2025, 5, 16),
+        user=manager,
+        timestamp=window_start + datetime.timedelta(minutes=10),
+        old_day_types=[],
+        new_day_types=[vacation],
+        old_comment="",
+        new_comment="",
+        action="created",
+    ).save()
+
+    DayAudit(
+        tenant=tenant,
+        team=team,
+        member_uid=str(member.uid),
+        date=datetime.date(2025, 5, 16),
+        user=manager,
+        timestamp=window_start + datetime.timedelta(minutes=40),
+        old_day_types=[vacation],
+        new_day_types=[],
+        old_comment="",
+        new_comment="",
+        action="deleted",
     ).save()
 
     with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email:
