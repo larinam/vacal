@@ -2,7 +2,7 @@ import datetime
 import logging
 import os
 from collections import defaultdict
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Set
 
 from ..email_service import send_email
 from ..model import DayAudit, Team
@@ -46,6 +46,17 @@ def _get_member_by_uid(team: Team, member_uid: str):
     return None
 
 
+def _get_current_absence_day_type_ids(member, date: datetime.date) -> Set[str]:
+    day_entry = member.days.get(str(date)) if getattr(member, "days", None) else None
+    if not day_entry:
+        return set()
+    return {
+        str(day_type.id)
+        for day_type in getattr(day_entry, "day_types", [])
+        if getattr(day_type, "is_absence", False)
+    }
+
+
 def _get_actor_name(audit: DayAudit) -> str | None:
     user = audit.user
     if not user:
@@ -74,10 +85,16 @@ def _collect_notifications(
         member = _get_member_by_uid(team, audit.member_uid)
         if member is None:
             continue
+        current_absence_ids = _get_current_absence_day_type_ids(member, audit.date)
+        relevant_day_types = [
+            day_type for day_type in added_absence_day_types if str(day_type.id) in current_absence_ids
+        ]
+        if not relevant_day_types:
+            continue
         entry = {
             "member_name": member.name,
             "date": audit.date,
-            "day_types": [day_type.name for day_type in added_absence_day_types],
+            "day_types": [day_type.name for day_type in relevant_day_types],
             "added_by": _get_actor_name(audit),
             "comment": (audit.new_comment or "").strip(),
         }
