@@ -71,6 +71,18 @@ def get_current_active_user_check_tenant(current_user: Annotated[User, Depends(g
     return current_user
 
 
+def get_current_active_manager(current_user: Annotated[User, Depends(get_current_active_user)]):
+    if not current_user.is_manager():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    return current_user
+
+
+def get_current_active_manager_check_tenant(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)]):
+    if not current_user.is_manager():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    return current_user
+
+
 def mongo_to_pydantic(mongo_document, pydantic_model):
     # Convert MongoEngine Document to a dictionary
     document_dict = mongo_document.to_mongo().to_dict()
