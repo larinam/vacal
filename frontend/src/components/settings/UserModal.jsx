@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import {toast} from "react-toastify";
 import Modal from '../Modal';
+import {useAuth} from '../../contexts/AuthContext';
 
 const UserModal = ({ isOpen, onClose, editingUser }) => {
     const [newUserData, setNewUserData] = useState({
@@ -11,8 +12,10 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
         password: '',
         telegram_username: '',
         disabled: false,
+        role: 'employee',
     });
     const { apiCall } = useApi();
+    const {user: currentUser} = useAuth();
 
     useEffect(() => {
         if (editingUser) {
@@ -23,6 +26,7 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                 password: '',
                 telegram_username: editingUser.telegram_username || '',
                 disabled: editingUser.disabled || false,
+                role: editingUser.role || 'employee',
             });
         }
     }, [editingUser]);
@@ -95,6 +99,19 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                             onChange={(e) => setNewUserData({ ...newUserData, disabled: e.target.checked })}
                         />
                     </label>
+                    {currentUser?.role === 'manager' && (
+                        <label>
+                            Role
+                            <select
+                                value={newUserData.role}
+                                onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
+                                disabled={editingUser && currentUser && editingUser._id === currentUser._id}
+                            >
+                                <option value="employee">Employee</option>
+                                <option value="manager">Manager</option>
+                            </select>
+                        </label>
+                    )}
                     <div className="button-container">
                         <button type="submit">Update User</button>
                         <button type="button" onClick={onClose}>Close</button>

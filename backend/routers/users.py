@@ -4,7 +4,7 @@ import secrets
 import hashlib
 from datetime import datetime
 from functools import lru_cache
-from typing import Annotated, List
+from typing import Annotated, List, Literal
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import field_validator, BaseModel, Field, computed_field, field_serializer
@@ -59,6 +59,7 @@ class UserWithoutTenantsDTO(BaseModel):
     email: str | None = None
     disabled: bool | None = None
     auth_details: AuthDetailsDTO
+    role: str = "employee"
 
     @computed_field
     @property
@@ -109,6 +110,7 @@ class UserUpdateModel(BaseModel):
     username: str
     telegram_username: str | None = None
     disabled: bool | None = None
+    role: Literal["employee", "manager"] | None = None
 
 
 # noinspection PyNestedDecorators
@@ -164,6 +166,7 @@ async def create_initial_user(user_creation: UserCreationModel):
     user.name = user_creation.name
     user.email = user_creation.email
     user.auth_details = AuthDetails(username=user_creation.username)
+    user.role = "manager"
     user.hash_password(user_creation.password)
     user.save()
 
@@ -232,6 +235,25 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
     user.name = user_update.name
     user.email = user_update.email
     user.auth_details.username = user_update.username
+    role_change_requested = user_update.role is not None and user_update.role != user.role
+    editing_self = user.id == current_user.id
+
+    if role_change_requested:
+        if user_update.role == "manager" and not current_user.is_manager():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="Only managers can promote users.")
+        if editing_self:
+            if user.role == "manager" and user_update.role != "manager":
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail="Managers cannot demote themselves.")
+            if not current_user.is_manager():
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                    detail="You cannot change your role.")
+        else:
+            if not current_user.is_manager():
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                    detail="Only managers can update roles.")
+        user.role = user_update.role
     if not user_update.telegram_username:
         user.auth_details.telegram_username = None
     else:
@@ -520,7 +542,12 @@ async def register_user_via_invite(token: str, user_creation: UserCreationModel)
             username=user_creation.username,
             telegram_username=(user_creation.telegram_username.lower() if user_creation.telegram_username else None)
         )
+        user.role = "employee"
         user.hash_password(user_creation.password)
+        user.save()
+
+    if user.role is None:
+        user.role = "employee"
         user.save()
 
     # Mark invite as accepted

@@ -174,6 +174,7 @@ class User(Document):
     email = EmailField(unique=True, required=False, sparse=True, default=None)
     auth_details = EmbeddedDocumentField(AuthDetails)
     disabled = BooleanField(default=False)
+    role = StringField(choices=["employee", "manager"], default="employee")
 
     meta = {
         "indexes": [
@@ -197,6 +198,9 @@ class User(Document):
     def get_by_username(cls, username: str):
         user = cls.objects(auth_details__username=username).first()
         return user
+
+    def is_manager(self) -> bool:
+        return self.role == "manager"
 
     @classmethod
     def get_by_google_id(cls, google_id: str):
