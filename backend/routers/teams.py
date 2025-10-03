@@ -612,11 +612,12 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, Dict[st
         raise HTTPException(status_code=404, detail="Team member not found")
 
     updated_days = {}
+    enforce_absence_limit = current_user.role == "employee"
     audits: List[DayAudit] = []
     for date_str, day_entry_dto in days.items():
         validate_date(date_str)
         filtered_ids = list(filter_out_birthdays(tenant, day_entry_dto["day_types"]))
-        day_types = DayType.objects(tenant=tenant, id__in=filtered_ids).order_by("name")
+        day_types = list(DayType.objects(tenant=tenant, id__in=filtered_ids).order_by("name"))
         old_entry: DayEntry | None = team_member.days.get(date_str)
         new_comment = day_entry_dto.get("comment", '')
 
@@ -641,6 +642,32 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, Dict[st
         day_entry.day_types = day_types
         day_entry.comment = new_comment
         updated_days[date_str] = day_entry
+
+        if (
+            enforce_absence_limit
+            and len(team.team_members) > 1
+            and any(day_type.is_absence for day_type in day_types)
+        ):
+            all_members_absent = True
+            for member in team.team_members:
+                if member.uid == team_member.uid:
+                    entry = day_entry
+                else:
+                    entry = member.days.get(date_str)
+
+                if not entry or not entry.day_types:
+                    all_members_absent = False
+                    break
+
+                if not any(getattr(day_type, "is_absence", False) for day_type in entry.day_types):
+                    all_members_absent = False
+                    break
+
+            if all_members_absent:
+                raise HTTPException(
+                    status_code=400,
+                    detail="At least one teammate must remain available for this day.",
+                )
 
         audits.append(DayAudit(
             tenant=tenant,
