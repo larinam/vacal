@@ -21,15 +21,35 @@ form label {
     font-size: 14px;
     display: flex;
     flex-direction: column;
+    gap: 6px;
 }
 
 form label input {
-    margin-top: 2px;
+    margin-top: 0;
 }
 
-form input[type="text"], form input[type="password"], form input[type="email"], form input[type="number"], form input[type="date"], form input[type="tel"] {
+form input[type="text"],
+form input[type="password"],
+form input[type="email"],
+form input[type="number"],
+form input[type="date"],
+form input[type="tel"],
+form select,
+form textarea {
     padding: 8px;
     border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+form .form-checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+form .form-checkbox input[type="checkbox"] {
+    margin: 0;
 }
 
 form button {

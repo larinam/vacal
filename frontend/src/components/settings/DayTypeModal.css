@@ -21,16 +21,6 @@
     padding: 0;
 }
 
-.absence-checkbox {
-    display: flex;
-    align-items: center;
-    margin: 10px 0;
-}
-
-.absence-checkbox input {
-    margin-right: 8px;
-}
-
 .button-container {
     display: flex;
     justify-content: space-between;

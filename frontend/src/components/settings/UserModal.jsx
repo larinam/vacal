@@ -91,13 +91,13 @@ const UserModal = ({ isOpen, onClose, editingUser }) => {
                             placeholder="Enter Telegram username"
                         />
                     </label>
-                    <label>
-                        Disabled
+                    <label className="form-checkbox">
                         <input
                             type="checkbox"
                             checked={newUserData.disabled}
                             onChange={(e) => setNewUserData({ ...newUserData, disabled: e.target.checked })}
                         />
+                        <span>Disabled</span>
                     </label>
                     {currentUser?.role === 'manager' && (
                         <label>
