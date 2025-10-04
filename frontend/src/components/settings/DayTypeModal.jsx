@@ -82,14 +82,14 @@ const DayTypeModal = ({ isOpen, onClose, editingDayType }) => {
                             className="color-picker"
                         />
                     </div>
-                    <label className="absence-checkbox">
+                    <label className="form-checkbox">
                         <input
                             type="checkbox"
                             name="is_absence"
                             checked={dayTypeData.is_absence}
                             onChange={handleChange}
                         />
-                        Absence
+                        <span>Absence</span>
                     </label>
                     <div className="button-container">
                         <button type="submit">{editingDayType ? 'Update' : 'Add'} Day Type</button>
