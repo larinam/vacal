@@ -681,36 +681,40 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                     onDrop={(e) => handleDrop(e, team._id)}
                   >
                     <td className="team-name-cell">
-                      <span className="collapse-icon"
-                            onClick={() => toggleTeamCollapse(team._id)}>
+                      <div className="team-cell-main">
+                        <span className="collapse-icon"
+                              onClick={() => toggleTeamCollapse(team._id)}>
                           <FontAwesomeIcon
                             icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown}/>
-                      </span>
-                      <span className={`eye-icon ${focusedTeamId === team._id ? 'eye-icon-active' : ''}`}
-                            onClick={() => handleFocusTeam(team._id)}>
-                          <FontAwesomeIcon icon={faEye}/>
-                      </span>
-                      {team.name}
-                      <span className="team-member-count">({team.team_members.length})</span>
-                      <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
-                            title="Add team member">➕</span>
-                      <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
-                            onClick={() => toggleWatchTeam(team._id)}
-                            title={isSubscribed ? 'Unwatch team' : 'Watch team'}>
-                          <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
-                      </span>
-                      <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
-                          <FontAwesomeIcon icon={faEdit}/>
-                      </span>
-                      <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team._id)}
-                            title="Copy calendar feed link">
-                          <FontAwesomeIcon icon={faLink}/>
-                      </span>
-                      {team.team_members.length === 0 && (
-                        <span className="delete-icon" onClick={() => deleteTeam(team._id)}>
-                          <FontAwesomeIcon icon={faTrashAlt}/>
                         </span>
-                      )}
+                        <span className={`eye-icon ${focusedTeamId === team._id ? 'eye-icon-active' : ''}`}
+                              onClick={() => handleFocusTeam(team._id)}>
+                          <FontAwesomeIcon icon={faEye}/>
+                        </span>
+                        <span className="team-name-text">{team.name}</span>
+                        <span className="team-member-count">({team.team_members.length})</span>
+                      </div>
+                      <div className="team-cell-actions">
+                        <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
+                              title="Add team member">➕</span>
+                        <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
+                              onClick={() => toggleWatchTeam(team._id)}
+                              title={isSubscribed ? 'Unwatch team' : 'Watch team'}>
+                          <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
+                        </span>
+                        <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
+                          <FontAwesomeIcon icon={faEdit}/>
+                        </span>
+                        <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team._id)}
+                              title="Copy calendar feed link">
+                          <FontAwesomeIcon icon={faLink}/>
+                        </span>
+                        {team.team_members.length === 0 && (
+                          <span className="delete-icon" onClick={() => deleteTeam(team._id)}>
+                            <FontAwesomeIcon icon={faTrashAlt}/>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     {daysHeader.map(({date}, idx) => {
                       return (<td
@@ -725,27 +729,32 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                   {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
                     <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                       <td className="member-name-cell">
-                        {member.name} <span title={member.country}>{member.country_flag}</span>
-                        <span className="info-icon">
+                        <div className="member-cell-main">
+                          <span className="member-name-text">{member.name}</span>
+                          <span className="member-country" title={member.country}>{member.country_flag}</span>
+                        </div>
+                        <div className="member-cell-actions">
+                          <span className="info-icon">
                             <FontAwesomeIcon icon={faInfoCircle} title={renderVacationDaysTooltip(member)}/>
-                        </span>
-                        <span className="history-icon" onClick={() => openMemberHistory(team._id, member)} title="View history">
-                          <FontAwesomeIcon icon={faHistory}/>
-                        </span>
-                        <span
-                          className="drag-icon"
-                          draggable="true"
-                          onDragStart={(e) => handleDragStart(e, team._id, member.uid, member.name)}
-                          onDragEnd={handleDragEnd}
-                          title="Drag and drop">
-                              <FontAwesomeIcon icon={faGripVertical}/>
                           </span>
-                        <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
+                          <span className="history-icon" onClick={() => openMemberHistory(team._id, member)} title="View history">
+                            <FontAwesomeIcon icon={faHistory}/>
+                          </span>
+                          <span
+                            className="drag-icon"
+                            draggable="true"
+                            onDragStart={(e) => handleDragStart(e, team._id, member.uid, member.name)}
+                            onDragEnd={handleDragEnd}
+                            title="Drag and drop">
+                            <FontAwesomeIcon icon={faGripVertical}/>
+                          </span>
+                          <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
                             <FontAwesomeIcon icon={faEdit}/>
-                        </span>
-                        <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>
-                          <FontAwesomeIcon icon={faTrashAlt}/>
-                        </span>
+                          </span>
+                          <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>
+                            <FontAwesomeIcon icon={faTrashAlt}/>
+                          </span>
+                        </div>
                       </td>
                       {daysHeader.map(({date}, idx) => {
                         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

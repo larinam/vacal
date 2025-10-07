@@ -113,14 +113,48 @@
     background-color: rgba(220, 220, 220, 0.5); /* Light gray with 50% opacity. Highlight only the hovered cell */
 }
 
-.team-name-cell .team-name {
-    margin-right: 10px; /* Adjust as needed */
-}
-
 .team-member-count {
     margin-left: 4px;
     color: #555;
     font-weight: normal;
+}
+
+.team-name-cell,
+.member-name-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.team-cell-main,
+.member-cell-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.team-name-text,
+.member-name-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.team-cell-actions,
+.member-cell-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.member-country {
+    flex: 0 0 auto;
 }
 
 .team-row {
@@ -156,6 +190,19 @@
 .member-name-cell:hover .info-icon,
 .member-name-cell:hover .history-icon {
     visibility: visible;
+}
+
+.team-cell-actions .add-icon,
+.team-cell-actions .watch-icon,
+.team-cell-actions .edit-icon,
+.team-cell-actions .calendar-link-icon,
+.team-cell-actions .delete-icon,
+.member-cell-actions .info-icon,
+.member-cell-actions .history-icon,
+.member-cell-actions .drag-icon,
+.member-cell-actions .edit-icon,
+.member-cell-actions .delete-icon {
+    margin-left: 0;
 }
 
 .edit-icon {
