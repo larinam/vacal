@@ -13,6 +13,8 @@ from backend.model import (
     Tenant,
     User,
     AuthDetails,
+    TeamNotificationSubscription,
+    NotificationTopic,
 )
 from backend.scheduled.day_audit_notifications import send_recent_absence_notifications
 
@@ -58,7 +60,12 @@ def test_send_recent_absence_notifications_dispatch_and_content():
         tenant=tenant,
         name="Team Alpha",
         team_members=[member_alice, member_bob],
-        subscribers=[subscriber],
+        notification_subscriptions=[
+            TeamNotificationSubscription(
+                user=subscriber,
+                topics=[topic.value for topic in NotificationTopic.defaults()],
+            )
+        ],
     ).save()
 
     alice_day = str(datetime.date(2025, 5, 12))
@@ -134,7 +141,12 @@ def test_send_recent_absence_notifications_ignores_non_matching_audits():
         tenant=tenant,
         name="Team Beta",
         team_members=[member],
-        subscribers=[subscriber],
+        notification_subscriptions=[
+            TeamNotificationSubscription(
+                user=subscriber,
+                topics=[topic.value for topic in NotificationTopic.defaults()],
+            )
+        ],
     ).save()
 
     team.team_members[0].days = {}
@@ -191,7 +203,12 @@ def test_send_recent_absence_notifications_skips_removed_absences():
         tenant=tenant,
         name="Team Gamma",
         team_members=[member],
-        subscribers=[subscriber],
+        notification_subscriptions=[
+            TeamNotificationSubscription(
+                user=subscriber,
+                topics=[topic.value for topic in NotificationTopic.defaults()],
+            )
+        ],
     ).save()
 
     # Final state without absences for the day
@@ -232,3 +249,57 @@ def test_send_recent_absence_notifications_skips_removed_absences():
         send_recent_absence_notifications(now=now)
 
     mock_send_email.assert_not_called()
+
+
+def test_send_recent_absence_notifications_respects_topics():
+    now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+
+    subscribed = _create_user("Subscribed", tenant)
+    unsubscribed = _create_user("Unsubscribed", tenant)
+    manager = _create_user("Manager Example", tenant)
+
+    member = TeamMember(name="Eve Example", country="Sweden", email="eve@example.com")
+    team = Team(
+        tenant=tenant,
+        name="Team Delta",
+        team_members=[member],
+        notification_subscriptions=[
+            TeamNotificationSubscription(
+                user=subscribed,
+                topics=[NotificationTopic.RECENT_ABSENCES.value],
+            ),
+            TeamNotificationSubscription(
+                user=unsubscribed,
+                topics=[NotificationTopic.BIRTHDAYS.value],
+            ),
+        ],
+    ).save()
+
+    member.days = {str(datetime.date(2025, 5, 12)): DayEntry(day_types=[vacation])}
+    team.save()
+
+    window_start = datetime.datetime(2025, 5, 10, 10, 0, tzinfo=datetime.timezone.utc)
+    DayAudit(
+        tenant=tenant,
+        team=team,
+        member_uid=str(member.uid),
+        date=datetime.date(2025, 5, 12),
+        user=manager,
+        timestamp=window_start + datetime.timedelta(minutes=15),
+        old_day_types=[],
+        new_day_types=[vacation],
+        old_comment="",
+        new_comment="",
+        action="created",
+    ).save()
+
+    with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email, \
+         patch("backend.scheduled.day_audit_notifications.cors_origin", "https://example.com"):
+        send_recent_absence_notifications(now=now)
+
+    mock_send_email.assert_called_once()
+    args, kwargs = mock_send_email.call_args
+    assert args[2] == subscribed.email

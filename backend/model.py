@@ -4,6 +4,7 @@ import random
 import secrets
 import uuid
 from datetime import datetime, timezone, timedelta
+from enum import Enum
 
 import mongoengine
 import mongomock
@@ -368,12 +369,37 @@ class TeamMember(EmbeddedDocument):
     yearly_vacation_days = DecimalField()
 
 
+class NotificationTopic(str, Enum):
+    RECENT_ABSENCES = "recent_absences"
+    ABSENCE_STARTS = "absence_starts"
+    UPCOMING_ABSENCES = "upcoming_absences"
+    BIRTHDAYS = "birthdays"
+
+    @classmethod
+    def defaults(cls) -> list["NotificationTopic"]:
+        return [topic for topic in cls]
+
+
+class TeamNotificationSubscription(EmbeddedDocument):
+    user = ReferenceField(User, required=True)
+    topics = ListField(StringField(choices=[topic.value for topic in NotificationTopic]), default=list)
+
+    def has_topic(self, topic: NotificationTopic) -> bool:
+        return topic.value in (self.topics or [])
+
+    def set_topics(self, topics: list[NotificationTopic]):
+        self.topics = sorted({topic.value for topic in topics})
+
+    def get_topics(self) -> list[NotificationTopic]:
+        return [NotificationTopic(topic) for topic in self.topics or []]
+
+
 class Team(Document):
     tenant = ReferenceField(Tenant, required=True, reverse_delete_rule=mongoengine.CASCADE)
     name = StringField(required=True, unique_with="tenant")
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
-    subscribers = ListField(ReferenceField(User, reverse_delete_rule=mongoengine.PULL))
+    notification_subscriptions = EmbeddedDocumentListField(TeamNotificationSubscription)
 
     meta = {
         "indexes": [
@@ -390,6 +416,30 @@ class Team(Document):
                 cls(tenant=tenant, name='My Team', team_members=[team_member]),
             ]
             cls.objects.insert(initial_teams, load_bulk=False)
+
+    @property
+    def subscribers(self):
+        return [subscription.user for subscription in self.notification_subscriptions if subscription.user]
+
+    def get_subscription_for_user(self, user: User | None) -> TeamNotificationSubscription | None:
+        if not user:
+            return None
+        for subscription in self.notification_subscriptions:
+            if subscription.user == user:
+                return subscription
+        return None
+
+    def replace_subscription_topics(self, user: User, topics: list[NotificationTopic]):
+        existing = self.get_subscription_for_user(user)
+        if existing is None:
+            existing = TeamNotificationSubscription(user=user)
+            self.notification_subscriptions.append(existing)
+        existing.set_topics(topics)
+
+    def iter_subscriptions_for_topic(self, topic: NotificationTopic):
+        for subscription in self.notification_subscriptions:
+            if subscription.user and subscription.has_topic(topic):
+                yield subscription
 
 
 def get_unique_countries(tenant):

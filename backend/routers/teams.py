@@ -24,7 +24,17 @@ from pydantic.functional_validators import field_validator, model_validator
 from starlette.concurrency import run_in_threadpool
 
 from ..dependencies import get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, tenant_var
-from ..model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry, DayAudit
+from ..model import (
+    Team,
+    TeamMember,
+    get_unique_countries,
+    DayType,
+    User,
+    Tenant,
+    DayEntry,
+    DayAudit,
+    NotificationTopic,
+)
 from ..routers.daytypes import DayTypeReadDTO, get_all_day_types
 from ..routers.users import UserWithoutTenantsDTO
 from ..utils import get_country_holidays
@@ -195,12 +205,37 @@ class TeamWriteDTO(BaseModel):
     available_day_types: List[DayTypeReadDTO] = []
 
 
+class TeamSubscriptionReadDTO(BaseModel):
+    user: UserWithoutTenantsDTO
+    topics: List[NotificationTopic] = Field(default_factory=list)
+
+    @classmethod
+    def from_subscription(cls, subscription):
+        return cls(
+            user=mongo_to_pydantic(subscription.user, UserWithoutTenantsDTO),
+            topics=[NotificationTopic(topic) for topic in subscription.topics or []],
+        )
+
+    @field_validator('user', mode="before")
+    @classmethod
+    def convert_user(cls, value):
+        if isinstance(value, ObjectId):
+            return UserWithoutTenantsDTO.from_mongo_reference_field(value)
+        return value
+
+
 class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
     subscribers: List[UserWithoutTenantsDTO] = []
+    subscriptions: List[TeamSubscriptionReadDTO] = Field(default_factory=list)
 
-    @field_validator('team_members')
+    @model_validator(mode='after')
+    def populate_subscribers(self) -> Self:
+        if not self.subscribers and self.subscriptions:
+            self.subscribers = [subscription.user for subscription in self.subscriptions]
+        return self
+
     @classmethod
     def sort_team_members(cls, team_members):
         return sorted(team_members, key=lambda member: member.name)
@@ -215,6 +250,21 @@ class TeamReadDTO(TeamWriteDTO):
                     converted_subscribers.append(UserWithoutTenantsDTO.from_mongo_reference_field(subscriber))
             return converted_subscribers
         return v
+
+
+class TeamSubscriptionUpdateDTO(BaseModel):
+    notification_topics: List[NotificationTopic] | None = None
+
+    @field_validator('notification_topics')
+    @classmethod
+    def ensure_unique_topics(cls, value):
+        if value is None:
+            return value
+        seen = []
+        for topic in value:
+            if topic not in seen:
+                seen.append(topic)
+        return seen
 
 
 class DayAuditDTO(BaseModel):
@@ -370,7 +420,8 @@ async def subscribe_user_to_team(
         team_id: str,
         current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
         tenant: Annotated[Tenant, Depends(get_tenant)],
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        subscription_update: TeamSubscriptionUpdateDTO | None = None,
 ):
     team = Team.objects(tenant=tenant, id=team_id).first()
     if not team:
@@ -378,11 +429,19 @@ async def subscribe_user_to_team(
 
     user_to_subscribe = User.objects(id=user_id).first() if user_id else current_user
 
-    if user_to_subscribe in team.subscribers:
-        raise HTTPException(status_code=400, detail="User already subscribed to the team")
+    topics = (
+        subscription_update.notification_topics
+        if subscription_update and subscription_update.notification_topics is not None
+        else NotificationTopic.defaults()
+    )
+    if not topics:
+        raise HTTPException(status_code=400, detail="At least one notification topic must be provided")
 
-    team.subscribers.append(user_to_subscribe)
+    existing_subscription = team.get_subscription_for_user(user_to_subscribe)
+    team.replace_subscription_topics(user_to_subscribe, topics)
     team.save()
+    if existing_subscription:
+        return {"message": "User subscription updated successfully"}
     return {"message": "User subscribed to the team successfully"}
 
 
@@ -399,10 +458,10 @@ async def unsubscribe_user_from_team(
 
     user_to_unsubscribe = User.objects(id=user_id).first() if user_id else current_user
 
-    if user_to_unsubscribe not in team.subscribers:
+    subscription = team.get_subscription_for_user(user_to_unsubscribe)
+    if not subscription:
         raise HTTPException(status_code=400, detail="User is not subscribed to the team")
-
-    team.subscribers.remove(user_to_unsubscribe)
+    team.notification_subscriptions.remove(subscription)
     team.save()
     return {"message": "User unsubscribed from the team successfully"}
 
@@ -418,11 +477,34 @@ async def list_team_subscribers(
         raise HTTPException(status_code=404, detail="Team not found")
 
     subscribers = [
-        mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
-        for subscriber in team.subscribers
+        mongo_to_pydantic(subscription.user, UserWithoutTenantsDTO)
+        for subscription in team.notification_subscriptions
+        if subscription.user
     ]
 
     return subscribers
+
+
+@router.get("/{team_id}/subscriptions", response_model=List[TeamSubscriptionReadDTO])
+async def list_team_subscriptions(
+        team_id: str,
+        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+        tenant: Annotated[Tenant, Depends(get_tenant)],
+):
+    team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    return [
+        TeamSubscriptionReadDTO.from_subscription(subscription)
+        for subscription in team.notification_subscriptions
+        if subscription.user
+    ]
+
+
+@router.get("/notification-topics", response_model=List[NotificationTopic])
+async def list_notification_topics():
+    return NotificationTopic.defaults()
 
 
 @router.post("/move-member/{team_member_uid}")

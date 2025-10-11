@@ -2,7 +2,17 @@ import datetime
 import uuid
 from unittest.mock import patch
 
-from backend.model import Tenant, DayType, Team, TeamMember, DayEntry, User, AuthDetails
+from backend.model import (
+    Tenant,
+    DayType,
+    Team,
+    TeamMember,
+    DayEntry,
+    User,
+    AuthDetails,
+    TeamNotificationSubscription,
+    NotificationTopic,
+)
 from backend.scheduled.absence_starts import send_upcoming_absence_email_updates
 
 
@@ -28,7 +38,17 @@ def setup_team_with_ongoing_absence(today: datetime.date):
         current += datetime.timedelta(days=1)
 
     member = TeamMember(name="Alice", country="Sweden", email="alice@example.com", days=days)
-    Team(tenant=tenant, name="Team", team_members=[member], subscribers=[subscriber]).save()
+    Team(
+        tenant=tenant,
+        name="Team",
+        team_members=[member],
+        notification_subscriptions=[
+            TeamNotificationSubscription(
+                user=subscriber,
+                topics=[topic.value for topic in NotificationTopic.defaults()],
+            )
+        ],
+    ).save()
     return subscriber.email
 
 
