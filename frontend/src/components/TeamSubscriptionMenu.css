@@ -1,0 +1,33 @@
+.team-subscription-menu {
+  min-width: 220px;
+}
+
+.team-subscription-menu .menu-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.team-subscription-menu .menu-status {
+  font-size: 0.85em;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.team-subscription-menu .menu-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.team-subscription-menu .menu-option input {
+  cursor: pointer;
+}
+
+.team-subscription-menu .menu-hint {
+  margin-top: 8px;
+  font-size: 0.75em;
+  color: #777;
+}

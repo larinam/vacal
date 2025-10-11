@@ -1,5 +1,5 @@
 import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, isYesterday, startOfWeek} from 'date-fns';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
   faBell as faSolidBell,
@@ -22,9 +22,10 @@ import TeamModal from './TeamModal';
 import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
 import MemberHistoryModal from './MemberHistoryModal';
+import TeamSubscriptionMenu from './TeamSubscriptionMenu';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
-import {useTeamSubscription} from '../hooks/useTeamSubscription';
+import {formatNotificationTopicLabel, useTeamSubscription} from '../hooks/useTeamSubscription';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
@@ -61,9 +62,77 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [selectionStart, setSelectionStart] = useState(null);
   const [selectedCells, setSelectedCells] = useState([]);
   const [selectionDayTypes, setSelectionDayTypes] = useState([]);
+  const subscriptionMenuRef = useRef(null);
+  const [showSubscriptionMenu, setShowSubscriptionMenu] = useState(false);
+  const [subscriptionMenuPosition, setSubscriptionMenuPosition] = useState({x: 0, y: 0});
+  const [subscriptionMenuTeamId, setSubscriptionMenuTeamId] = useState(null);
+  const [subscriptionMenuTopics, setSubscriptionMenuTopics] = useState([]);
+
+  const {notificationTopics, isLoadingTopics, updateTeamSubscription} = useTeamSubscription();
 
   const isSubset = (subset = [], superset = []) =>
     subset.every((val) => superset.includes(val));
+
+  const arraysEqual = (arrA = [], arrB = []) => {
+    if (arrA.length !== arrB.length) {
+      return false;
+    }
+    const sortedA = [...arrA].sort();
+    const sortedB = [...arrB].sort();
+    return sortedA.every((value, index) => value === sortedB[index]);
+  };
+
+  const getUserSubscriptionForTeam = useCallback((team) => {
+    if (!team?.subscriptions) {
+      return null;
+    }
+    return team.subscriptions.find((subscription) => subscription?.user?._id === user._id) || null;
+  }, [user?._id]);
+
+  const applyLocalSubscriptionUpdate = (teamId, topics) => {
+    setTeamData((prevTeams = []) => prevTeams.map((team) => {
+      const currentTeamId = team?._id || team?.id;
+      if (currentTeamId !== teamId) {
+        return team;
+      }
+
+      const existingSubscriptions = team.subscriptions || [];
+      const remainingSubscriptions = existingSubscriptions.filter((subscription) => subscription?.user?._id !== user._id);
+      const remainingSubscribers = (team.subscribers || []).filter((subscriber) => subscriber?._id !== user._id);
+
+      if (!topics.length) {
+        return {
+          ...team,
+          subscriptions: remainingSubscriptions,
+          subscribers: remainingSubscribers,
+        };
+      }
+
+      const existingSubscription = existingSubscriptions.find((subscription) => subscription?.user?._id === user._id);
+      const userInfo = existingSubscription?.user || {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      };
+
+      const updatedSubscription = {
+        ...existingSubscription,
+        user: userInfo,
+        topics,
+      };
+
+      return {
+        ...team,
+        subscriptions: [...remainingSubscriptions, updatedSubscription],
+        subscribers: [...remainingSubscribers, userInfo],
+      };
+    }));
+  };
+
+  const closeSubscriptionMenu = useCallback(() => {
+    setShowSubscriptionMenu(false);
+    setSubscriptionMenuTeamId(null);
+  }, []);
 
   const isSelectableDay = (member, date, baseTypes = []) => {
     const dateStr = formatDate(date);
@@ -210,6 +279,71 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
   }, [showContextMenu, contextMenuPosition]);
 
+  useEffect(() => {
+    if (!showSubscriptionMenu) {
+      return;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeSubscriptionMenu();
+      }
+    };
+
+    const handleMouseDown = (event) => {
+      if (subscriptionMenuRef.current && !subscriptionMenuRef.current.contains(event.target)) {
+        closeSubscriptionMenu();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleMouseDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [showSubscriptionMenu, closeSubscriptionMenu]);
+
+  useEffect(() => {
+    if (showSubscriptionMenu && subscriptionMenuRef.current) {
+      const menuWidth = subscriptionMenuRef.current.offsetWidth;
+      const menuHeight = subscriptionMenuRef.current.offsetHeight;
+      let adjustedX = subscriptionMenuPosition.x;
+      let adjustedY = subscriptionMenuPosition.y;
+
+      if (adjustedX - window.scrollX + menuWidth > window.innerWidth) {
+        adjustedX = Math.max(window.scrollX, adjustedX - menuWidth);
+      }
+
+      if (adjustedY - window.scrollY + menuHeight > window.innerHeight) {
+        adjustedY = Math.max(window.scrollY, adjustedY - menuHeight);
+      }
+
+      if (adjustedX !== subscriptionMenuPosition.x || adjustedY !== subscriptionMenuPosition.y) {
+        setSubscriptionMenuPosition({x: adjustedX, y: adjustedY});
+      }
+    }
+  }, [showSubscriptionMenu, subscriptionMenuPosition]);
+
+  useEffect(() => {
+    if (!showSubscriptionMenu || !subscriptionMenuTeamId) {
+      return;
+    }
+
+    const team = teamData.find((currentTeam) => (currentTeam?._id || currentTeam?.id) === subscriptionMenuTeamId);
+    if (!team) {
+      return;
+    }
+
+    const subscription = getUserSubscriptionForTeam(team) || {topics: []};
+    const topics = subscription.topics || [];
+
+    if (!arraysEqual(topics, subscriptionMenuTopics)) {
+      setSubscriptionMenuTopics(topics);
+    }
+  }, [teamData, showSubscriptionMenu, subscriptionMenuTeamId, getUserSubscriptionForTeam, subscriptionMenuTopics]);
+
   const getFirstMonday = (date) => {
     const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
     return startOfWeek(firstDayOfMonth, {weekStartsOn: 1}); // 1 for Monday
@@ -238,6 +372,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     acc.set(curr.week, (acc.get(curr.week) || 0) + 1);
     return acc;
   }, new Map());
+
+  const notificationTopicsWithLabels = (notificationTopics || []).map((topic) => ({
+    value: topic,
+    label: formatNotificationTopicLabel(topic),
+  }));
 
   const isWeek1InDecember = daysHeader.some(day => day.week === 1 && displayMonth.getMonth() === 11);
 
@@ -416,17 +555,56 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     });
   };
 
-  const {toggleTeamSubscription} = useTeamSubscription();
+  const openTeamSubscriptionMenu = (team, event) => {
+    event.stopPropagation();
+    if (event.type === 'click') {
+      event.preventDefault();
+    }
 
-  const toggleWatchTeam = async (teamId) => {
-    const team = teamData.find(t => t._id === teamId);
-    if (!team) return;
-    const isSubscribed = team.subscribers?.some(sub => sub._id === user._id);
+    const teamId = team?._id || team?.id;
+    if (!teamId) {
+      return;
+    }
+
+    if (showSubscriptionMenu && subscriptionMenuTeamId === teamId) {
+      closeSubscriptionMenu();
+      return;
+    }
+
+    const subscription = getUserSubscriptionForTeam(team) || {topics: []};
+    const xPosition = event.clientX + window.scrollX;
+    const yPosition = event.clientY + window.scrollY;
+
+    setSubscriptionMenuTopics(subscription.topics || []);
+    setSubscriptionMenuTeamId(teamId);
+    setSubscriptionMenuPosition({x: xPosition, y: yPosition});
+    setShowSubscriptionMenu(true);
+  };
+
+  const handleSubscriptionTopicToggle = async (topic, checked) => {
+    if (!subscriptionMenuTeamId) {
+      return;
+    }
+
+    const previousTopics = subscriptionMenuTopics;
+    const updatedTopics = checked
+      ? Array.from(new Set([...subscriptionMenuTopics, topic]))
+      : subscriptionMenuTopics.filter((value) => value !== topic);
+
+    setSubscriptionMenuTopics(updatedTopics);
+
     try {
-      await toggleTeamSubscription(teamId, isSubscribed);
-      updateTeamData();
+      await updateTeamSubscription(subscriptionMenuTeamId, updatedTopics);
+      applyLocalSubscriptionUpdate(subscriptionMenuTeamId, updatedTopics);
+      try {
+        await updateTeamData();
+      } catch (refreshError) {
+        console.error('Failed to refresh team data after updating notification topics:', refreshError);
+      }
     } catch (error) {
-      console.error('Failed to toggle watch status:', error);
+      console.error('Failed to update notification topics:', error);
+      toast.error('Failed to update notification preferences.');
+      setSubscriptionMenuTopics(previousTopics);
     }
   };
 
@@ -517,7 +695,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       const confirmMove = window.confirm(`Are you sure you want to move ${memberName} to the new team?`);
       if (confirmMove) {
         try {
-          const response = await apiCall(`/teams/move-member/${memberId}`, 'POST', {
+          await apiCall(`/teams/move-member/${memberId}`, 'POST', {
             source_team_id: originTeamId,
             target_team_id: targetTeamId,
           });
@@ -607,6 +785,17 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         updateLocalTeamData={updateLocalTeamData}
       />
 
+      <TeamSubscriptionMenu
+        contextMenuRef={subscriptionMenuRef}
+        isOpen={showSubscriptionMenu}
+        position={subscriptionMenuPosition}
+        onClose={closeSubscriptionMenu}
+        topics={notificationTopicsWithLabels}
+        selectedTopics={subscriptionMenuTopics}
+        onToggleTopic={handleSubscriptionTopicToggle}
+        isLoading={isLoadingTopics}
+      />
+
       <div className="stickyHeader">
         <div className="filter-wrapper">
           <input
@@ -668,10 +857,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           </tr>
           </thead>
           <tbody>
-          {filterTeamsAndMembers(teamData).map(team => {
-            const isSubscribed = team.subscribers?.some(sub => sub._id === user._id);
+        {filterTeamsAndMembers(teamData).map(team => {
+            const subscription = getUserSubscriptionForTeam(team);
+            const isSubscribed = (subscription?.topics || []).length > 0;
             return (
-            <React.Fragment key={team.id}>
+            <React.Fragment key={team.id || team._id}>
               {(!focusedTeamId || focusedTeamId === team._id) && (
                 <>
                   <tr
@@ -694,9 +884,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       <span className="team-member-count">({team.team_members.length})</span>
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
-                      <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
-                            onClick={() => toggleWatchTeam(team._id)}
-                            title={isSubscribed ? 'Unwatch team' : 'Watch team'}>
+                      <span
+                        className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onClick={(event) => openTeamSubscriptionMenu(team, event)}
+                        title="Manage team notifications"
+                      >
                           <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
                       </span>
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>

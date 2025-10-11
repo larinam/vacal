@@ -4,7 +4,7 @@ import os
 from collections import defaultdict
 
 from ..email_service import send_email
-from ..model import DayType, Team
+from ..model import DayType, Team, NotificationTopic
 from ..utils import get_country_holidays
 
 log = logging.getLogger(__name__)
@@ -92,8 +92,10 @@ def send_absence_email_updates() -> None:
     for team in Team.objects():
         absences = find_absence_periods(team, today)
         if absences:
-            for subscriber in team.subscribers:
-                absence_info_by_subscriber[subscriber.email].append((team.name, absences))
+            for subscription in team.iter_subscriptions_for_topic(NotificationTopic.ABSENCE_STARTS):
+                subscriber = subscription.user
+                if subscriber and subscriber.email:
+                    absence_info_by_subscriber[subscriber.email].append((team.name, absences))
 
     for email, team_absences in absence_info_by_subscriber.items():
         email_body = generate_consolidated_email_body(team_absences)
@@ -124,8 +126,10 @@ def send_upcoming_absence_email_updates() -> None:
             if absences_next_day:
                 filtered_absences = only_for_team_member(member, absences_next_day)
                 if filtered_absences:
-                    for subscriber in team.subscribers:
-                        absence_info_by_subscriber[subscriber.email][team.name].extend(filtered_absences)
+                    for subscription in team.iter_subscriptions_for_topic(NotificationTopic.UPCOMING_ABSENCES):
+                        subscriber = subscription.user
+                        if subscriber and subscriber.email:
+                            absence_info_by_subscriber[subscriber.email][team.name].extend(filtered_absences)
 
     for email, teams_absences in absence_info_by_subscriber.items():
         flattened_absences = [(team_name, absences) for team_name, absences in teams_absences.items()]

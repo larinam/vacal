@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Dict, Iterable, List, Set
 
 from ..email_service import send_email
-from ..model import DayAudit, Team
+from ..model import DayAudit, Team, NotificationTopic
 
 log = logging.getLogger(__name__)
 
@@ -98,8 +98,9 @@ def _collect_notifications(
             "added_by": _get_actor_name(audit),
             "comment": (audit.new_comment or "").strip(),
         }
-        for subscriber in team.subscribers:
-            if subscriber.email:
+        for subscription in team.iter_subscriptions_for_topic(NotificationTopic.RECENT_ABSENCES):
+            subscriber = subscription.user
+            if subscriber and subscriber.email:
                 notifications[subscriber.email][team.name].append(entry)
     return notifications
 

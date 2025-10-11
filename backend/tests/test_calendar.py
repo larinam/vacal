@@ -2,7 +2,17 @@ from fastapi.testclient import TestClient
 import uuid
 
 from backend.main import app
-from backend.model import Tenant, DayType, Team, TeamMember, DayEntry, User, AuthDetails
+from backend.model import (
+    Tenant,
+    DayType,
+    Team,
+    TeamMember,
+    DayEntry,
+    User,
+    AuthDetails,
+    TeamNotificationSubscription,
+    NotificationTopic,
+)
 
 client = TestClient(app)
 
@@ -22,7 +32,12 @@ def setup_team():
         tenant=tenant,
         name="Team",
         team_members=[member],
-        subscribers=[user],
+        notification_subscriptions=[
+            TeamNotificationSubscription(
+                user=user,
+                topics=[topic.value for topic in NotificationTopic.defaults()],
+            )
+        ],
     ).save()
     return team, user
 
