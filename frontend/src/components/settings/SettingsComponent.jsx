@@ -1,40 +1,41 @@
 import React from 'react';
-import {NavLink, Route, Routes, useLocation} from 'react-router-dom';
+import {Navigate, NavLink, Route, Routes} from 'react-router-dom';
 import DayTypes from './DayTypes';
 import UserManagement from './UserManagement';
 import SubscriptionManagement from "./SubscriptionManagement";
 import './SettingsComponent.css';
 import {useConfig} from "../../contexts/ConfigContext";
 
+const SETTINGS_BASE_PATH = '/main/settings';
+
 const SettingsComponent = ({onClose}) => {
-  const location = useLocation();
-  const normalizedPath = location.pathname.replace(/\/$/, ''); // Remove trailing slash if it exists
-  const isDefaultActive = normalizedPath === '/main/settings';
   const {isMultitenancyEnabled} = useConfig();
+  const navItemClass = ({isActive}) => `navItem${isActive ? ' active' : ''}`;
+  const defaultTabPath = `${SETTINGS_BASE_PATH}/daytypes`;
 
   return (
     <div className="settingsContainer">
       <div className="settingsNavigation">
         <button onClick={onClose} className="closeButton">Close</button>
         <NavLink
-          to="daytypes"
-          className={`navItem ${isDefaultActive ? 'active' : ''}`}
-          activeclassname="active"
+          to={defaultTabPath}
+          end
+          className={navItemClass}
         >
           Day Types
         </NavLink>
         <NavLink
-          to="usermanagement"
-          className="navItem"
-          activeclassname="active"
+          to={`${SETTINGS_BASE_PATH}/usermanagement`}
+          end
+          className={navItemClass}
         >
           Users
         </NavLink>
         {isMultitenancyEnabled && (
           <NavLink
-            to="subscription"
-            className="navItem"
-            activeclassname="active"
+            to={`${SETTINGS_BASE_PATH}/subscription`}
+            end
+            className={navItemClass}
           >
             Subscription
           </NavLink>
@@ -42,13 +43,13 @@ const SettingsComponent = ({onClose}) => {
       </div>
       <div className="settingsContent">
         <Routes>
+          <Route index element={<Navigate to={defaultTabPath} replace />} />
           <Route path="daytypes" element={<DayTypes/>}/>
           <Route path="usermanagement" element={<UserManagement/>}/>
           {isMultitenancyEnabled && (
             <Route path="subscription" element={<SubscriptionManagement/>}/>
           )}
-          {/* Redirect to default tab */}
-          <Route path="/" element={<DayTypes/>}/>
+          <Route path="*" element={<Navigate to={defaultTabPath} replace />} />
         </Routes>
       </div>
     </div>
