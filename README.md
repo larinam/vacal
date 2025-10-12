@@ -20,6 +20,14 @@ Despite the name, it supports tracking all kinds of absences, not just vacations
 * `./run_docker_compose_local.sh`
 * Access on http://localhost:5173
 
+### Hot-reload development stack
+1. Copy the backend environment template: `cp backend/.env.docker-compose.template backend/.env`
+2. Start the full stack with live reload: `./run_dev.sh`
+3. The API runs on http://localhost:8000 and the React app on http://localhost:5173 with automatic rebuilds.
+4. Stop the stack with `Ctrl+C` when you are done.
+
+> The script expects the `docker-compose` CLI to be available (Docker Desktop keeps a V1-compatible shim even with Compose V2).
+
 ## Production deployment
 ### MongoDB
 * Deploy or use existing MongoDB server with enabled authentication. 
