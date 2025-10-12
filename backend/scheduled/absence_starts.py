@@ -5,6 +5,10 @@ from collections import defaultdict
 
 from ..email_service import send_email
 from ..model import DayType, Team
+from ..notification_types import (
+    ABSENCE_DAILY_NOTIFICATION,
+    ABSENCE_UPCOMING_NOTIFICATION,
+)
 from ..utils import get_country_holidays
 
 log = logging.getLogger(__name__)
@@ -92,7 +96,7 @@ def send_absence_email_updates() -> None:
     for team in Team.objects():
         absences = find_absence_periods(team, today)
         if absences:
-            for email in team.get_subscriber_emails():
+            for email in team.get_subscriber_emails(ABSENCE_DAILY_NOTIFICATION):
                 absence_info_by_subscriber[email].append((team.name, absences))
 
     for email, team_absences in absence_info_by_subscriber.items():
@@ -124,7 +128,7 @@ def send_upcoming_absence_email_updates() -> None:
             if absences_next_day:
                 filtered_absences = only_for_team_member(member, absences_next_day)
                 if filtered_absences:
-                    for email in team.get_subscriber_emails():
+                    for email in team.get_subscriber_emails(ABSENCE_UPCOMING_NOTIFICATION):
                         absence_info_by_subscriber[email][team.name].extend(filtered_absences)
 
     for email, teams_absences in absence_info_by_subscriber.items():

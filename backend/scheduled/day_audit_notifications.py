@@ -6,6 +6,7 @@ from typing import Dict, Iterable, List, Set
 
 from ..email_service import send_email
 from ..model import DayAudit, Team
+from ..notification_types import ABSENCE_RECENT_CHANGES_NOTIFICATION
 
 log = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ def _collect_notifications(
             "added_by": _get_actor_name(audit),
             "comment": (audit.new_comment or "").strip(),
         }
-        for email in team.get_subscriber_emails():
+        for email in team.get_subscriber_emails(ABSENCE_RECENT_CHANGES_NOTIFICATION):
             notifications[email][team.name].append(entry)
     return notifications
 
