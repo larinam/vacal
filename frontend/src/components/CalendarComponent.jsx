@@ -467,7 +467,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const handleSubscriptionToggle = async () => {
     if (!subscriptionTeamId) return;
     await toggleWatchTeam(subscriptionTeamId);
-    closeSubscriptionMenu();
   };
 
   const renderVacationDaysTooltip = (member) => {
