@@ -24,6 +24,7 @@ const TeamSubscriptionContextMenu = ({
   const [availableTypes, setAvailableTypes] = useState([]);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const cachedPreferencesRef = useRef(new Map());
+  const cachedNotificationTypesRef = useRef(null);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -54,7 +55,19 @@ const TeamSubscriptionContextMenu = ({
   useEffect(() => {
     cachedPreferencesRef.current.clear();
     setSelectedTypes([]);
+    cachedNotificationTypesRef.current = null;
+    setAvailableTypes([]);
   }, [currentUserId]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (cachedNotificationTypesRef.current) {
+      setAvailableTypes(cachedNotificationTypesRef.current);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !teamId) {
@@ -84,12 +97,20 @@ const TeamSubscriptionContextMenu = ({
       }
 
       const hasCachedPreferences = cachedPreferencesRef.current.has(teamId);
-      setIsLoading(!hasCachedPreferences);
+      const hasCachedTypes = Boolean(cachedNotificationTypesRef.current);
+      setIsLoading(!hasCachedPreferences || !hasCachedTypes);
       setHasError(false);
 
       try {
+        const typeLoader = cachedNotificationTypesRef.current
+          ? Promise.resolve(cachedNotificationTypesRef.current)
+          : listNotificationTypes().then((typesResponse) => {
+            const resolvedTypes = typesResponse || [];
+            cachedNotificationTypesRef.current = resolvedTypes;
+            return resolvedTypes;
+          });
         const [types, preferences] = await Promise.all([
-          listNotificationTypes(),
+          typeLoader,
           currentUserId ? getTeamNotificationPreferences(teamId) : Promise.resolve([]),
         ]);
 
@@ -187,8 +208,9 @@ const TeamSubscriptionContextMenu = ({
 
   const hasCachedPreferences = teamId ? cachedPreferencesRef.current.has(teamId) : false;
   const hasOptions = availableTypes.length > 0;
-  const shouldShowLoadingState = isLoading && !hasCachedPreferences;
+  const shouldShowLoadingState = isLoading && !hasCachedPreferences && availableTypes.length === 0;
   const shouldShowErrorState = hasError && !hasCachedPreferences;
+  const shouldDisableOptions = isProcessing || (isLoading && !hasCachedPreferences);
 
   return (
     <div className="team-subscription-menu" style={style} ref={contextMenuRef}>
@@ -219,7 +241,7 @@ const TeamSubscriptionContextMenu = ({
                     type="checkbox"
                     checked={selectedTypes.includes(type.identifier)}
                     onChange={(event) => handleCheckboxChange(event, type.identifier)}
-                    disabled={isProcessing}
+                    disabled={shouldDisableOptions}
                   />
                   <span className="team-subscription-menu__option-content">
                     <span className="team-subscription-menu__option-label">{type.label}</span>
