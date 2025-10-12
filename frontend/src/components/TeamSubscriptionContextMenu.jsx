@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import './TeamSubscriptionContextMenu.css';
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
 
@@ -23,6 +23,7 @@ const TeamSubscriptionContextMenu = ({
   const [hasError, setHasError] = useState(false);
   const [availableTypes, setAvailableTypes] = useState([]);
   const [selectedTypes, setSelectedTypes] = useState([]);
+  const cachedPreferencesRef = useRef(new Map());
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -51,6 +52,23 @@ const TeamSubscriptionContextMenu = ({
   }, [isOpen, onClose, contextMenuRef]);
 
   useEffect(() => {
+    cachedPreferencesRef.current.clear();
+    setSelectedTypes([]);
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!isOpen || !teamId) {
+      return;
+    }
+
+    if (cachedPreferencesRef.current.has(teamId)) {
+      setSelectedTypes(cachedPreferencesRef.current.get(teamId) || []);
+    } else {
+      setSelectedTypes([]);
+    }
+  }, [isOpen, teamId]);
+
+  useEffect(() => {
     if (!isOpen) {
       setIsLoading(false);
       return;
@@ -65,7 +83,8 @@ const TeamSubscriptionContextMenu = ({
         return;
       }
 
-      setIsLoading(true);
+      const hasCachedPreferences = cachedPreferencesRef.current.has(teamId);
+      setIsLoading(!hasCachedPreferences);
       setHasError(false);
 
       try {
@@ -81,6 +100,7 @@ const TeamSubscriptionContextMenu = ({
         setAvailableTypes(types || []);
 
         if (!currentUserId) {
+          cachedPreferencesRef.current.set(teamId, []);
           setSelectedTypes([]);
           return;
         }
@@ -89,13 +109,17 @@ const TeamSubscriptionContextMenu = ({
           const preferenceUserId = preference.user?._id || preference.user?.id;
           return preferenceUserId === currentUserId;
         });
-        setSelectedTypes(userPreference ? userPreference.notification_types : []);
+        const normalizedTypes = userPreference ? userPreference.notification_types : [];
+        cachedPreferencesRef.current.set(teamId, normalizedTypes);
+        setSelectedTypes(normalizedTypes);
       } catch (error) {
         if (!isCancelled) {
           console.error('Failed to load subscription options:', error);
           setHasError(true);
-          setAvailableTypes([]);
-          setSelectedTypes([]);
+          if (!cachedPreferencesRef.current.has(teamId)) {
+            setAvailableTypes([]);
+            setSelectedTypes([]);
+          }
         }
       } finally {
         if (!isCancelled) {
@@ -141,11 +165,13 @@ const TeamSubscriptionContextMenu = ({
     }
 
     setSelectedTypes(nextTypes);
+    cachedPreferencesRef.current.set(teamId, nextTypes);
     setIsProcessing(true);
 
     try {
       const response = await updateTeamNotificationPreferences(teamId, nextTypes);
       const normalizedTypes = response?.notification_types ?? nextTypes;
+      cachedPreferencesRef.current.set(teamId, normalizedTypes);
       setSelectedTypes(normalizedTypes);
       if (onPreferencesUpdated) {
         await onPreferencesUpdated();
@@ -153,12 +179,16 @@ const TeamSubscriptionContextMenu = ({
     } catch (error) {
       console.error('Failed to update subscription preferences:', error);
       setSelectedTypes(previousTypes);
+      cachedPreferencesRef.current.set(teamId, previousTypes);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const hasCachedPreferences = teamId ? cachedPreferencesRef.current.has(teamId) : false;
   const hasOptions = availableTypes.length > 0;
+  const shouldShowLoadingState = isLoading && !hasCachedPreferences;
+  const shouldShowErrorState = hasError && !hasCachedPreferences;
 
   return (
     <div className="team-subscription-menu" style={style} ref={contextMenuRef}>
@@ -173,9 +203,9 @@ const TeamSubscriptionContextMenu = ({
           &times;
         </button>
       </div>
-      {isLoading ? (
+      {shouldShowLoadingState ? (
         <div className="team-subscription-menu__status">Loading subscription options…</div>
-      ) : hasError ? (
+      ) : shouldShowErrorState ? (
         <div className="team-subscription-menu__status team-subscription-menu__status--error">
           Unable to load subscription options.
         </div>
@@ -202,6 +232,11 @@ const TeamSubscriptionContextMenu = ({
             </div>
           ) : (
             <div className="team-subscription-menu__status">No subscription options available.</div>
+          )}
+          {hasError && hasCachedPreferences && (
+            <div className="team-subscription-menu__status team-subscription-menu__status--error">
+              Showing saved preferences. Failed to refresh latest settings.
+            </div>
           )}
         </>
       )}
