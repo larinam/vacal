@@ -8,6 +8,7 @@ const TeamSubscriptionContextMenu = ({
   onClose,
   teamName,
   isSubscribed,
+  subscribers = [],
   onToggle,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -82,6 +83,20 @@ const TeamSubscriptionContextMenu = ({
         />
         <span>Watch team</span>
       </label>
+      <div className="team-subscription-menu__subscribers">
+        <span className="team-subscription-menu__subscribers-label">Watchers</span>
+        {subscribers.length === 0 ? (
+          <div className="team-subscription-menu__subscribers-empty">No watchers yet</div>
+        ) : (
+          <ul className="team-subscription-menu__subscribers-list">
+            {subscribers.map((subscriber) => (
+              <li key={subscriber._id} className="team-subscription-menu__subscriber">
+                {subscriber.name || subscriber.email || 'Unknown user'}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

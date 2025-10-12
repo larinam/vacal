@@ -657,6 +657,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         onClose={closeSubscriptionMenu}
         teamName={subscriptionTeam?.name || ''}
         isSubscribed={isSubscriptionActive}
+        subscribers={subscriptionTeam?.subscribers || []}
         onToggle={handleSubscriptionToggle}
       />
 

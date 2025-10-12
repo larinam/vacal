@@ -40,3 +40,31 @@
   width: 16px;
   height: 16px;
 }
+
+.team-subscription-menu__subscribers {
+  margin-top: 12px;
+  font-size: 0.85em;
+}
+
+.team-subscription-menu__subscribers-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.team-subscription-menu__subscribers-empty {
+  color: #666;
+}
+
+.team-subscription-menu__subscribers-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.team-subscription-menu__subscriber {
+  padding: 2px 0;
+  word-break: break-word;
+}
