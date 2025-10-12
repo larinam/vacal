@@ -92,8 +92,8 @@ def send_absence_email_updates() -> None:
     for team in Team.objects():
         absences = find_absence_periods(team, today)
         if absences:
-            for subscriber in team.subscribers:
-                absence_info_by_subscriber[subscriber.email].append((team.name, absences))
+            for email in team.get_subscriber_emails():
+                absence_info_by_subscriber[email].append((team.name, absences))
 
     for email, team_absences in absence_info_by_subscriber.items():
         email_body = generate_consolidated_email_body(team_absences)
@@ -124,8 +124,8 @@ def send_upcoming_absence_email_updates() -> None:
             if absences_next_day:
                 filtered_absences = only_for_team_member(member, absences_next_day)
                 if filtered_absences:
-                    for subscriber in team.subscribers:
-                        absence_info_by_subscriber[subscriber.email][team.name].extend(filtered_absences)
+                    for email in team.get_subscriber_emails():
+                        absence_info_by_subscriber[email][team.name].extend(filtered_absences)
 
     for email, teams_absences in absence_info_by_subscriber.items():
         flattened_absences = [(team_name, absences) for team_name, absences in teams_absences.items()]

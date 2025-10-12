@@ -383,6 +383,20 @@ class Team(Document):
         "index_background": True
     }
 
+    def get_subscriber_emails(self) -> list[str]:
+        """Return unique, non-empty email addresses for subscribers, using Google email as fallback."""
+        seen = set()
+        resolved_emails: list[str] = []
+        for subscriber in self.subscribers:
+            email = getattr(subscriber, "email", None)
+            if not email:
+                auth_details = getattr(subscriber, "auth_details", None)
+                email = getattr(auth_details, "google_email", None) if auth_details else None
+            if email and email not in seen:
+                seen.add(email)
+                resolved_emails.append(email)
+        return resolved_emails
+
     @classmethod
     def init_team(cls, tenant, team_member):
         if cls.objects(tenant=tenant).count() == 0:

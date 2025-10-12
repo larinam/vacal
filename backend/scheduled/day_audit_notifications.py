@@ -98,9 +98,8 @@ def _collect_notifications(
             "added_by": _get_actor_name(audit),
             "comment": (audit.new_comment or "").strip(),
         }
-        for subscriber in team.subscribers:
-            if subscriber.email:
-                notifications[subscriber.email][team.name].append(entry)
+        for email in team.get_subscriber_emails():
+            notifications[email][team.name].append(entry)
     return notifications
 
 
