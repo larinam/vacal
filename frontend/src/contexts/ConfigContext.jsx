@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {toast} from 'react-toastify';
+import {API_URL} from '../utils/apiConfig';
 
 export const ConfigContext = createContext();
 
@@ -14,7 +15,7 @@ export const ConfigProvider = ({children}) => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/config`);
+        const response = await fetch(`${API_URL}/config`);
         if (!response.ok) {
           throw new Error('Failed to fetch configuration');
         }

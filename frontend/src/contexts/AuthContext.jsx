@@ -2,6 +2,7 @@ import React, {createContext, useContext, useEffect} from 'react';
 import {toast} from 'react-toastify';
 import {extractGoogleIdToken} from '../utils/google';
 import {useLocalStorage} from '../hooks/useLocalStorage';
+import {API_URL} from '../utils/apiConfig';
 
 export const AuthContext = createContext();
 
@@ -18,7 +19,7 @@ export const AuthProvider = ({children}) => {
     }, [authHeader, currentTenant]);
 
     const fetchCurrentUser = async (token) => {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/users/me`, {
+        const response = await fetch(`${API_URL}/users/me`, {
             headers: {
                 'Authorization': token || authHeader  // Use the token if provided, otherwise fallback to authHeader
             }
@@ -54,7 +55,7 @@ export const AuthProvider = ({children}) => {
         if (otp) {
             body += `&otp=${encodeURIComponent(otp)}`;
         }
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/token`, {
+        const response = await fetch(`${API_URL}/token`, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body,
@@ -82,7 +83,7 @@ export const AuthProvider = ({children}) => {
     };
 
     const handleTelegramLogin = async (telegramUser) => {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/telegram-login`, {
+        const response = await fetch(`${API_URL}/telegram-login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ export const AuthProvider = ({children}) => {
             if (!idToken) {
                 return;
             }
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/google-login`, {
+            const response = await fetch(`${API_URL}/google-login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -21,21 +21,21 @@
     "react-big-calendar": "^1.19.4",
     "react-dom": "^19.2.0",
     "react-router-dom": "^6.30.1",
-    "react-scripts": "^5.0.1",
     "react-toastify": "^11.0.5",
     "web-vitals": "^5.1.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "jsdom": "^27.0.0",
+    "vite": "^7.1.9",
+    "vitest": "^3.2.4"
   },
   "browserslist": {
     "production": [

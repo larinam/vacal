@@ -10,8 +10,8 @@ COPY ./package*.json ./
 # Install any needed packages
 RUN npm install
 
-# Make port 3000 available to the world outside this container
-EXPOSE 3000
+# Make port 5173 available to the world outside this container
+EXPOSE 5173
 
 # Define the command to run your app
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

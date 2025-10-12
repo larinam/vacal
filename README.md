@@ -11,14 +11,14 @@ Despite the name, it supports tracking all kinds of absences, not just vacations
 
 ## Technologies
 * Uses Python [FastAPI](https://github.com/tiangolo/fastapi) on the backend and [MongoDB](https://github.com/mongodb/mongo) as storage.
-* [ReactJS](https://github.com/facebook/react) on the frontend.
+* [ReactJS](https://github.com/facebook/react) with [Vite](https://vitejs.dev) on the frontend.
 
 ## Screenshot
 ![Screenshot.png](Screenshot.png)
 
 ## Run locally with only one command (Docker Compose)
 * `./run_docker_compose_local.sh`
-* Access on http://localhost:3000
+* Access on http://localhost:5173
 
 ## Production deployment
 ### MongoDB
@@ -27,9 +27,9 @@ Despite the name, it supports tracking all kinds of absences, not just vacations
 * Use prebuilt Docker container from this repository [packages](https://github.com/larinam/vacal/pkgs/container/vacal).
 * Provide to container relevant environment variables defined in [`backend/.env.template`](https://github.com/larinam/vacal/blob/main/backend/.env.template). 
 ### Frontend
-* Create `.env.production.local` from [`frontend/.env.example`](https://github.com/larinam/vacal/blob/main/frontend/.env.example). 
+* Create `.env.production.local` from [`frontend/.env.example`](https://github.com/larinam/vacal/blob/main/frontend/.env.example) and set `VITE_API_URL`. 
 * Build with `npm run build`. 
-* Use built static sources from the `build` folder.
+* Use built static sources from the `dist` folder.
 ### Authentication
 #### User/Password authentication
 * For USERNAME/PASSWORD AUTHENTICATION generate a string like this run: `openssl rand -hex 32` and set `AUTHENTICATION_SECRET_KEY` in the environment.

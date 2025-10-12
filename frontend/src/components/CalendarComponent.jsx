@@ -27,6 +27,7 @@ import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
 import {useLocalStorage} from '../hooks/useLocalStorage';
+import {API_URL} from '../utils/apiConfig';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {apiCall} = useApi();
@@ -428,7 +429,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
   const handleCopyCalendarLink = (teamId) => {
-    const link = `${process.env.REACT_APP_API_URL}/teams/calendar/${teamId}?user_api_key=${user.auth_details.api_key}`;
+    const link = `${API_URL}/teams/calendar/${teamId}?user_api_key=${user.auth_details.api_key}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success('Calendar link copied');
     }).catch(() => {

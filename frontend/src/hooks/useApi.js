@@ -1,6 +1,7 @@
 import {useAuth} from '../contexts/AuthContext';
 import {useLoading} from './useLoading';
 import {useNavigate} from "react-router-dom";
+import {API_URL} from '../utils/apiConfig';
 
 export const useApi = () => {
     const [isLoading, startLoading, stopLoading] = useLoading();
@@ -9,7 +10,7 @@ export const useApi = () => {
 
     const apiCall = async (url, method = 'GET', body = null, isBlob = false, signal = null) => {
         const loadingTimer = startLoading();
-        const fullUrl = `${process.env.REACT_APP_API_URL}${url}`;
+        const fullUrl = `${API_URL}${url}`;
         const options = {
             method,
             headers: {

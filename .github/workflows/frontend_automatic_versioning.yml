@@ -25,7 +25,7 @@ jobs:
         working-directory: frontend
 
       - name: Run frontend tests
-        run: npm test -- --watchAll=false
+        run: npm test -- --run
         working-directory: frontend
 
       - name: Calculate new version

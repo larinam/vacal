@@ -31,9 +31,9 @@ from .scheduled.day_audit_notifications import send_recent_absence_notifications
 
 origins = [
     "http://localhost",
-    "http://localhost:3000",
     "http://127.0.0.1",
-    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
