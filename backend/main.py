@@ -168,7 +168,7 @@ def unlink_telegram_account(user: User):
 
 
 class OAuth2PasswordRequestFormMFA(OAuth2PasswordRequestForm):
-    def __init__(self, grant_type: str = Form(None, regex="password"), username: str = Form(...),
+    def __init__(self, grant_type: str = Form(None, pattern="^password$"), username: str = Form(...),
                  password: str = Form(...), scope: str = Form(""), client_id: str = Form(None),
                  client_secret: str = Form(None), otp: str | None = Form(None)):
         super().__init__(grant_type=grant_type, username=username, password=password,

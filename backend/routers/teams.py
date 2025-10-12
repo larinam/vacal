@@ -19,7 +19,7 @@ from ics.grammar.parse import ContentLine
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from pycountry.db import Country
-from pydantic import BaseModel, Field, computed_field, EmailStr, PrivateAttr
+from pydantic import BaseModel, Field, computed_field, EmailStr, PrivateAttr, field_serializer
 from pydantic.functional_validators import field_validator, model_validator
 from starlette.concurrency import run_in_threadpool
 
@@ -229,16 +229,14 @@ class DayAuditDTO(BaseModel):
     new_comment: str = ''
     action: str
 
-    model_config = {
-        "json_encoders": {
-            datetime.datetime: lambda v: (
-                # force UTC tz, then drop the “+00:00” in favor of “Z”
-                v.astimezone(datetime.timezone.utc)
-                .isoformat(timespec="microseconds")
-                .replace("+00:00", "Z")
-            )
-        }
-    }
+    @field_serializer("timestamp", when_used="json")
+    def serialize_timestamp(self, timestamp: datetime.datetime) -> str:
+        """Format timestamp as UTC ISO string with trailing Z."""
+        return (
+            timestamp.astimezone(datetime.timezone.utc)
+            .isoformat(timespec="microseconds")
+            .replace("+00:00", "Z")
+        )
 
     @field_validator('user', mode="before")
     @classmethod

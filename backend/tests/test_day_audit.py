@@ -92,7 +92,7 @@ def test_history_pagination(endpoint):
             member_uid=str(member.uid),
             date=datetime.date(2025, 1, 1),
             user=user,
-            timestamp=datetime.datetime.utcnow() + datetime.timedelta(minutes=i),
+            timestamp=datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=i),
             old_day_types=[],
             new_day_types=[],
             old_comment="",
