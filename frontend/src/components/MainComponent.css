@@ -81,3 +81,8 @@
     cursor: pointer;
     user-select: none;
 }
+
+body.is-api-loading,
+body.is-api-loading * {
+    cursor: progress !important; /* Show loading cursor while API requests are pending */
+}

@@ -64,6 +64,24 @@ const MainComponent = () => {
         };
     }, [lastCheckedDate]);
 
+    useEffect(() => {
+        if (typeof document === 'undefined') {
+            return undefined;
+        }
+
+        const { classList } = document.body;
+
+        if (isLoading) {
+            classList.add('is-api-loading');
+        } else {
+            classList.remove('is-api-loading');
+        }
+
+        return () => {
+            classList.remove('is-api-loading');
+        };
+    }, [isLoading]);
+
     const openReportModal = () => {
         setShowReportModal(true);
     };
