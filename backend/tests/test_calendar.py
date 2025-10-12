@@ -22,7 +22,6 @@ def setup_team():
         tenant=tenant,
         name="Team",
         team_members=[member],
-        subscribers=[user],
     ).save()
     return team, user
 

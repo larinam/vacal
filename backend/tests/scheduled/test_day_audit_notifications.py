@@ -14,6 +14,7 @@ from backend.model import (
     User,
     AuthDetails,
 )
+from backend.notification_types import ABSENCE_RECENT_CHANGES_NOTIFICATION
 from backend.scheduled.day_audit_notifications import send_recent_absence_notifications
 
 
@@ -58,7 +59,9 @@ def test_send_recent_absence_notifications_dispatch_and_content():
         tenant=tenant,
         name="Team Alpha",
         team_members=[member_alice, member_bob],
-        subscribers=[subscriber],
+        notification_preferences={
+            str(subscriber.id): [ABSENCE_RECENT_CHANGES_NOTIFICATION],
+        },
     ).save()
 
     alice_day = str(datetime.date(2025, 5, 12))
@@ -134,7 +137,9 @@ def test_send_recent_absence_notifications_ignores_non_matching_audits():
         tenant=tenant,
         name="Team Beta",
         team_members=[member],
-        subscribers=[subscriber],
+        notification_preferences={
+            str(subscriber.id): [ABSENCE_RECENT_CHANGES_NOTIFICATION],
+        },
     ).save()
 
     team.team_members[0].days = {}
@@ -191,7 +196,9 @@ def test_send_recent_absence_notifications_skips_removed_absences():
         tenant=tenant,
         name="Team Gamma",
         team_members=[member],
-        subscribers=[subscriber],
+        notification_preferences={
+            str(subscriber.id): [ABSENCE_RECENT_CHANGES_NOTIFICATION],
+        },
     ).save()
 
     # Final state without absences for the day

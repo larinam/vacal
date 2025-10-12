@@ -4,6 +4,7 @@ import os
 
 from ..email_service import send_email
 from ..model import Team
+from ..notification_types import BIRTHDAY_DAILY_NOTIFICATION
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def send_birthday_email_updates():
         email_body = generate_birthday_email_body(team)
         if not email_body:
             continue  # Skip if there are no birthdays today
-        for email in team.get_subscriber_emails():
+        for email in team.get_subscriber_emails(BIRTHDAY_DAILY_NOTIFICATION):
             send_email(
                 f"Birthdays Today - {team.name} - {datetime.date.today().strftime('%B %d')}",
                 email_body,

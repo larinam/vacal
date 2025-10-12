@@ -9,6 +9,8 @@ import mongoengine
 import mongomock
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
+from bson import ObjectId
+from bson.errors import InvalidId
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
     LongField, DateTimeField, IntField, DateField, DecimalField
@@ -373,7 +375,7 @@ class Team(Document):
     name = StringField(required=True, unique_with="tenant")
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
-    subscribers = ListField(ReferenceField(User, reverse_delete_rule=mongoengine.PULL))
+    notification_preferences = MapField(ListField(StringField()), default=dict)
 
     meta = {
         "indexes": [
@@ -383,11 +385,57 @@ class Team(Document):
         "index_background": True
     }
 
-    def get_subscriber_emails(self) -> list[str]:
-        """Return unique, non-empty email addresses for subscribers, using Google email as fallback."""
+    def subscriber_ids(self) -> list[str]:
+        return list((self.notification_preferences or {}).keys())
+
+    def list_subscribers(self) -> list[User]:
+        subscriber_ids = self.subscriber_ids()
+        if not subscriber_ids:
+            return []
+
+        object_ids: list[ObjectId] = []
+        for raw_id in subscriber_ids:
+            try:
+                object_ids.append(ObjectId(raw_id))
+            except (InvalidId, TypeError):
+                log.warning(
+                    "Ignoring invalid subscriber id %s on team %s", raw_id, self.id
+                )
+
+        if not object_ids:
+            return []
+
+        users = User.objects(id__in=object_ids)
+        users_by_id = {str(user.id): user for user in users}
+
+        ordered_subscribers: list[User] = []
+        for raw_id in subscriber_ids:
+            user = users_by_id.get(raw_id)
+            if user:
+                ordered_subscribers.append(user)
+            else:
+                log.warning(
+                    "Subscriber id %s on team %s no longer resolves to a user", raw_id, self.id
+                )
+
+        return ordered_subscribers
+
+    def is_subscribed(self, user: User) -> bool:
+        return str(getattr(user, "id", "")) in (self.notification_preferences or {})
+
+    def get_subscriber_emails(self, notification_type: str | None = None) -> list[str]:
+        """Return subscriber emails filtered by an optional notification type.
+
+        The lookup keeps backwards compatibility by treating missing preferences as a
+        subscription to every notification type.
+        """
         seen = set()
         resolved_emails: list[str] = []
-        for subscriber in self.subscribers:
+        for subscriber in self.list_subscribers():
+            if notification_type:
+                allowed_types = self.notification_preferences.get(str(subscriber.id))
+                if allowed_types is not None and notification_type not in allowed_types:
+                    continue
             email = getattr(subscriber, "email", None)
             if not email:
                 auth_details = getattr(subscriber, "auth_details", None)

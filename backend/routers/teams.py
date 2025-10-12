@@ -25,6 +25,11 @@ from starlette.concurrency import run_in_threadpool
 
 from ..dependencies import get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, tenant_var
 from ..model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry, DayAudit
+from ..notification_types import (
+    ensure_valid_notification_types,
+    list_notification_type_ids,
+    list_notification_types,
+)
 from ..routers.daytypes import DayTypeReadDTO, get_all_day_types
 from ..routers.users import UserWithoutTenantsDTO
 from ..utils import get_country_holidays
@@ -208,13 +213,61 @@ class TeamReadDTO(TeamWriteDTO):
     @field_validator('subscribers', mode="before")
     @classmethod
     def convert_subscribers(cls, v):
-        if v and isinstance(v, list):
-            converted_subscribers = []
-            for subscriber in v:
-                if isinstance(subscriber, ObjectId):
-                    converted_subscribers.append(UserWithoutTenantsDTO.from_mongo_reference_field(subscriber))
-            return converted_subscribers
-        return v
+        if not v or not isinstance(v, list):
+            return v
+
+        converted_subscribers = []
+        for subscriber in v:
+            if isinstance(subscriber, ObjectId):
+                converted_subscribers.append(UserWithoutTenantsDTO.from_mongo_reference_field(subscriber))
+            elif isinstance(subscriber, UserWithoutTenantsDTO):
+                converted_subscribers.append(subscriber)
+            elif isinstance(subscriber, dict):
+                converted_subscribers.append(UserWithoutTenantsDTO(**subscriber))
+            else:
+                converted_subscribers.append(subscriber)
+        return converted_subscribers
+
+
+class NotificationTypeDTO(BaseModel):
+    identifier: str
+    label: str
+    description: str
+
+
+class TeamSubscriptionPreferenceDTO(BaseModel):
+    user: UserWithoutTenantsDTO
+    notification_types: List[str]
+
+
+class NotificationSubscriptionUpdateDTO(BaseModel):
+    notification_types: List[str]
+    user_id: Optional[str] = None
+
+    @field_validator("notification_types", mode="before")
+    @classmethod
+    def validate_notification_types(cls, value: List[str]):
+        if value is None:
+            return []
+        try:
+            return ensure_valid_notification_types(value)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+
+
+@router.get("/notification-types", response_model=List[NotificationTypeDTO])
+async def list_available_notification_types(
+        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+        tenant: Annotated[Tenant, Depends(get_tenant)],
+):
+    return [
+        NotificationTypeDTO(
+            identifier=definition.identifier,
+            label=definition.label,
+            description=definition.description,
+        )
+        for definition in list_notification_types()
+    ]
 
 
 class DayAuditDTO(BaseModel):
@@ -272,13 +325,24 @@ def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
     return holidays_dict
 
 
+def team_to_read_dto(team: Team) -> TeamReadDTO:
+    team_dict = team.to_mongo().to_dict()
+    if "_id" in team_dict:
+        team_dict["_id"] = str(team_dict["_id"])
+    team_dict["subscribers"] = [
+        mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
+        for subscriber in team.list_subscribers()
+    ]
+    return TeamReadDTO(**team_dict)
+
+
 @router.get("")
 async def list_teams(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                      tenant: Annotated[Tenant, Depends(get_tenant)]):
     start_time = time.perf_counter()
     teams_list = Team.objects(tenant=tenant).order_by("name")
     teams = {"teams": await asyncio.gather(
-        *(run_in_threadpool(mongo_to_pydantic, team, TeamReadDTO) for team in teams_list))}
+        *(run_in_threadpool(team_to_read_dto, team) for team in teams_list))}
     print("teams preparation " + str(time.perf_counter() - start_time))
     return teams | {"holidays": get_holidays(tenant)} | await get_all_day_types(current_user, tenant)
 
@@ -376,10 +440,10 @@ async def subscribe_user_to_team(
 
     user_to_subscribe = User.objects(id=user_id).first() if user_id else current_user
 
-    if user_to_subscribe in team.subscribers:
+    if team.is_subscribed(user_to_subscribe):
         raise HTTPException(status_code=400, detail="User already subscribed to the team")
 
-    team.subscribers.append(user_to_subscribe)
+    team.notification_preferences[str(user_to_subscribe.id)] = list_notification_type_ids()
     team.save()
     return {"message": "User subscribed to the team successfully"}
 
@@ -397,10 +461,11 @@ async def unsubscribe_user_from_team(
 
     user_to_unsubscribe = User.objects(id=user_id).first() if user_id else current_user
 
-    if user_to_unsubscribe not in team.subscribers:
+    subscriber_key = str(user_to_unsubscribe.id)
+    if subscriber_key not in team.notification_preferences:
         raise HTTPException(status_code=400, detail="User is not subscribed to the team")
 
-    team.subscribers.remove(user_to_unsubscribe)
+    team.notification_preferences.pop(subscriber_key, None)
     team.save()
     return {"message": "User unsubscribed from the team successfully"}
 
@@ -417,10 +482,71 @@ async def list_team_subscribers(
 
     subscribers = [
         mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
-        for subscriber in team.subscribers
+        for subscriber in team.list_subscribers()
     ]
 
     return subscribers
+
+
+@router.get("/{team_id}/notification-preferences", response_model=List[TeamSubscriptionPreferenceDTO])
+async def get_team_notification_preferences(
+        team_id: str,
+        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+        tenant: Annotated[Tenant, Depends(get_tenant)],
+):
+    team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    default_types = list_notification_type_ids()
+    preferences: List[TeamSubscriptionPreferenceDTO] = []
+    for subscriber in team.list_subscribers():
+        types = team.notification_preferences.get(str(subscriber.id))
+        effective_types = list(types) if types is not None else list(default_types)
+        preferences.append(
+            TeamSubscriptionPreferenceDTO(
+                user=mongo_to_pydantic(subscriber, UserWithoutTenantsDTO),
+                notification_types=effective_types,
+            )
+        )
+
+    return preferences
+
+
+@router.put("/{team_id}/notification-preferences")
+async def update_team_notification_preferences(
+        team_id: str,
+        subscription_update: NotificationSubscriptionUpdateDTO,
+        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+        tenant: Annotated[Tenant, Depends(get_tenant)],
+):
+    team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if subscription_update.user_id:
+        user = User.objects(id=subscription_update.user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+    else:
+        user = current_user
+
+    normalized_types = subscription_update.notification_types
+    subscriber_key = str(user.id)
+    if normalized_types:
+        team.notification_preferences[subscriber_key] = normalized_types
+        team.save()
+        return {
+            "message": "Notification preferences updated",
+            "notification_types": normalized_types,
+        }
+
+    team.notification_preferences.pop(subscriber_key, None)
+    team.save()
+    return {
+        "message": "User unsubscribed from all notification types",
+        "notification_types": [],
+    }
 
 
 @router.post("/move-member/{team_member_uid}")

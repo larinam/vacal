@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from backend.model import Tenant, DayType, Team, TeamMember, DayEntry, User, AuthDetails
 from backend.scheduled.absence_starts import send_upcoming_absence_email_updates
+from backend.notification_types import ABSENCE_UPCOMING_NOTIFICATION
 
 
 def setup_team_with_ongoing_absence(today: datetime.date):
@@ -28,7 +29,12 @@ def setup_team_with_ongoing_absence(today: datetime.date):
         current += datetime.timedelta(days=1)
 
     member = TeamMember(name="Alice", country="Sweden", email="alice@example.com", days=days)
-    Team(tenant=tenant, name="Team", team_members=[member], subscribers=[subscriber]).save()
+    Team(
+        tenant=tenant,
+        name="Team",
+        team_members=[member],
+        notification_preferences={str(subscriber.id): [ABSENCE_UPCOMING_NOTIFICATION]},
+    ).save()
     return subscriber.email
 
 
