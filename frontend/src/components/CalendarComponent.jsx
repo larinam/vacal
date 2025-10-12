@@ -21,6 +21,7 @@ import MonthSelector from './MonthSelector';
 import TeamModal from './TeamModal';
 import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
+import TeamSubscriptionContextMenu from './TeamSubscriptionContextMenu';
 import MemberHistoryModal from './MemberHistoryModal';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
@@ -54,6 +55,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const contextMenuRef = useRef(null);
   const [contextMenuPosition, setContextMenuPosition] = useState({x: 0, y: 0});
   const [showContextMenu, setShowContextMenu] = useState(false);
+  const subscriptionMenuRef = useRef(null);
+  const [subscriptionMenuPosition, setSubscriptionMenuPosition] = useState({x: 0, y: 0});
+  const [showSubscriptionMenu, setShowSubscriptionMenu] = useState(false);
+  const [subscriptionTeamId, setSubscriptionTeamId] = useState(null);
   const [draggedMember, setDraggedMember] = useState({memberId: null, originTeamId: null, memberName: ''});
   const [draggingMemberId, setDraggingMemberId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
@@ -201,7 +206,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       let adjustedX = contextMenuPosition.x;
 
       if (adjustedX + menuWidth > window.innerWidth) {
-        adjustedX -= menuWidth;
+        adjustedX = Math.max(0, adjustedX - menuWidth);
       }
 
       if (adjustedX !== contextMenuPosition.x) {
@@ -209,6 +214,21 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       }
     }
   }, [showContextMenu, contextMenuPosition]);
+
+  useEffect(() => {
+    if (showSubscriptionMenu && subscriptionMenuRef.current) {
+      const menuWidth = subscriptionMenuRef.current.offsetWidth;
+      let adjustedX = subscriptionMenuPosition.x;
+
+      if (adjustedX + menuWidth > window.innerWidth) {
+        adjustedX = Math.max(0, adjustedX - menuWidth);
+      }
+
+      if (adjustedX !== subscriptionMenuPosition.x) {
+        setSubscriptionMenuPosition({x: adjustedX, y: subscriptionMenuPosition.y});
+      }
+    }
+  }, [showSubscriptionMenu, subscriptionMenuPosition]);
 
   const getFirstMonday = (date) => {
     const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -430,6 +450,25 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
   };
 
+  const openSubscriptionMenu = (event, teamId) => {
+    event.stopPropagation();
+    const xPosition = event.clientX + window.scrollX;
+    const yPosition = event.clientY + window.scrollY;
+    setSubscriptionMenuPosition({x: xPosition, y: yPosition});
+    setSubscriptionTeamId(teamId);
+    setShowSubscriptionMenu(true);
+  };
+
+  const closeSubscriptionMenu = () => {
+    setShowSubscriptionMenu(false);
+    setSubscriptionTeamId(null);
+  };
+
+  const handleSubscriptionToggle = async () => {
+    if (!subscriptionTeamId) return;
+    await toggleWatchTeam(subscriptionTeamId);
+  };
+
   const renderVacationDaysTooltip = (member) => {
     const selectedYear = displayMonth.getFullYear();
     const currentYear = new Date().getFullYear();
@@ -561,6 +600,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     });
   };
 
+  const subscriptionTeam = subscriptionTeamId ? teamData.find(team => team._id === subscriptionTeamId) : null;
+  const isSubscriptionActive = subscriptionTeam ?
+    subscriptionTeam.subscribers?.some(sub => sub._id === user._id) :
+    false;
+
 
   return (
     <div>
@@ -605,6 +649,16 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         teamData={teamData}
         updateTeamData={updateTeamData}
         updateLocalTeamData={updateLocalTeamData}
+      />
+      <TeamSubscriptionContextMenu
+        contextMenuRef={subscriptionMenuRef}
+        isOpen={showSubscriptionMenu}
+        position={subscriptionMenuPosition}
+        onClose={closeSubscriptionMenu}
+        teamName={subscriptionTeam?.name || ''}
+        isSubscribed={isSubscriptionActive}
+        subscribers={subscriptionTeam?.subscribers || []}
+        onToggle={handleSubscriptionToggle}
       />
 
       <div className="stickyHeader">
@@ -695,8 +749,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
                       <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
-                            onClick={() => toggleWatchTeam(team._id)}
-                            title={isSubscribed ? 'Unwatch team' : 'Watch team'}>
+                            onClick={(event) => openSubscriptionMenu(event, team._id)}
+                            title="Manage team subscription">
                           <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
                       </span>
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
