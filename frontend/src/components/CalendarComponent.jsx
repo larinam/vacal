@@ -25,7 +25,6 @@ import TeamSubscriptionContextMenu from './TeamSubscriptionContextMenu';
 import MemberHistoryModal from './MemberHistoryModal';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
-import {useTeamSubscription} from '../hooks/useTeamSubscription';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
 
@@ -437,20 +436,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     });
   };
 
-  const {toggleTeamSubscription} = useTeamSubscription();
-
-  const toggleWatchTeam = async (teamId) => {
-    const team = teamData.find(t => t._id === teamId);
-    if (!team) return;
-    const isSubscribed = team.subscribers?.some(sub => sub._id === user._id);
-    try {
-      await toggleTeamSubscription(teamId, isSubscribed);
-      updateTeamData();
-    } catch (error) {
-      console.error('Failed to toggle watch status:', error);
-    }
-  };
-
   const openSubscriptionMenu = (event, teamId) => {
     event.stopPropagation();
     const xPosition = event.clientX + window.scrollX;
@@ -463,11 +448,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const closeSubscriptionMenu = () => {
     setShowSubscriptionMenu(false);
     setSubscriptionTeamId(null);
-  };
-
-  const handleSubscriptionToggle = async () => {
-    if (!subscriptionTeamId) return;
-    await toggleWatchTeam(subscriptionTeamId);
   };
 
   const renderVacationDaysTooltip = (member) => {
@@ -602,9 +582,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
   const subscriptionTeam = subscriptionTeamId ? teamData.find(team => team._id === subscriptionTeamId) : null;
-  const isSubscriptionActive = subscriptionTeam ?
-    subscriptionTeam.subscribers?.some(sub => sub._id === user._id) :
-    false;
 
 
   return (
@@ -656,10 +633,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         isOpen={showSubscriptionMenu}
         position={subscriptionMenuPosition}
         onClose={closeSubscriptionMenu}
+        teamId={subscriptionTeamId}
         teamName={subscriptionTeam?.name || ''}
-        isSubscribed={isSubscriptionActive}
+        currentUserId={user?._id}
         subscribers={subscriptionTeam?.subscribers || []}
-        onToggle={handleSubscriptionToggle}
+        onPreferencesUpdated={updateTeamData}
       />
 
       <div className="stickyHeader">

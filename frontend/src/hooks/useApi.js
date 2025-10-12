@@ -1,4 +1,5 @@
 import {useAuth} from '../contexts/AuthContext';
+import {useCallback} from 'react';
 import {useLoading} from './useLoading';
 import {useNavigate} from "react-router-dom";
 import {API_URL} from '../utils/apiConfig';
@@ -8,7 +9,7 @@ export const useApi = () => {
     const { authHeader, handleLogout, currentTenant } = useAuth();
     const navigate = useNavigate();
 
-    const apiCall = async (url, method = 'GET', body = null, isBlob = false, signal = null) => {
+    const apiCall = useCallback(async (url, method = 'GET', body = null, isBlob = false, signal = null) => {
         const loadingTimer = startLoading();
         const fullUrl = `${API_URL}${url}`;
         const options = {
@@ -54,7 +55,7 @@ export const useApi = () => {
         } finally {
             stopLoading(loadingTimer);
         }
-    };
+    }, [API_URL, authHeader, currentTenant, handleLogout, navigate, startLoading, stopLoading]);
 
     return { apiCall, isLoading };
 };
