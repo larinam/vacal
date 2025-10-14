@@ -1,30 +1,23 @@
 import {useAuth} from '../contexts/AuthContext';
 import {useCallback} from 'react';
-import {useLoading} from './useLoading';
-import {useNavigate} from "react-router-dom";
-import {API_URL} from '../utils/apiConfig';
+import {useNavigate} from 'react-router-dom';
+import {authedRequest} from '../utils/apiClient';
 
 export const useApi = () => {
-    const [isLoading, startLoading, stopLoading] = useLoading();
-    const { authHeader, handleLogout, currentTenant } = useAuth();
+    const {authHeader, handleLogout, currentTenant} = useAuth();
     const navigate = useNavigate();
 
     const apiCall = useCallback(async (url, method = 'GET', body = null, isBlob = false, signal = null) => {
-        const loadingTimer = startLoading();
-        const fullUrl = `${API_URL}${url}`;
-        const options = {
-            method,
-            headers: {
-                ...(authHeader ? { 'Authorization': authHeader } : {}),
-                ...(!isBlob && { 'Content-Type': 'application/json' }), // Set content type to JSON unless it's a blob
-                ...(currentTenant ? { 'Tenant-ID': currentTenant } : {}),
-            },
-            ...(body && { body: JSON.stringify(body) }),
-            signal,
-        };
-
         try {
-            const response = await fetch(fullUrl, options);
+            const response = await authedRequest({
+                endpoint: url,
+                method,
+                body,
+                isBlob,
+                authHeader,
+                currentTenant,
+                signal,
+            });
             if (response.status === 401) {
                 handleLogout();
                 navigate('/');
@@ -32,30 +25,26 @@ export const useApi = () => {
             }
             if (!response.ok) {
                 const error = new Error(`HTTP error! Status: ${response.status}`);
-                error.data = await response.json();
+                try {
+                    error.data = await response.json();
+                } catch {
+                    // no-op if body can't be parsed
+                }
                 throw error;
             }
 
             if (isBlob) {
-                // Handle blob data (file download)
-                const blob = await response.blob();
-                return blob;
-            } else {
-                // Handle JSON data
-                const data = await response.json();
-                return data;
+                return await response.blob();
             }
+            return await response.json();
         } catch (error) {
             if (error.name === 'AbortError') {
-                // Silently handle aborted requests. This is the expected behaviour as of now.
                 return {};
             }
             console.error('API call error:', error);
             throw error;
-        } finally {
-            stopLoading(loadingTimer);
         }
-    }, [API_URL, authHeader, currentTenant, handleLogout, navigate, startLoading, stopLoading]);
+    }, [authHeader, currentTenant, handleLogout, navigate]);
 
-    return { apiCall, isLoading };
+    return {apiCall};
 };

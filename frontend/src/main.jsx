@@ -6,9 +6,11 @@ import reportWebVitals from './reportWebVitals';
 import {AuthProvider} from './contexts/AuthContext';
 import {ConfigProvider, useConfig} from "./contexts/ConfigContext";
 import {GoogleOAuthProvider} from '@react-oauth/google';
-
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+const queryClient = new QueryClient();
 
 const AppProviders = () => {
   const {googleClientId, configLoaded} = useConfig();
@@ -33,9 +35,12 @@ const AppProviders = () => {
 
 root.render(
   <React.StrictMode>
-    <ConfigProvider>
-      <AppProviders/>
-    </ConfigProvider>
+    <QueryClientProvider client={queryClient}>
+      <ConfigProvider>
+        <AppProviders/>
+      </ConfigProvider>
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
   </React.StrictMode>
 );
 

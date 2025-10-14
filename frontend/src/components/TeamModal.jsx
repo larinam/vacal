@@ -1,10 +1,25 @@
 import React, {useEffect, useState} from 'react';
 import {useApi} from '../hooks/useApi';
 import Modal from './Modal';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {TEAMS_QUERY_KEY} from '../hooks/queries/useTeamsQuery';
 
 const TeamModal = ({isOpen, onClose, editingTeam}) => {
   const [teamName, setTeamName] = useState('');
   const {apiCall} = useApi();
+  const queryClient = useQueryClient();
+
+  const teamMutation = useMutation({
+    mutationFn: ({url, method, payload}) => apiCall(url, method, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: TEAMS_QUERY_KEY});
+      setTeamName('');
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Error in team operation:', error);
+    },
+  });
 
   useEffect(() => {
     if (editingTeam) {
@@ -14,7 +29,7 @@ const TeamModal = ({isOpen, onClose, editingTeam}) => {
     }
   }, [editingTeam]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     const method = editingTeam ? 'PUT' : 'POST';
     const url = editingTeam ? `/teams/${editingTeam._id}` : '/teams';
@@ -23,13 +38,7 @@ const TeamModal = ({isOpen, onClose, editingTeam}) => {
       name: teamName,
     };
 
-    try {
-      await apiCall(url, method, payload);
-      setTeamName('');
-      onClose();
-    } catch (error) {
-      console.error('Error in team operation:', error);
-    }
+    teamMutation.mutate({url, method, payload});
   };
 
   if (!isOpen) return null;
@@ -45,7 +54,9 @@ const TeamModal = ({isOpen, onClose, editingTeam}) => {
             required
           />
           <div className="button-container">
-            <button type="submit">{editingTeam ? 'Update Team' : 'Add Team'}</button>
+            <button type="submit" disabled={teamMutation.isPending}>
+              {editingTeam ? 'Update Team' : 'Add Team'}
+            </button>
             <button type="button" onClick={onClose}>Close</button>
           </div>
         </form>

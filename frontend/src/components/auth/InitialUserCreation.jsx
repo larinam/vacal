@@ -4,6 +4,7 @@ import {useApi} from '../../hooks/useApi';
 import {toast} from "react-toastify";
 import './InitialUserCreation.css';
 import {useConfig} from "../../contexts/ConfigContext";
+import {useMutation} from '@tanstack/react-query';
 
 const InitialUserCreation = () => {
   const navigate = useNavigate();
@@ -15,22 +16,30 @@ const InitialUserCreation = () => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const createInitialUserMutation = useMutation({
+    mutationFn: (payload) => apiCall('/users/create-initial', 'POST', payload),
+  });
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     const tenant = {name: tenantName, identifier: tenantIdentifier};
-    try {
-      await apiCall('/users/create-initial', 'POST', {tenant, name, email, username, password});
-      setUserInitiated(true);
-      navigate('/login');
-    } catch (error) {
-      console.error('Error creating initial user:', error);
-      if (error.data && error.data.detail) {
-        toast.error(error?.data?.detail);
-      } else {
-        toast.error("An error occurred. Please try again.");
-      }
-    }
+    createInitialUserMutation.mutate(
+      {tenant, name, email, username, password},
+      {
+        onSuccess: () => {
+          setUserInitiated(true);
+          navigate('/login');
+        },
+        onError: (error) => {
+          console.error('Error creating initial user:', error);
+          if (error?.data?.detail) {
+            toast.error(error.data.detail);
+          } else {
+            toast.error('An error occurred. Please try again.');
+          }
+        },
+      },
+    );
   };
 
   return (
@@ -56,7 +65,9 @@ const InitialUserCreation = () => {
                onChange={(e) => setUsername(e.target.value)} placeholder="Username" required/>
         <input type="password" name="new-password" autoComplete={"new-password"} className="inputStyle" value={password}
                onChange={(e) => setPassword(e.target.value)} placeholder="Password" required/>
-        <button type="submit" className="buttonStyle createWorkspaceButton">Create Workspace</button>
+        <button type="submit" className="buttonStyle createWorkspaceButton" disabled={createInitialUserMutation.isPending}>
+          Create Workspace
+        </button>
       </form>
     </div>
   );

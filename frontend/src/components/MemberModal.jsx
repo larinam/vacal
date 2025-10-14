@@ -1,10 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import {useApi} from '../hooks/useApi';
 import {toast} from "react-toastify";
 import Modal from './Modal';
+import useMemberMutations from '../hooks/mutations/useMemberMutations';
 
 const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMember}) => {
-  const [newMemberData, setNewMemberData] = useState({
+  const INITIAL_MEMBER_STATE = {
     name: '',
     country: '',
     email: '',
@@ -13,57 +13,63 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
     employee_start_date: '',
     yearly_vacation_days: '',
     vac_days: []
-  });
-  const {apiCall} = useApi();
+  };
+  const [newMemberData, setNewMemberData] = useState(INITIAL_MEMBER_STATE);
+  const {createMemberMutation, updateMemberMutation} = useMemberMutations();
 
   useEffect(() => {
     if (editingMember) {
       setNewMemberData(editingMember);
     } else {
-      setNewMemberData({
-        name: '',
-        country: '',
-        email: '',
-        phone: '',
-        birthday: '',
-        employee_start_date: '',
-        yearly_vacation_days: '',
-        vac_days: []
-      });
+      setNewMemberData(INITIAL_MEMBER_STATE);
     }
   }, [editingMember]);
 
-
-  const handleAddMemberFormSubmit = async (e) => {
-    e.preventDefault();
-    const method = editingMember ? 'PUT' : 'POST';
-    const url = editingMember ? `/teams/${selectedTeamId}/members/${editingMember.uid}` : `/teams/${selectedTeamId}/members`;
-    try {
-      await apiCall(url, method, newMemberData);
-      setNewMemberData({
-        name: '',
-        country: '',
-        email: '',
-        phone: '',
-        birthday: '',
-        employee_start_date: '',
-        yearly_vacation_days: '',
-        vac_days: []
-      }); // Reset form data
-      onClose(); // Close modal
-      updateTeamData(); // Refresh team data
-    } catch (error) {
-      console.error('Error adding/modifying team member:', error);
-      toast.error(error?.data?.detail[0].msg);
-      if (error.data) {
-        toast.error(error?.data?.detail.msg);
-      } else if (error.data && error.data.msg) {
-        toast.error(error?.data?.msg);
-      } else {
-        toast.error("An error occurred. Please try again.");
-      }
+  const handleMemberErrorToast = (error) => {
+    console.error('Error adding/modifying team member:', error);
+    const detail = error?.data?.detail;
+    if (Array.isArray(detail) && detail[0]?.msg) {
+      toast.error(detail[0].msg);
+      return;
     }
+    if (detail?.msg) {
+      toast.error(detail.msg);
+      return;
+    }
+    if (detail) {
+      toast.error(detail);
+      return;
+    }
+    toast.error('An error occurred. Please try again.');
   };
+
+  const handleAddMemberFormSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedTeamId) {
+      toast.error('Team is not selected');
+      return;
+    }
+    const method = editingMember ? 'PUT' : 'POST';
+    const mutation = method === 'POST' ? createMemberMutation : updateMemberMutation;
+    const variables = method === 'POST'
+      ? {teamId: selectedTeamId, payload: newMemberData}
+      : {teamId: selectedTeamId, memberId: editingMember.uid, payload: newMemberData};
+
+    mutation.mutate(variables, {
+      onSuccess: () => {
+        toast.success(editingMember ? 'Member updated successfully' : 'Member added successfully');
+        setNewMemberData(INITIAL_MEMBER_STATE);
+        if (updateTeamData) {
+          updateTeamData();
+        }
+        onClose();
+      },
+      onError: handleMemberErrorToast,
+    });
+  };
+
+  const isPending =
+    createMemberMutation.isPending || updateMemberMutation.isPending;
 
   if (!isOpen) return null;
 
@@ -139,8 +145,8 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
             />
           </label>
           <div className="button-container">
-            <button type="submit">{editingMember ? 'Edit Member' : 'Add Member'}</button>
-            <button type="button" onClick={onClose}>Close</button>
+            <button type="submit" disabled={isPending}>{editingMember ? 'Edit Member' : 'Add Member'}</button>
+            <button type="button" onClick={onClose} disabled={isPending}>Close</button>
           </div>
         </form>
     </Modal>

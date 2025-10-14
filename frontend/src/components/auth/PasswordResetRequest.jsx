@@ -4,25 +4,34 @@ import {useApi} from '../../hooks/useApi';
 import {toast} from 'react-toastify';
 import './Login.css';
 import './InitialUserCreation.css';
+import {useMutation} from '@tanstack/react-query';
 
 const PasswordResetRequest = () => {
   const {apiCall} = useApi();
   const [email, setEmail] = useState('');
   const navigate = useNavigate();
+  const requestResetMutation = useMutation({
+    mutationFn: (payload) => apiCall('/users/password-reset/request', 'POST', payload),
+  });
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    try {
-      await apiCall('/users/password-reset/request', 'POST', {email});
-      toast.success('If the email is registered, you will receive a password reset email');
-      navigate('/login');
-    } catch (error) {
-      if (error.data && error.data.detail) {
-        toast.error(error.data.detail);
-      } else {
-        toast.error('An error occurred. Please try again.');
-      }
-    }
+    requestResetMutation.mutate(
+      {email},
+      {
+        onSuccess: () => {
+          toast.success('If the email is registered, you will receive a password reset email');
+          navigate('/login');
+        },
+        onError: (error) => {
+          if (error?.data?.detail) {
+            toast.error(error.data.detail);
+          } else {
+            toast.error('An error occurred. Please try again.');
+          }
+        },
+      },
+    );
   };
 
   return (
@@ -42,7 +51,9 @@ const PasswordResetRequest = () => {
             required
             autoFocus
           />
-          <button type="submit" className="buttonStyle">Send reset link</button>
+          <button type="submit" className="buttonStyle" disabled={requestResetMutation.isPending}>
+            Send reset link
+          </button>
         </form>
       </div>
     </div>

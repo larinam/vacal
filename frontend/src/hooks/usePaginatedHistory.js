@@ -1,49 +1,58 @@
-import { useState, useEffect, useRef } from 'react';
-import { useApi } from './useApi';
+import {useCallback, useMemo, useRef} from 'react';
+import {useInfiniteQuery} from '@tanstack/react-query';
+import {useApi} from './useApi';
+
+const PAGE_SIZE = 100;
 
 export const usePaginatedHistory = (isActive, endpoint) => {
-  const { apiCall } = useApi();
-  const [history, setHistory] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
+  const {apiCall} = useApi();
   const listRef = useRef(null);
-  const limit = 100;
 
-  const load = async (skip = 0, force = false) => {
-    if (isFetching || (!hasMore && !force)) return;
-    setIsFetching(true);
-    try {
-      const result = await apiCall(`${endpoint}?skip=${skip}&limit=${limit}`, 'GET');
-      if (skip === 0) {
-        setHistory(result);
-      } else {
-        setHistory((prev) => [...prev, ...result]);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error,
+  } = useInfiniteQuery({
+    queryKey: ['paginatedHistory', endpoint],
+    queryFn: ({pageParam = 0, signal}) =>
+      apiCall(`${endpoint}?skip=${pageParam}&limit=${PAGE_SIZE}`, 'GET', null, false, signal),
+    getNextPageParam: (lastPage, pages) => {
+      if (!Array.isArray(lastPage) || lastPage.length < PAGE_SIZE) {
+        return undefined;
       }
-      if (result.length < limit) {
-        setHasMore(false);
-      }
-    } catch (err) {
-      console.error('Error fetching history:', err);
-    } finally {
-      setIsFetching(false);
+      const totalLoaded = pages.reduce((acc, page) => acc + page.length, 0);
+      return totalLoaded;
+    },
+    enabled: Boolean(isActive && endpoint),
+    initialPageParam: 0,
+  });
+
+  const history = useMemo(() => {
+    if (!data?.pages) {
+      return [];
     }
-  };
+    return data.pages.flat();
+  }, [data]);
 
-  useEffect(() => {
-    if (!isActive) return;
-    setHistory([]);
-    setHasMore(true);
-    load(0, true);
-  }, [isActive, endpoint]);
-
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     const el = listRef.current;
-    if (!el || isFetching || !hasMore) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
-      load(history.length);
+    if (!el || isFetchingNextPage || !hasNextPage) {
+      return;
     }
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  return {
+    history,
+    listRef,
+    handleScroll,
+    isLoading,
+    isFetchingNextPage,
+    error,
   };
-
-  return { history, listRef, handleScroll };
 };
-

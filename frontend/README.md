@@ -16,3 +16,10 @@ Vite exposes only variables prefixed with `VITE_`. Configure the API endpoint by
 ## Static Assets
 
 Files placed in the `public` directory are copied as-is to the build output. The application entry point is defined in `index.html` at the project root and loads `src/main.jsx`.
+
+## Data Fetching
+
+- The app uses [TanStack Query](https://tanstack.com/query/latest) for all server-state management. The `QueryClientProvider` wiring lives in `src/main.jsx`, and shared query keys/hooks are under `src/hooks/queries`.
+- When adding a new read flow, prefer co-locating a `useQuery` hook that calls the shared `authedRequest` (exposed through `useApi`) and exports a stable query key so other mutations can invalidate it.
+- Mutations should be implemented with `useMutation` and invalidate the relevant query keys on success; see `TeamModal`, `DayTypeModal`, or `UserManagement` for patterns.
+- Direct `useApi` calls are now reserved for non-query workloads (e.g., downloading reports). If you need bespoke loading feedback, reach for React Query's `useIsFetching`/`useIsMutating` helpers instead of the deprecated `useLoading`.

@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import {toast} from "react-toastify";
 import Modal from '../Modal';
+import {useMutation} from '@tanstack/react-query';
 
 const PasswordChangeModal = ({ isOpen, onClose }) => {
     const [passwords, setPasswords] = useState({
@@ -10,21 +11,27 @@ const PasswordChangeModal = ({ isOpen, onClose }) => {
         confirm_password: ''
     });
     const { apiCall } = useApi();
+    const passwordChangeMutation = useMutation({
+        mutationFn: (payload) => apiCall('/users/me/password', 'POST', payload),
+    });
 
-    const handlePasswordChangeSubmit = async (e) => {
+    const handlePasswordChangeSubmit = (e) => {
         e.preventDefault();
         if (passwords.new_password !== passwords.confirm_password) {
             toast.warn("New passwords do not match");
             return;
         }
-        try {
-            await apiCall('/users/me/password', 'POST', passwords);
-            toast("Password updated successfully");
-            onClose();
-        } catch (error) {
-            console.error('Error updating password:', error);
-            toast.error('Error updating password: ' + error?.data?.detail)
-        }
+        passwordChangeMutation.mutate(passwords, {
+            onSuccess: () => {
+                toast("Password updated successfully");
+                onClose();
+            },
+            onError: (error) => {
+                console.error('Error updating password:', error);
+                const detail = error?.data?.detail;
+                toast.error('Error updating password: ' + (detail || 'Unknown error'));
+            },
+        });
     };
 
     if (!isOpen) return null;
@@ -54,8 +61,8 @@ const PasswordChangeModal = ({ isOpen, onClose }) => {
                         required
                     />
                     <div className="button-container">
-                        <button type="submit">Change Password</button>
-                        <button type="button" onClick={onClose}>Close</button>
+                        <button type="submit" disabled={passwordChangeMutation.isPending}>Change Password</button>
+                        <button type="button" onClick={onClose} disabled={passwordChangeMutation.isPending}>Close</button>
                     </div>
                 </form>
         </Modal>

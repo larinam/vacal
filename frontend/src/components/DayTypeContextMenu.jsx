@@ -1,12 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import './DayTypeContextMenu.css';
-import {useApi} from '../hooks/useApi';
 import {format, isWeekend} from 'date-fns';
 import {toast} from 'react-toastify';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faHistory} from '@fortawesome/free-solid-svg-icons';
 import DayTypeCheckbox from './DayTypeCheckbox';
 import DayHistoryModal from './DayHistoryModal';
+import useDayAssignmentsMutation from '../hooks/mutations/useDayAssignmentsMutation';
 
 const DayTypeContextMenu = ({
                               contextMenuRef,
@@ -23,7 +23,7 @@ const DayTypeContextMenu = ({
   const [comment, setComment] = useState('');
   const [initialComment, setInitialComment] = useState('');
   const [showHistory, setShowHistory] = useState(false);
-  const {apiCall} = useApi();
+  const dayAssignmentsMutation = useDayAssignmentsMutation();
 
   const visibleDayTypes =
     isOpen &&
@@ -125,11 +125,16 @@ const DayTypeContextMenu = ({
     const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
 
     try {
-      await apiCall(url, 'PUT', dayTypeData);
+      await dayAssignmentsMutation.mutateAsync({
+        teamId: selectedDayInfo.teamId,
+        memberId: selectedDayInfo.memberId,
+        payload: dayTypeData,
+      });
       updateTeamData();
     } catch (error) {
       console.error('Error updating day types:', error);
-      toast.error(error?.data?.detail);
+      const detailMessage = error?.data?.detail;
+      toast.error(detailMessage || 'Error updating day types');
     }
   };
 

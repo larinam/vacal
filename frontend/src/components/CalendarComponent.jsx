@@ -23,13 +23,15 @@ import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
 import TeamSubscriptionContextMenu from './TeamSubscriptionContextMenu';
 import MemberHistoryModal from './MemberHistoryModal';
-import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
+import useTeamManagementMutations from '../hooks/mutations/useTeamManagementMutations';
+import useMemberMutations from '../hooks/mutations/useMemberMutations';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
-  const {apiCall} = useApi();
+  const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
+  const {deleteMemberMutation} = useMemberMutations();
   const {user} = useAuth();
   const today = new Date();
   const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
@@ -348,23 +350,29 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     showDayContextMenu(teamId, memberId, [date], event, isHolidayDay);
   };
 
-  const deleteTeam = async (teamId) => {
+  const deleteTeam = (teamId) => {
     const teamName = teamData.find(team => team._id === teamId).name;
     if (window.confirm(`Are you sure you want to delete the team '${teamName}'?`)) {
-      try {
-        await apiCall(`/teams/${teamId}`, 'DELETE');
-        updateTeamData();
-
-        if (focusedTeamId === teamId) {
-          setFocusedTeamId(null);
-        }
-      } catch (error) {
-        console.error('Error deleting team:', error);
-      }
+      deleteTeamMutation.mutate(
+        {teamId},
+        {
+          onSuccess: () => {
+            toast.success(`Team '${teamName}' deleted`);
+            updateTeamData();
+            if (focusedTeamId === teamId) {
+              setFocusedTeamId(null);
+            }
+          },
+          onError: (error) => {
+            console.error('Error deleting team:', error);
+            toast.error('Error deleting team');
+          },
+        },
+      );
     }
   };
 
-  const deleteTeamMember = async (teamId, memberId) => {
+  const deleteTeamMember = (teamId, memberId) => {
     const member = teamData.find(team => team._id === teamId).team_members.find(member => member.uid === memberId);
     const memberName = member ? member.name : '';
 
@@ -377,12 +385,19 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
 
     if (confirmedName === memberName) {
-      try {
-        await apiCall(`/teams/${teamId}/members/${memberId}`, 'DELETE');
-        updateTeamData();
-      } catch (error) {
-        console.error('Error deleting team member:', error);
-      }
+      deleteMemberMutation.mutate(
+        {teamId, memberId},
+        {
+          onSuccess: () => {
+            toast.success(`Member ${memberName} deleted`);
+            updateTeamData();
+          },
+          onError: (error) => {
+            console.error('Error deleting team member:', error);
+            toast.error('Error deleting team member');
+          },
+        }
+      );
     } else {
       alert("The entered name did not match. Deletion cancelled.");
     }
@@ -530,21 +545,25 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     setDropTargetId(null); // Remove highlight when the dragged item leaves the row
   };
 
-  const handleDrop = async (e, targetTeamId) => {
+  const handleDrop = (e, targetTeamId) => {
     e.preventDefault();
     const {memberId, originTeamId, memberName} = draggedMember;
     if (targetTeamId !== originTeamId) {
       const confirmMove = window.confirm(`Are you sure you want to move ${memberName} to the new team?`);
       if (confirmMove) {
-        try {
-          const response = await apiCall(`/teams/move-member/${memberId}`, 'POST', {
-            source_team_id: originTeamId,
-            target_team_id: targetTeamId,
-          });
-          updateTeamData();
-        } catch (error) {
-          console.error('Failed to move team member:', error);
-        }
+        moveMemberMutation.mutate(
+          {memberId, sourceTeamId: originTeamId, targetTeamId},
+          {
+            onSuccess: () => {
+              toast.success(`${memberName} moved successfully`);
+              updateTeamData();
+            },
+            onError: (error) => {
+              console.error('Failed to move team member:', error);
+              toast.error('Failed to move team member');
+            },
+          },
+        );
       }
     }
     setDropTargetId(null); // Remove highlight when the dragged item leaves the row

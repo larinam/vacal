@@ -4,6 +4,7 @@ import {useApi} from '../../hooks/useApi';
 import {toast} from 'react-toastify';
 import './AdditionalWorkspaceCreation.css';
 import {useAuth} from "../../contexts/AuthContext";
+import {useMutation} from '@tanstack/react-query';
 
 const AdditionalWorkspaceCreation = () => {
   const navigate = useNavigate();
@@ -11,23 +12,28 @@ const AdditionalWorkspaceCreation = () => {
   const [tenantName, setTenantName] = useState('');
   const [tenantIdentifier, setTenantIdentifier] = useState('');
   const {setCurrentTenant} = useAuth();
+  const createTenantMutation = useMutation({
+    mutationFn: (tenantData) => apiCall('/users/create-tenant', 'POST', tenantData),
+  });
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     const tenantData = {name: tenantName, identifier: tenantIdentifier};
-    try {
-      await apiCall('/users/create-tenant', 'POST', tenantData);
-      toast.success('Workspace created successfully');
-      setCurrentTenant(tenantIdentifier);
-      navigate('/main');
-    } catch (error) {
-      console.error('Error creating workspace:', error);
-      if (error.data && error.data.detail) {
-        toast.error(error.data.detail);
-      } else {
-        toast.error('An error occurred. Please try again.');
-      }
-    }
+    createTenantMutation.mutate(tenantData, {
+      onSuccess: () => {
+        toast.success('Workspace created successfully');
+        setCurrentTenant(tenantIdentifier);
+        navigate('/main');
+      },
+      onError: (error) => {
+        console.error('Error creating workspace:', error);
+        if (error?.data?.detail) {
+          toast.error(error.data.detail);
+        } else {
+          toast.error('An error occurred. Please try again.');
+        }
+      },
+    });
   };
 
   return (
@@ -51,7 +57,7 @@ const AdditionalWorkspaceCreation = () => {
           placeholder="Workspace Code"
           required
         />
-        <button type="submit" className="buttonStyle createWorkspaceButton">
+        <button type="submit" className="buttonStyle createWorkspaceButton" disabled={createTenantMutation.isPending}>
           Create Workspace
         </button>
       </form>

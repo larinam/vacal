@@ -3,99 +3,129 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEdit, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import './DayTypes.css';
 import {useApi} from '../../hooks/useApi';
-import {toast} from "react-toastify";
+import {toast} from 'react-toastify';
 import DayTypeModal from './DayTypeModal';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {DAY_TYPES_QUERY_KEY, useDayTypesQuery} from '../../hooks/queries/useDayTypesQuery';
 
 const DayTypes = () => {
-    const [dayTypes, setDayTypes] = useState([]);
-    const [showDayTypeModal, setShowDayTypeModal] = useState(false);
-    const [editingDayType, setEditingDayType] = useState(null);
-    const { apiCall } = useApi();
+  const [showDayTypeModal, setShowDayTypeModal] = useState(false);
+  const [editingDayType, setEditingDayType] = useState(null);
+  const {apiCall} = useApi();
+  const queryClient = useQueryClient();
 
-    const refreshDayTypes = async () => {
-        const data = await apiCall('/daytypes');
-        setDayTypes(data.day_types);
-    };
+  const {
+    data: dayTypes = [],
+    isPending: isDayTypesPending,
+    error: dayTypesError,
+  } = useDayTypesQuery(apiCall);
 
-    useEffect(() => {
-        refreshDayTypes();
-    }, []);
+  const deleteDayTypeMutation = useMutation({
+    mutationFn: (dayTypeId) => apiCall(`/daytypes/${dayTypeId}`, 'DELETE'),
+    onSuccess: () => {
+      toast.success('Day type deleted successfully');
+      queryClient.invalidateQueries({queryKey: DAY_TYPES_QUERY_KEY});
+    },
+    onError: (error) => {
+      console.error('Error deleting day type:', error);
+      toast.error('Error deleting day type');
+    },
+  });
 
-    const handleAddDayTypeClick = () => {
-        setEditingDayType(null); // Reset the editing day type
-        setShowDayTypeModal(true); // Show the modal for adding a new day type
-    };
+  useEffect(() => {
+    if (dayTypesError) {
+      console.error('Error fetching day types:', dayTypesError);
+      toast.error('Failed to load day types');
+    }
+  }, [dayTypesError]);
 
-    const handleEditDayTypeClick = (dayType) => {
-        setEditingDayType(dayType); // Set the day type data for editing
-        setShowDayTypeModal(true); // Show the modal for editing
-    };
+  const handleAddDayTypeClick = () => {
+    setEditingDayType(null);
+    setShowDayTypeModal(true);
+  };
 
-    const handleDeleteDayType = async (dayTypeId) => {
-        const isConfirmed = window.confirm('Are you sure you want to delete this day type?');
-        if (isConfirmed) {
-            try {
-                await apiCall(`/daytypes/${dayTypeId}`, 'DELETE');
-                refreshDayTypes(); // Refresh the list after deletion
-                toast.success('Day type deleted successfully');
-            } catch (error) {
-                console.error('Error deleting day type:', error);
-                toast.error('Error deleting day type');
-            }
-        }
-    };
+  const handleEditDayTypeClick = (dayType) => {
+    setEditingDayType(dayType);
+    setShowDayTypeModal(true);
+  };
 
-    const handleModalClose = () => {
-        setShowDayTypeModal(false);
-        refreshDayTypes(); // Refresh the day types list after closing the modal
-    };
+  const handleDeleteDayType = (dayTypeId) => {
+    if (deleteDayTypeMutation.isPending) {
+      return;
+    }
 
-    return (
-        <div className="settingsDayTypesContainer">
-            <h2>Day Types Settings</h2>
-            <button onClick={handleAddDayTypeClick}>Add Day Type</button>
-            <table className="settingsTable">
-                <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Identifier</th>
-                    <th>Color</th>
-                    <th>Absence</th>
-                    <th>Actions</th>
-                </tr>
-                </thead>
-                <tbody>
-                    {dayTypes.map(dayType => (
-                      <tr key={dayType._id}>
-                          <td>{dayType.name}</td>
-                          <td>{dayType.identifier}</td>
-                          <td>
-                              <div className="colorCircle" style={{backgroundColor: dayType.color}}></div>
-                              {dayType.color}
-                          </td>
-                          <td>{dayType.is_absence ? 'Yes' : 'No'}</td>
-                          <td>
-                              <FontAwesomeIcon icon={faEdit} onClick={() => handleEditDayTypeClick(dayType)}
-                                               className="firstActionIcon"
-                              />
-                              <FontAwesomeIcon icon={faTrashAlt}
-                                               onClick={() => handleDeleteDayType(dayType._id)}
-                                               className="actionIcon"
-                              />
-                          </td>
-                      </tr>
-                    ))}
-                </tbody>
-            </table>
-            {showDayTypeModal && (
-                <DayTypeModal
-                    isOpen={showDayTypeModal}
-                    onClose={handleModalClose}
-                    editingDayType={editingDayType}
-                />
-            )}
-        </div>
-    );
+    const isConfirmed = window.confirm('Are you sure you want to delete this day type?');
+    if (isConfirmed) {
+      deleteDayTypeMutation.mutate(dayTypeId);
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowDayTypeModal(false);
+    setEditingDayType(null);
+  };
+
+  const isInitialLoading = isDayTypesPending && dayTypes.length === 0;
+
+  return (
+    <div className="settingsDayTypesContainer">
+      <h2>Day Types Settings</h2>
+      <button onClick={handleAddDayTypeClick}>Add Day Type</button>
+      <table className="settingsTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Identifier</th>
+            <th>Color</th>
+            <th>Absence</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {isInitialLoading ? (
+            <tr>
+              <td colSpan={5}>Loading...</td>
+            </tr>
+          ) : dayTypes.length === 0 ? (
+            <tr>
+              <td colSpan={5}>No day types found.</td>
+            </tr>
+          ) : (
+            dayTypes.map((dayType) => (
+              <tr key={dayType._id}>
+                <td>{dayType.name}</td>
+                <td>{dayType.identifier}</td>
+                <td>
+                  <div className="colorCircle" style={{backgroundColor: dayType.color}}></div>
+                  {dayType.color}
+                </td>
+                <td>{dayType.is_absence ? 'Yes' : 'No'}</td>
+                <td>
+                  <FontAwesomeIcon
+                    icon={faEdit}
+                    onClick={() => handleEditDayTypeClick(dayType)}
+                    className="firstActionIcon"
+                  />
+                  <FontAwesomeIcon
+                    icon={faTrashAlt}
+                    onClick={() => handleDeleteDayType(dayType._id)}
+                    className="actionIcon"
+                  />
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+      {showDayTypeModal && (
+        <DayTypeModal
+          isOpen={showDayTypeModal}
+          onClose={handleModalClose}
+          editingDayType={editingDayType}
+        />
+      )}
+    </div>
+  );
 };
 
 export default DayTypes;
