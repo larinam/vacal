@@ -58,6 +58,14 @@ def _get_current_day_type_ids(member, date: datetime.date) -> Set[str]:
     }
 
 
+def _get_actor_id(audit: DayAudit) -> str | None:
+    user = getattr(audit, "user", None)
+    if not user:
+        return None
+    user_id = getattr(user, "id", None)
+    return str(user_id) if user_id else None
+
+
 def _get_actor_name(audit: DayAudit) -> str | None:
     user = audit.user
     if not user:
@@ -99,7 +107,12 @@ def _collect_notifications(
             "added_by": _get_actor_name(audit),
             "comment": (audit.new_comment or "").strip(),
         }
-        for email in team.get_subscriber_emails(ABSENCE_RECENT_CHANGES_NOTIFICATION):
+        actor_id = _get_actor_id(audit)
+        exclude_ids = [actor_id] if actor_id else None
+        for email in team.get_subscriber_emails(
+            ABSENCE_RECENT_CHANGES_NOTIFICATION,
+            exclude_user_ids=exclude_ids,
+        ):
             notifications[email][team.name].append(entry)
     return notifications
 

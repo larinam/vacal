@@ -142,6 +142,48 @@ def test_send_recent_calendar_change_notifications_dispatch_and_content():
     )
 
 
+def test_send_recent_calendar_change_notifications_skips_acting_subscriber():
+    now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+
+    actor = _create_user("Actor Example", tenant)
+
+    member = TeamMember(name="Eve Example", country="Sweden", email="eve@example.com")
+    team = Team(
+        tenant=tenant,
+        name="Team Delta",
+        team_members=[member],
+        notification_preferences={
+            str(actor.id): [ABSENCE_RECENT_CHANGES_NOTIFICATION],
+        },
+    ).save()
+
+    day_key = str(datetime.date(2025, 5, 12))
+    team.team_members[0].days = {day_key: DayEntry(day_types=[vacation])}
+    team.save()
+
+    DayAudit(
+        tenant=tenant,
+        team=team,
+        member_uid=str(member.uid),
+        date=datetime.date(2025, 5, 12),
+        user=actor,
+        timestamp=datetime.datetime(2025, 5, 10, 10, 15, tzinfo=datetime.timezone.utc),
+        old_day_types=[],
+        new_day_types=[vacation],
+        old_comment="",
+        new_comment="Enjoy!",
+        action="created",
+    ).save()
+
+    with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email:
+        send_recent_calendar_change_notifications(now=now)
+
+    mock_send_email.assert_not_called()
+
+
 def test_send_recent_calendar_change_notifications_ignores_non_matching_audits():
     now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
     tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()

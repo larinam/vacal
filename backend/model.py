@@ -4,6 +4,7 @@ import random
 import secrets
 import uuid
 from datetime import datetime, timezone, timedelta
+from typing import Iterable
 
 import mongoengine
 import mongomock
@@ -423,7 +424,11 @@ class Team(Document):
     def is_subscribed(self, user: User) -> bool:
         return str(getattr(user, "id", "")) in (self.notification_preferences or {})
 
-    def get_subscriber_emails(self, notification_type: str | None = None) -> list[str]:
+    def get_subscriber_emails(
+        self,
+        notification_type: str | None = None,
+        exclude_user_ids: Iterable[str] | None = None,
+    ) -> list[str]:
         """Return subscriber emails filtered by an optional notification type.
 
         The lookup keeps backwards compatibility by treating missing preferences as a
@@ -431,7 +436,11 @@ class Team(Document):
         """
         seen = set()
         resolved_emails: list[str] = []
+        excluded_ids = {str(user_id) for user_id in (exclude_user_ids or []) if user_id}
         for subscriber in self.list_subscribers():
+            subscriber_id = str(getattr(subscriber, "id", ""))
+            if excluded_ids and subscriber_id in excluded_ids:
+                continue
             if notification_type:
                 allowed_types = self.notification_preferences.get(str(subscriber.id))
                 if allowed_types is not None and notification_type not in allowed_types:
