@@ -25,13 +25,7 @@ const DayTypeContextMenu = ({
   const [showHistory, setShowHistory] = useState(false);
   const dayAssignmentsMutation = useDayAssignmentsMutation();
 
-  const visibleDayTypes =
-    isOpen &&
-    selectedDayInfo &&
-    selectedDayInfo.dateRange?.length > 1 &&
-    selectedDayInfo.existingDayTypes?.length > 0
-      ? selectedDayInfo.existingDayTypes
-      : dayTypes;
+  const visibleDayTypes = dayTypes;
 
   useEffect(() => {
     if (isOpen) {
@@ -79,7 +73,6 @@ const DayTypeContextMenu = ({
 
     setSelectedDayTypes(updatedDayTypes);
     await updateDayData(updatedDayTypes, comment);
-    onClose();
   };
 
   const handleCommentChange = (e) => setComment(e.target.value);
