@@ -29,15 +29,15 @@ def _get_time_window(now: datetime.datetime | None) -> tuple[datetime.datetime, 
     return window_start, previous_hour_start
 
 
-def _get_added_absence_day_types(audit: DayAudit) -> List:
-    old_absence_ids = {str(day_type.id) for day_type in audit.old_day_types if getattr(day_type, "is_absence", False)}
-    added_absence_day_types = []
+def _get_added_day_types(audit: DayAudit) -> List:
+    old_day_type_ids = {str(day_type.id) for day_type in audit.old_day_types if day_type}
+    added_day_types = []
     for day_type in audit.new_day_types:
-        if not getattr(day_type, "is_absence", False):
+        if not day_type:
             continue
-        if str(day_type.id) not in old_absence_ids:
-            added_absence_day_types.append(day_type)
-    return added_absence_day_types
+        if str(day_type.id) not in old_day_type_ids:
+            added_day_types.append(day_type)
+    return added_day_types
 
 
 def _get_member_by_uid(team: Team, member_uid: str):
@@ -47,14 +47,14 @@ def _get_member_by_uid(team: Team, member_uid: str):
     return None
 
 
-def _get_current_absence_day_type_ids(member, date: datetime.date) -> Set[str]:
+def _get_current_day_type_ids(member, date: datetime.date) -> Set[str]:
     day_entry = member.days.get(str(date)) if getattr(member, "days", None) else None
     if not day_entry:
         return set()
     return {
         str(day_type.id)
         for day_type in getattr(day_entry, "day_types", [])
-        if getattr(day_type, "is_absence", False)
+        if day_type
     }
 
 
@@ -77,8 +77,8 @@ def _collect_notifications(
 ) -> Dict[str, Dict[str, List[dict]]]:
     notifications = defaultdict(lambda: defaultdict(list))
     for audit in audits:
-        added_absence_day_types = _get_added_absence_day_types(audit)
-        if not added_absence_day_types:
+        added_day_types = _get_added_day_types(audit)
+        if not added_day_types:
             continue
         team = audit.team
         if team is None:
@@ -86,9 +86,9 @@ def _collect_notifications(
         member = _get_member_by_uid(team, audit.member_uid)
         if member is None:
             continue
-        current_absence_ids = _get_current_absence_day_type_ids(member, audit.date)
+        current_day_type_ids = _get_current_day_type_ids(member, audit.date)
         relevant_day_types = [
-            day_type for day_type in added_absence_day_types if str(day_type.id) in current_absence_ids
+            day_type for day_type in added_day_types if str(day_type.id) in current_day_type_ids
         ]
         if not relevant_day_types:
             continue
@@ -106,7 +106,7 @@ def _collect_notifications(
 
 def _format_notification_line(entry: dict) -> str:
     day_types = ", ".join(entry["day_types"])
-    line = f"- {entry['member_name']} was marked absent with {day_types} on {entry['date'].isoformat()}."
+    line = f"- {entry['member_name']} was assigned {day_types} on {entry['date'].isoformat()}."
     if entry.get("added_by"):
         line += f" Added by {entry['added_by']}."
     comment = entry.get("comment")
@@ -127,7 +127,7 @@ def _generate_email_body(
     body_lines = [
         "Hello!",
         "",
-        f"The following absences were added between {window_start_str} and {window_end_str} UTC:",
+        f"The following calendar changes were recorded between {window_start_str} and {window_end_str} UTC:",
         "",
     ]
     for team_name, entries in sorted(teams_notifications.items()):
@@ -147,13 +147,13 @@ def _generate_email_body(
 
 def _generate_subject(window_start: datetime.datetime, window_end: datetime.datetime) -> str:
     return (
-        "New Absences Added - "
+        "New Calendar Changes - "
         f"{window_start.strftime('%b %d %H:%M')} - {window_end.strftime('%H:%M')} UTC"
     )
 
 
-def send_recent_absence_notifications(now: datetime.datetime | None = None) -> None:
-    log.debug("Start scheduled task send_recent_absence_notifications")
+def send_recent_calendar_change_notifications(now: datetime.datetime | None = None) -> None:
+    log.debug("Start scheduled task send_recent_calendar_change_notifications")
     window_start, window_end = _get_time_window(now)
     audits = DayAudit.objects(
         timestamp__gte=window_start,
@@ -162,8 +162,8 @@ def send_recent_absence_notifications(now: datetime.datetime | None = None) -> N
 
     notifications = _collect_notifications(audits)
     if not notifications:
-        log.debug("No new absence audits to notify about")
-        log.debug("Stop scheduled task send_recent_absence_notifications")
+        log.debug("No new calendar change audits to notify about")
+        log.debug("Stop scheduled task send_recent_calendar_change_notifications")
         return
 
     subject = _generate_subject(window_start, window_end)
@@ -171,4 +171,4 @@ def send_recent_absence_notifications(now: datetime.datetime | None = None) -> N
         body = _generate_email_body(teams_notifications, window_start, window_end)
         if body:
             send_email(subject, body, email)
-    log.debug("Stop scheduled task send_recent_absence_notifications")
+    log.debug("Stop scheduled task send_recent_calendar_change_notifications")

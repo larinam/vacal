@@ -15,7 +15,7 @@ from backend.model import (
     AuthDetails,
 )
 from backend.notification_types import ABSENCE_RECENT_CHANGES_NOTIFICATION
-from backend.scheduled.day_audit_notifications import send_recent_absence_notifications
+from backend.scheduled.day_audit_notifications import send_recent_calendar_change_notifications
 
 
 @pytest.fixture(autouse=True)
@@ -42,7 +42,7 @@ def _create_user(name: str, tenant: Tenant) -> User:
     ).save()
 
 
-def test_send_recent_absence_notifications_dispatch_and_content():
+def test_send_recent_calendar_change_notifications_dispatch_and_content():
     now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
     tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
     DayType.init_day_types(tenant)
@@ -54,11 +54,12 @@ def test_send_recent_absence_notifications_dispatch_and_content():
 
     member_alice = TeamMember(name="Alice Example", country="Sweden", email="alice@example.com")
     member_bob = TeamMember(name="Bob Example", country="Sweden", email="bob@example.com")
+    member_carol = TeamMember(name="Carol Example", country="Sweden", email="carol@example.com")
 
     team = Team(
         tenant=tenant,
         name="Team Alpha",
-        team_members=[member_alice, member_bob],
+        team_members=[member_alice, member_bob, member_carol],
         notification_preferences={
             str(subscriber.id): [ABSENCE_RECENT_CHANGES_NOTIFICATION],
         },
@@ -66,8 +67,11 @@ def test_send_recent_absence_notifications_dispatch_and_content():
 
     alice_day = str(datetime.date(2025, 5, 12))
     bob_day = str(datetime.date(2025, 5, 13))
+    carol_day = str(datetime.date(2025, 5, 14))
     team.team_members[0].days = {alice_day: DayEntry(day_types=[vacation], comment="Enjoy your vacation!")}
     team.team_members[1].days = {bob_day: DayEntry(day_types=[compensatory])}
+    birthday = DayType.objects(tenant=tenant, identifier="birthday").first()
+    team.team_members[2].days = {carol_day: DayEntry(day_types=[birthday])}
     team.save()
 
     window_start = datetime.datetime(2025, 5, 10, 10, 0, tzinfo=datetime.timezone.utc)
@@ -100,13 +104,28 @@ def test_send_recent_absence_notifications_dispatch_and_content():
         action="updated",
     ).save()
 
-    expected_subject = "New Absences Added - May 10 10:00 - 11:00 UTC"
+    DayAudit(
+        tenant=tenant,
+        team=team,
+        member_uid=str(member_carol.uid),
+        date=datetime.date(2025, 5, 14),
+        user=manager,
+        timestamp=window_start + datetime.timedelta(minutes=45),
+        old_day_types=[],
+        new_day_types=[birthday],
+        old_comment="",
+        new_comment="",
+        action="created",
+    ).save()
+
+    expected_subject = "New Calendar Changes - May 10 10:00 - 11:00 UTC"
     expected_body = (
         "Hello!\n\n"
-        "The following absences were added between May 10, 2025 10:00 and 11:00 UTC:\n\n"
+        "The following calendar changes were recorded between May 10, 2025 10:00 and 11:00 UTC:\n\n"
         "Team Alpha:\n"
-        "- Alice Example was marked absent with Vacation on 2025-05-12. Added by Manager Example. Comment: Enjoy your vacation!\n"
-        "- Bob Example was marked absent with Compensatory leave on 2025-05-13. Added by Manager Example.\n\n"
+        "- Alice Example was assigned Vacation on 2025-05-12. Added by Manager Example. Comment: Enjoy your vacation!\n"
+        "- Bob Example was assigned Compensatory leave on 2025-05-13. Added by Manager Example.\n"
+        "- Carol Example was assigned Birthday on 2025-05-14. Added by Manager Example.\n\n"
         "For details, visit https://example.com.\n\n"
         "Best regards,\n"
         "Vacation Calendar"
@@ -114,7 +133,7 @@ def test_send_recent_absence_notifications_dispatch_and_content():
 
     with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email, \
          patch("backend.scheduled.day_audit_notifications.cors_origin", "https://example.com"):
-        send_recent_absence_notifications(now=now)
+        send_recent_calendar_change_notifications(now=now)
 
     mock_send_email.assert_called_once_with(
         expected_subject,
@@ -123,7 +142,7 @@ def test_send_recent_absence_notifications_dispatch_and_content():
     )
 
 
-def test_send_recent_absence_notifications_ignores_non_matching_audits():
+def test_send_recent_calendar_change_notifications_ignores_non_matching_audits():
     now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
     tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
     DayType.init_day_types(tenant)
@@ -177,12 +196,12 @@ def test_send_recent_absence_notifications_ignores_non_matching_audits():
     ).save()
 
     with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email:
-        send_recent_absence_notifications(now=now)
+        send_recent_calendar_change_notifications(now=now)
 
     mock_send_email.assert_not_called()
 
 
-def test_send_recent_absence_notifications_skips_removed_absences():
+def test_send_recent_calendar_change_notifications_skips_removed_absences():
     now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
     tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
     DayType.init_day_types(tenant)
@@ -236,6 +255,6 @@ def test_send_recent_absence_notifications_skips_removed_absences():
     ).save()
 
     with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email:
-        send_recent_absence_notifications(now=now)
+        send_recent_calendar_change_notifications(now=now)
 
     mock_send_email.assert_not_called()

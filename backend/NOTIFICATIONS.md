@@ -8,7 +8,7 @@ This document summarizes where automatic email notifications are generated in th
 | --- | --- | --- | --- |
 | `scheduled/absence_starts.py` | `send_absence_email_updates` | Daily task that gathers team members whose absences start today and consolidates updates per subscriber. | Each team's subscriber email list via `team.get_subscriber_emails()`.
 | `scheduled/absence_starts.py` | `send_upcoming_absence_email_updates` | Daily task that checks the next working day for upcoming absences per member and notifies relevant subscribers. | Team subscribers filtered to only the relevant member/team combinations.
-| `scheduled/day_audit_notifications.py` | `send_recent_absence_notifications` | Hourly window audit that inspects `DayAudit` entries for new absence day types added in the previous hour, then sends updates. | Team subscribers grouped by team name when an absence change occurred.
+| `scheduled/day_audit_notifications.py` | `send_recent_calendar_change_notifications` | Hourly window audit that inspects `DayAudit` entries for any new day types added in the previous hour, then sends updates to subscribers. | Team subscribers grouped by team name when a calendar change occurred.
 | `scheduled/birthdays.py` | `send_birthday_email_updates` | Daily task that looks for team members whose birthday is today and emails greetings. | Subscriber list for each team with birthdays.
 
 Each scheduled job uses the shared `send_email` helper, which ultimately calls AWS SES when credentials are available (`email_service.py`).

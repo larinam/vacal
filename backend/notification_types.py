@@ -20,18 +20,18 @@ BIRTHDAY_DAILY_NOTIFICATION = "birthday_daily"
 _NOTIFICATION_TYPES: List[NotificationTypeDefinition] = [
     NotificationTypeDefinition(
         identifier=ABSENCE_DAILY_NOTIFICATION,
-        label="Daily absence summary",
+        label="Today's absence summary",
         description="Receive a consolidated summary of the absences that begin today.",
     ),
     NotificationTypeDefinition(
         identifier=ABSENCE_UPCOMING_NOTIFICATION,
         label="Upcoming absences",
-        description="Get notified about absences that will start on the next working day for your team members.",
+        description="Receive a notification about absences starting on the next working day.",
     ),
     NotificationTypeDefinition(
         identifier=ABSENCE_RECENT_CHANGES_NOTIFICATION,
-        label="Recent absence changes",
-        description="Stay informed when new absence entries are added to the calendar during the day.",
+        label="Recent calendar additions",
+        description="Stay informed when new absences or special day types are added to the calendar during the day.",
     ),
     NotificationTypeDefinition(
         identifier=BIRTHDAY_DAILY_NOTIFICATION,
