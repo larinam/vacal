@@ -308,7 +308,8 @@
 /* Button container for horizontal layout */
 .modal-content form .button-container {
     display: flex;
-    justify-content: space-between; /* Space out buttons */
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 .modal-content form button {

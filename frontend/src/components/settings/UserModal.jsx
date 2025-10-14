@@ -128,11 +128,11 @@ const UserModal = ({isOpen, onClose, editingUser}) => {
           </label>
         )}
         <div className="button-container">
-          <button type="submit" disabled={updateUserMutation.isPending}>
-            Update User
-          </button>
           <button type="button" onClick={onClose} disabled={updateUserMutation.isPending}>
             Close
+          </button>
+          <button type="submit" disabled={updateUserMutation.isPending}>
+            Update User
           </button>
         </div>
       </form>

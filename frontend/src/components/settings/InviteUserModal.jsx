@@ -52,11 +52,11 @@ const InviteUserModal = ({isOpen, onClose}) => {
           required
         />
         <div className="button-container">
-          <button type="submit" disabled={inviteUserMutation.isPending}>
-            Send Invitation
-          </button>
           <button type="button" onClick={onClose} disabled={inviteUserMutation.isPending}>
             Close
+          </button>
+          <button type="submit" disabled={inviteUserMutation.isPending}>
+            Send Invitation
           </button>
         </div>
       </form>

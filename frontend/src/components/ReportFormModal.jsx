@@ -74,8 +74,8 @@ const ReportFormModal = ({ isOpen, onClose, onGenerateReport, teams = [] }) => {
                         ))}
                     </fieldset>
                     <div className="button-container">
-                        <button type="submit">Generate Report</button>
                         <button type="button" onClick={onClose}>Close</button>
+                        <button type="submit">Generate Report</button>
                     </div>
                 </form>
         </Modal>

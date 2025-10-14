@@ -111,11 +111,11 @@ const DayTypeModal = ({isOpen, onClose, editingDayType}) => {
           <span>Absence</span>
         </label>
         <div className="button-container">
-          <button type="submit" disabled={dayTypeMutation.isPending}>
-            {editingDayType ? 'Update' : 'Add'} Day Type
-          </button>
           <button type="button" onClick={onClose} disabled={dayTypeMutation.isPending}>
             Close
+          </button>
+          <button type="submit" disabled={dayTypeMutation.isPending}>
+            {editingDayType ? 'Update' : 'Add'} Day Type
           </button>
         </div>
       </form>

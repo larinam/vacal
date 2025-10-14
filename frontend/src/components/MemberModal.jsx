@@ -145,8 +145,8 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
             />
           </label>
           <div className="button-container">
-            <button type="submit" disabled={isPending}>{editingMember ? 'Edit Member' : 'Add Member'}</button>
             <button type="button" onClick={onClose} disabled={isPending}>Close</button>
+            <button type="submit" disabled={isPending}>{editingMember ? 'Edit Member' : 'Add Member'}</button>
           </div>
         </form>
     </Modal>

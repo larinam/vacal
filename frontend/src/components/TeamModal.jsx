@@ -54,10 +54,10 @@ const TeamModal = ({isOpen, onClose, editingTeam}) => {
             required
           />
           <div className="button-container">
+            <button type="button" onClick={onClose}>Close</button>
             <button type="submit" disabled={teamMutation.isPending}>
               {editingTeam ? 'Update Team' : 'Add Team'}
             </button>
-            <button type="button" onClick={onClose}>Close</button>
           </div>
         </form>
     </Modal>

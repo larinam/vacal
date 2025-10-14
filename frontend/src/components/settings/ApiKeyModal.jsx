@@ -91,6 +91,9 @@ const ApiKeyModal = ({isOpen, onClose}) => {
           </p>
         )}
         <div className="button-container">
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
           {isMasked ? (
             <button
               type="button"
@@ -104,9 +107,6 @@ const ApiKeyModal = ({isOpen, onClose}) => {
               Copy
             </button>
           )}
-          <button type="button" onClick={onClose}>
-            Close
-          </button>
         </div>
       </div>
     </Modal>

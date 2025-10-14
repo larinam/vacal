@@ -61,8 +61,8 @@ const PasswordChangeModal = ({ isOpen, onClose }) => {
                         required
                     />
                     <div className="button-container">
-                        <button type="submit" disabled={passwordChangeMutation.isPending}>Change Password</button>
                         <button type="button" onClick={onClose} disabled={passwordChangeMutation.isPending}>Close</button>
+                        <button type="submit" disabled={passwordChangeMutation.isPending}>Change Password</button>
                     </div>
                 </form>
         </Modal>
