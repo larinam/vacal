@@ -35,3 +35,7 @@ When implementing any task, think about security at every layer:
 ## Documentation
 
 If the change to the product is significant, please suggest an adjustment to the README.md file.
+
+## Python Environment
+
+Before running any Python commands or tests, locate the appropriate virtual environment (default: `venv313`) and activate it so dependencies resolve correctly.
