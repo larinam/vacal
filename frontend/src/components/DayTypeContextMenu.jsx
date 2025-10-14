@@ -28,8 +28,9 @@ const DayTypeContextMenu = ({
   const visibleDayTypes = dayTypes;
 
   useEffect(() => {
-    if (isOpen) {
-      const dayTypeIds = selectedDayInfo.existingDayTypes.map((type) => type._id);
+    if (isOpen && selectedDayInfo) {
+      const existingDayTypes = selectedDayInfo.existingDayTypes ?? [];
+      const dayTypeIds = existingDayTypes.map((type) => type._id);
       setSelectedDayTypes(dayTypeIds);
       const existingComment = selectedDayInfo.existingComment || '';
       setComment(existingComment);
@@ -51,19 +52,32 @@ const DayTypeContextMenu = ({
   }, [isOpen, onClose]);
 
   const handleCheckboxChange = async (typeObj, checked) => {
+    if (!selectedDayInfo) {
+      toast.error('Unable to update day types. Please try again.');
+      return;
+    }
+
     const value = typeObj._id;
     const updatedDayTypes = checked
       ? [...selectedDayTypes, value]
       : selectedDayTypes.filter((type) => type !== value);
 
     if (typeObj.identifier === 'vacation' && checked) {
-      const team = teamData.find(t => t._id === selectedDayInfo.teamId);
-      const member = team.team_members.find(m => m.uid === selectedDayInfo.memberId);
+      const team = teamData?.find((t) => t._id === selectedDayInfo.teamId);
+      const member = team?.team_members?.find((m) => m.uid === selectedDayInfo.memberId);
+
+      if (!team || !member) {
+        toast.error('Vacation balance is unavailable. Please refresh and try again.');
+        return;
+      }
+
       const currentYear = new Date().getFullYear();
-      const allFutureYears = selectedDayInfo.dateRange.every(date => date.getFullYear() > currentYear);
+      const dateRange = selectedDayInfo.dateRange ?? [];
+      const allFutureYears = dateRange.length > 0 && dateRange.every((date) => date.getFullYear() > currentYear);
+
       if (!allFutureYears &&
           member.vacation_available_days != null &&
-          selectedDayInfo.dateRange.length > member.vacation_available_days) {
+          dateRange.length > member.vacation_available_days) {
         const proceed = window.confirm('Not enough vacation days available. Do you want to continue?');
         if (!proceed) {
           return;
@@ -87,15 +101,31 @@ const DayTypeContextMenu = ({
   const closeHistoryModal = () => setShowHistory(false);
 
   const updateDayData = async (dayTypes, comment) => {
-    const baseTypeIds = selectedDayInfo.existingDayTypes.map((t) => t._id);
+    if (!selectedDayInfo) {
+      console.error('Selected day info missing for update.');
+      toast.error('Unable to update day types. Please refresh and try again.');
+      return false;
+    }
+
+    const existingDayTypes = selectedDayInfo.existingDayTypes ?? [];
+    const baseTypeIds = existingDayTypes.map((t) => t._id);
     const dayTypeData = {};
 
-    if (selectedDayInfo.dateRange && selectedDayInfo.dateRange.length > 0) {
-      selectedDayInfo.dateRange.forEach((date) => {
+    const dateRange = selectedDayInfo.dateRange ?? [];
+
+    if (dateRange.length > 0) {
+      const team = teamData?.find((t) => t._id === selectedDayInfo.teamId);
+      const member = team?.team_members?.find((m) => m.uid === selectedDayInfo.memberId);
+
+      if (!team || !member) {
+        console.error('Team or member data missing for update.');
+        toast.error('Unable to update day types. Please refresh and try again.');
+        return false;
+      }
+
+      dateRange.forEach((date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
-        const team = teamData.find((t) => t._id === selectedDayInfo.teamId);
-        const member = team.team_members.find((m) => m.uid === selectedDayInfo.memberId);
-        const currentEntry = member.days[dateStr] || {};
+        const currentEntry = member.days?.[dateStr] || {};
         const currentIds = (currentEntry.day_types || []).map((dt) => dt._id);
 
         const preservedIds = currentIds.filter((id) => !baseTypeIds.includes(id));
@@ -112,10 +142,8 @@ const DayTypeContextMenu = ({
       });
     } else {
       console.error('No valid date range provided.');
-      return;
+      return false;
     }
-
-    const url = `/teams/${selectedDayInfo.teamId}/members/${selectedDayInfo.memberId}/days`;
 
     try {
       await dayAssignmentsMutation.mutateAsync({
@@ -124,10 +152,14 @@ const DayTypeContextMenu = ({
         payload: dayTypeData,
       });
       updateTeamData();
+      setComment(comment);
+      setInitialComment(comment);
+      return true;
     } catch (error) {
       console.error('Error updating day types:', error);
       const detailMessage = error?.data?.detail;
       toast.error(detailMessage || 'Error updating day types');
+      return false;
     }
   };
 
