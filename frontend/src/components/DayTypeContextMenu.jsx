@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import './DayTypeContextMenu.css';
 import {format, isWeekend} from 'date-fns';
 import {toast} from 'react-toastify';
@@ -26,6 +26,53 @@ const DayTypeContextMenu = ({
   const dayAssignmentsMutation = useDayAssignmentsMutation();
 
   const visibleDayTypes = dayTypes;
+  const {activeTeam, activeMember, dateRange, firstDate} = useMemo(() => {
+    if (!selectedDayInfo) {
+      return {
+        activeTeam: null,
+        activeMember: null,
+        dateRange: [],
+        firstDate: null,
+      };
+    }
+
+    const resolvedDates = selectedDayInfo.dateRange ?? [];
+    const resolvedTeam = teamData?.find((t) => t._id === selectedDayInfo.teamId) ?? null;
+    const resolvedMember = resolvedTeam?.team_members?.find((m) => m.uid === selectedDayInfo.memberId) ?? null;
+
+    return {
+      activeTeam: resolvedTeam,
+      activeMember: resolvedMember,
+      dateRange: resolvedDates,
+      firstDate: resolvedDates.length > 0 ? resolvedDates[0] : null,
+    };
+  }, [selectedDayInfo, teamData]);
+
+  const isHolidayDay = selectedDayInfo?.isHolidayDay ?? false;
+
+  const editableDayTypeIds = useMemo(() => {
+    const ids = new Set();
+
+    visibleDayTypes.forEach((type) => {
+      if (type.identifier === 'vacation') {
+        ids.add(type._id);
+        return;
+      }
+
+      if (type.identifier === 'birthday') {
+        return;
+      }
+
+      if (type.identifier === 'override' && firstDate) {
+        const canEditOverride = isWeekend(firstDate) || isHolidayDay;
+        if (!canEditOverride) return;
+      }
+
+      ids.add(type._id);
+    });
+
+    return ids;
+  }, [firstDate, isHolidayDay, visibleDayTypes]);
 
   useEffect(() => {
     if (isOpen && selectedDayInfo) {
@@ -41,6 +88,26 @@ const DayTypeContextMenu = ({
       setInitialComment('');
     }
   }, [isOpen, selectedDayInfo]);
+
+  useEffect(() => {
+    if (!isOpen || !selectedDayInfo || !activeMember || dateRange.length === 0) return;
+
+    const persistedDayTypeIds = Array.from(new Set(
+      dateRange.flatMap((date) => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const dayTypesForDate = activeMember.days?.[dateStr]?.day_types || [];
+        return dayTypesForDate.map((dt) => dt._id);
+      }),
+    ));
+
+    const isSyncNeeded =
+      persistedDayTypeIds.length !== selectedDayTypes.length ||
+      !persistedDayTypeIds.every((id) => selectedDayTypes.includes(id));
+
+    if (isSyncNeeded) {
+      setSelectedDayTypes(persistedDayTypeIds);
+    }
+  }, [activeMember, dateRange, isOpen, selectedDayInfo, selectedDayTypes]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -63,21 +130,17 @@ const DayTypeContextMenu = ({
       : selectedDayTypes.filter((type) => type !== value);
 
     if (typeObj.identifier === 'vacation' && checked) {
-      const team = teamData?.find((t) => t._id === selectedDayInfo.teamId);
-      const member = team?.team_members?.find((m) => m.uid === selectedDayInfo.memberId);
-
-      if (!team || !member) {
+      if (!activeTeam || !activeMember) {
         toast.error('Vacation balance is unavailable. Please refresh and try again.');
         return;
       }
 
       const currentYear = new Date().getFullYear();
-      const dateRange = selectedDayInfo.dateRange ?? [];
       const allFutureYears = dateRange.length > 0 && dateRange.every((date) => date.getFullYear() > currentYear);
 
       if (!allFutureYears &&
-          member.vacation_available_days != null &&
-          dateRange.length > member.vacation_available_days) {
+          activeMember.vacation_available_days != null &&
+          dateRange.length > activeMember.vacation_available_days) {
         const proceed = window.confirm('Not enough vacation days available. Do you want to continue?');
         if (!proceed) {
           return;
@@ -107,43 +170,36 @@ const DayTypeContextMenu = ({
       return false;
     }
 
-    const existingDayTypes = selectedDayInfo.existingDayTypes ?? [];
-    const baseTypeIds = existingDayTypes.map((t) => t._id);
-    const dayTypeData = {};
+    if (!activeTeam || !activeMember) {
+      console.error('Team or member data missing for update.');
+      toast.error('Unable to update day types. Please refresh and try again.');
+      return false;
+    }
 
-    const dateRange = selectedDayInfo.dateRange ?? [];
-
-    if (dateRange.length > 0) {
-      const team = teamData?.find((t) => t._id === selectedDayInfo.teamId);
-      const member = team?.team_members?.find((m) => m.uid === selectedDayInfo.memberId);
-
-      if (!team || !member) {
-        console.error('Team or member data missing for update.');
-        toast.error('Unable to update day types. Please refresh and try again.');
-        return false;
-      }
-
-      dateRange.forEach((date) => {
-        const dateStr = format(date, 'yyyy-MM-dd');
-        const currentEntry = member.days?.[dateStr] || {};
-        const currentIds = (currentEntry.day_types || []).map((dt) => dt._id);
-
-        const preservedIds = currentIds.filter((id) => !baseTypeIds.includes(id));
-        const finalIds = Array.from(new Set([...dayTypes, ...preservedIds]));
-
-        dayTypeData[dateStr] = {day_types: finalIds, comment};
-        updateLocalTeamData(
-          selectedDayInfo.teamId,
-          selectedDayInfo.memberId,
-          dateStr,
-          finalIds,
-          comment,
-        );
-      });
-    } else {
+    if (dateRange.length === 0) {
       console.error('No valid date range provided.');
       return false;
     }
+
+    const dayTypeData = {};
+
+    dateRange.forEach((date) => {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const currentEntry = activeMember.days?.[dateStr] || {};
+      const currentIds = (currentEntry.day_types || []).map((dt) => dt._id);
+
+      const preservedIds = currentIds.filter((id) => !editableDayTypeIds.has(id));
+      const finalIds = Array.from(new Set([...dayTypes, ...preservedIds]));
+
+      dayTypeData[dateStr] = {day_types: finalIds, comment};
+      updateLocalTeamData(
+        selectedDayInfo.teamId,
+        selectedDayInfo.memberId,
+        dateStr,
+        finalIds,
+        comment,
+      );
+    });
 
     try {
       await dayAssignmentsMutation.mutateAsync({
