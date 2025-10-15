@@ -69,15 +69,37 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [selectedCells, setSelectedCells] = useState([]);
   const [selectionDayTypes, setSelectionDayTypes] = useState([]);
 
-  const isSubset = (subset = [], superset = []) =>
-    subset.every((val) => superset.includes(val));
+  const haveSameDayTypes = (first = [], second = []) => {
+    if (first.length !== second.length) {
+      return false;
+    }
+
+    const counts = new Map();
+    first.forEach((value) => {
+      counts.set(value, (counts.get(value) || 0) + 1);
+    });
+
+    for (const value of second) {
+      if (!counts.has(value)) {
+        return false;
+      }
+      const updatedCount = counts.get(value) - 1;
+      if (updatedCount === 0) {
+        counts.delete(value);
+      } else {
+        counts.set(value, updatedCount);
+      }
+    }
+
+    return counts.size === 0;
+  };
 
   const isSelectableDay = (member, date, baseTypes = []) => {
     const dayEntry = getMemberDayEntry(member, date);
     const dayTypeIds = (dayEntry?.day_types || []).map(dt => dt._id);
 
     if (baseTypes.length > 0) {
-      return isSubset(baseTypes, dayTypeIds);
+      return haveSameDayTypes(baseTypes, dayTypeIds);
     }
 
     const hasExistingDayTypes = dayTypeIds.length > 0;
