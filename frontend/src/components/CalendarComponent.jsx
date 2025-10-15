@@ -103,8 +103,20 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       const dayEntry = member.days[dateStr] || {};
       existingDayTypes = dayEntry?.day_types || [];
       existingComment = dayEntry?.comment || '';
-    } else if (selectionDayTypes.length > 0) {
-      existingDayTypes = dayTypes.filter(dt => selectionDayTypes.includes(dt._id));
+    } else {
+      if (selectionDayTypes.length > 0) {
+        existingDayTypes = dayTypes.filter(dt => selectionDayTypes.includes(dt._id));
+      }
+
+      const comments = dates.map((date) => {
+        const dateStr = formatDate(date);
+        const dayEntry = member.days[dateStr] || {};
+        return dayEntry?.comment || '';
+      });
+      const uniqueComments = Array.from(new Set(comments));
+      if (uniqueComments.length === 1) {
+        existingComment = uniqueComments[0];
+      }
     }
 
     setSelectedDayInfo({
