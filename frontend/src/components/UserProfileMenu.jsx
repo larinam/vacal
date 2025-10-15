@@ -1,35 +1,25 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faCog, faPlus, faQuestion, faSignOut, faUserPlus, faBriefcase, faUser} from '@fortawesome/free-solid-svg-icons';
 import './UserProfileMenu.css';
-import {useAuth} from "../contexts/AuthContext";
+import {useAuth} from '../contexts/AuthContext';
+import useDismiss from '../hooks/useDismiss';
 
 const UserProfileMenu = ({setShowDropdown}) => {
   const navigate = useNavigate();
   const {handleLogout, user, currentTenant, setCurrentTenant} = useAuth();
   const dropdownRef = useRef(null);
+  const closeDropdown = () => setShowDropdown(false);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [setShowDropdown]);
+  useDismiss(dropdownRef, closeDropdown, {includeEscape: true});
 
   const handleTenantSwitch = (tenant) => {
     if (tenant.identifier !== currentTenant) {
       setCurrentTenant(tenant.identifier);
       navigate(0); // This triggers a full page reload, or navigate to a specific path if required
     }
-    setShowDropdown(false); // Close the dropdown after switching
+    closeDropdown();
   };
 
   return (
@@ -39,21 +29,21 @@ const UserProfileMenu = ({setShowDropdown}) => {
       </div>
       <div className="dropdownItem" onClick={() => {
         navigate('/main/settings/usermanagement?profile=true');
-        setShowDropdown(false);
+        closeDropdown();
       }}>
         <FontAwesomeIcon icon={faUser}/>
         <span>My profile</span>
       </div>
       <div className="dropdownItem" onClick={() => {
         navigate('/main/settings');
-        setShowDropdown(false); // This will close the dropdown menu when the item is clicked
+        closeDropdown();
       }}>
         <FontAwesomeIcon icon={faCog}/>
         <span>Settings</span>
       </div>
       <div className="dropdownItem" onClick={() => {
         navigate('/main/settings/usermanagement?inviteUser=true');
-        setShowDropdown(false); // This will close the dropdown menu when the item is clicked
+        closeDropdown();
       }}>
         <FontAwesomeIcon icon={faUserPlus}/>
         <span>Invite user</span>
@@ -74,6 +64,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
       }
       <div className="dropdownItem" style={{'user-select': 'none'}} onClick={() => {
         navigate('/create-additional-workspace');
+        closeDropdown();
       }}>
         <FontAwesomeIcon icon={faPlus}/>
         <span>Create workspace</span>
@@ -82,7 +73,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
       <hr/>
       <div className="dropdownItem" onClick={() => {
         window.open('https://t.me/larinam', '_blank');
-        setShowDropdown(false); // This will close the dropdown menu when the item is clicked
+        closeDropdown();
       }}>
         <FontAwesomeIcon icon={faQuestion}/>
         <span>Support</span>
@@ -90,6 +81,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
       <div className="dropdownItem" style={{'user-select': 'none'}} onClick={() => {
         handleLogout();
         navigate('/');
+        closeDropdown();
       }}>
         <FontAwesomeIcon icon={faSignOut}/>
         <span>Log out</span>

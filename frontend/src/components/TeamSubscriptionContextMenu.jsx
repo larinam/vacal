@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import './TeamSubscriptionContextMenu.css';
 import {useTeamSubscription} from '../hooks/useTeamSubscription';
+import useDismiss from '../hooks/useDismiss';
 
 const TeamSubscriptionContextMenu = ({
   contextMenuRef,
@@ -26,31 +27,7 @@ const TeamSubscriptionContextMenu = ({
   const cachedPreferencesRef = useRef(new Map());
   const cachedNotificationTypesRef = useRef(null);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    const handleClickOutside = (event) => {
-      if (contextMenuRef?.current && !contextMenuRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-
-    if (!isOpen) {
-      return undefined;
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, onClose, contextMenuRef]);
+  useDismiss(contextMenuRef, onClose, {enabled: isOpen, includeEscape: true});
 
   useEffect(() => {
     cachedPreferencesRef.current.clear();
