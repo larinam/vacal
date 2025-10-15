@@ -73,25 +73,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     if (first.length !== second.length) {
       return false;
     }
-
-    const counts = new Map();
-    first.forEach((value) => {
-      counts.set(value, (counts.get(value) || 0) + 1);
-    });
-
-    for (const value of second) {
-      if (!counts.has(value)) {
-        return false;
-      }
-      const updatedCount = counts.get(value) - 1;
-      if (updatedCount === 0) {
-        counts.delete(value);
-      } else {
-        counts.set(value, updatedCount);
-      }
-    }
-
-    return counts.size === 0;
+    const sortedFirst = [...first].sort();
+    const sortedSecond = [...second].sort();
+    return sortedFirst.every((value, index) => value === sortedSecond[index]);
   };
 
   const isSelectableDay = (member, date, baseTypes = []) => {
