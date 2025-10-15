@@ -118,6 +118,35 @@ const DayTypeContextMenu = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      const menuElement = contextMenuRef?.current;
+      if (!menuElement) {
+        return;
+      }
+
+      const target = event.target;
+      if (menuElement.contains(target)) {
+        return;
+      }
+
+      if (target?.closest?.('.calendar-table')) {
+        return;
+      }
+
+      onClose();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [contextMenuRef, isOpen, onClose]);
+
   const handleCheckboxChange = async (typeObj, checked) => {
     if (!selectedDayInfo) {
       toast.error('Unable to update day types. Please try again.');
