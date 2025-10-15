@@ -800,8 +800,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                     <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                       <td className="member-name-cell">
                         {member.name} <span title={member.country}>{member.country_flag}</span>
-                        <span className="info-icon">
-                            <FontAwesomeIcon icon={faInfoCircle} title={renderVacationDaysTooltip(member)}/>
+                        <span className="info-icon" title={renderVacationDaysTooltip(member)}>
+                            <FontAwesomeIcon icon={faInfoCircle}/>
                         </span>
                         <span className="history-icon" onClick={() => openMemberHistory(team._id, member)} title="View history">
                           <FontAwesomeIcon icon={faHistory}/>
