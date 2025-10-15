@@ -274,21 +274,6 @@ const DayTypeContextMenu = ({
         return null;
       })}
 
-      {selectedDayInfo && (
-        <div className="member-info">
-          {selectedDayInfo.memberName}
-          <br/>
-        </div>
-      )}
-
-      <textarea
-        className="comment-input"
-        placeholder="Add a comment"
-        value={comment}
-        onChange={handleCommentChange}
-        onBlur={handleCommentBlur}
-      />
-
       {visibleDayTypes
         .filter((type) => type.identifier !== 'vacation' && type.identifier !== 'birthday')
         .map((type) => {
@@ -311,6 +296,21 @@ const DayTypeContextMenu = ({
             />
           );
         })}
+
+      <textarea
+        className="comment-input"
+        placeholder="Add a comment"
+        value={comment}
+        onChange={handleCommentChange}
+        onBlur={handleCommentBlur}
+      />
+
+      {selectedDayInfo && (
+        <div className="member-info">
+          {selectedDayInfo.memberName}
+          <br/>
+        </div>
+      )}
 
     </div>
     <DayHistoryModal
