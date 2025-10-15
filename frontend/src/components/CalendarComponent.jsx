@@ -73,8 +73,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     subset.every((val) => superset.includes(val));
 
   const isSelectableDay = (member, date, baseTypes = []) => {
-    const dateStr = formatDate(date);
-    const dayEntry = member.days[dateStr];
+    const dayEntry = getMemberDayEntry(member, date);
     const dayTypeIds = (dayEntry?.day_types || []).map(dt => dt._id);
 
     if (baseTypes.length > 0) {
@@ -99,8 +98,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     let existingComment = '';
 
     if (dates.length === 1) {
-      const dateStr = formatDate(dates[0]);
-      const dayEntry = member.days[dateStr] || {};
+      const dayEntry = getMemberDayEntry(member, dates[0]);
       existingDayTypes = dayEntry?.day_types || [];
       existingComment = dayEntry?.comment || '';
     } else {
@@ -109,9 +107,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       }
 
       const comments = dates.map((date) => {
-        const dateStr = formatDate(date);
-        const dayEntry = member.days[dateStr] || {};
-        return dayEntry?.comment || '';
+        return getMemberDayComment(member, date);
       });
       const uniqueComments = Array.from(new Set(comments));
       if (uniqueComments.length === 1) {
@@ -138,8 +134,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const handleMouseDown = (teamId, memberId, date, isSelectable) => {
     const team = teamData.find(t => t._id === teamId);
     const member = team.team_members.find(m => m.uid === memberId);
-    const dateStr = formatDate(date);
-    const dayEntry = member.days[dateStr] || {};
+    const dayEntry = getMemberDayEntry(member, date);
     const dayTypeIds = (dayEntry.day_types || []).map(dt => dt._id);
 
     if (!isSelectable && dayTypeIds.length === 0) return;
@@ -318,10 +313,18 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     return format(date, 'yyyy-MM-dd');
   };
 
+  const getMemberDayEntry = (member, date) => {
+    const dateStr = formatDate(date);
+    return member?.days?.[dateStr] || {};
+  };
+
+  const getMemberDayComment = (member, date) => {
+    const entry = getMemberDayEntry(member, date);
+    return entry?.comment || '';
+  };
+
   const isHoliday = (country, date) => {
     const dateStr = formatDate(date);
-    if (holidays[country] && holidays[country][dateStr]) {
-    }
     return holidays[country] && holidays[country][dateStr];
   };
 
@@ -331,8 +334,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
   const getCellTitle = (member, date) => {
-    const dateStr = formatDate(date);
-    const dayEntry = member.days[dateStr] || {};
+    const dayEntry = getMemberDayEntry(member, date);
     const dayTypes = dayEntry?.day_types || [];
     const comment = (dayEntry?.comment || '').trim();
 
@@ -512,15 +514,17 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const style = {};
 
     if (dateDayTypes.length > 0) {
+      // Clone to avoid mutating the original array assigned to calendar state
+      const typesForGradient = [...dateDayTypes];
       // Move the "Vacation" day type to the front if it exists
-      const vacationIndex = dateDayTypes.findIndex(dayType => dayType.name === "Vacation");
+      const vacationIndex = typesForGradient.findIndex(dayType => dayType.name === "Vacation");
       if (vacationIndex > -1) {
-        const [vacationDayType] = dateDayTypes.splice(vacationIndex, 1);
-        dateDayTypes.unshift(vacationDayType);
+        const [vacationDayType] = typesForGradient.splice(vacationIndex, 1);
+        typesForGradient.unshift(vacationDayType);
       }
 
-      const percentagePerType = 100 / dateDayTypes.length;
-      const gradientParts = dateDayTypes.map((dayType, index) => {
+      const percentagePerType = 100 / typesForGradient.length;
+      const gradientParts = typesForGradient.map((dayType, index) => {
         const start = percentagePerType * index;
         const end = percentagePerType * (index + 1);
         return `${dayType.color} ${start}% ${end}%`;
@@ -812,8 +816,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         </span>
                       </td>
                       {daysHeader.map(({date}, idx) => {
-                        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                        const dayEntry = member.days[dateStr] || {};
+                        const dayEntry = getMemberDayEntry(member, date);
                         const dateDayTypes = dayEntry?.day_types || [];
                         const isHolidayDay = isHoliday(member.country, date);
                         const hasComment = dayEntry?.comment && dayEntry.comment.trim().length > 0;
