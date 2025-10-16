@@ -135,11 +135,47 @@ def test_send_recent_calendar_change_notifications_dispatch_and_content():
          patch("backend.scheduled.day_audit_notifications.cors_origin", "https://example.com"):
         send_recent_calendar_change_notifications(now=now)
 
-    mock_send_email.assert_called_once_with(
-        expected_subject,
-        expected_body,
-        subscriber.email,
-    )
+    assert mock_send_email.call_count == 4
+    calls_by_recipient = {
+        args[2]: (args[0], args[1]) for args, _ in mock_send_email.call_args_list
+    }
+
+    assert calls_by_recipient[subscriber.email] == (expected_subject, expected_body)
+
+    expected_member_subject = "Your Calendar Updates - May 10 10:00 - 11:00 UTC"
+    expected_bodies = {
+        "alice@example.com": (
+            "Hello!\n\n"
+            "The following updates were made to your calendar between May 10, 2025 10:00 and 11:00 UTC:\n\n"
+            "In Team Alpha:\n"
+            "- Alice Example was assigned Vacation on 2025-05-12. Added by Manager Example. Comment: Enjoy your vacation!\n\n"
+            "For details, visit https://example.com.\n\n"
+            "Best regards,\n"
+            "Vacation Calendar"
+        ),
+        "bob@example.com": (
+            "Hello!\n\n"
+            "The following updates were made to your calendar between May 10, 2025 10:00 and 11:00 UTC:\n\n"
+            "In Team Alpha:\n"
+            "- Bob Example was assigned Compensatory leave on 2025-05-13. Added by Manager Example.\n\n"
+            "For details, visit https://example.com.\n\n"
+            "Best regards,\n"
+            "Vacation Calendar"
+        ),
+        "carol@example.com": (
+            "Hello!\n\n"
+            "The following updates were made to your calendar between May 10, 2025 10:00 and 11:00 UTC:\n\n"
+            "In Team Alpha:\n"
+            "- Carol Example was assigned Birthday on 2025-05-14. Added by Manager Example.\n\n"
+            "For details, visit https://example.com.\n\n"
+            "Best regards,\n"
+            "Vacation Calendar"
+        ),
+    }
+    for email, expected_member_body in expected_bodies.items():
+        subject, body = calls_by_recipient[email]
+        assert subject == expected_member_subject
+        assert body == expected_member_body
 
 
 def test_send_recent_calendar_change_notifications_skips_acting_subscriber():
@@ -181,7 +217,10 @@ def test_send_recent_calendar_change_notifications_skips_acting_subscriber():
     with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email:
         send_recent_calendar_change_notifications(now=now)
 
-    mock_send_email.assert_not_called()
+    assert mock_send_email.call_count == 1
+    args, _ = mock_send_email.call_args
+    assert args[0] == "Your Calendar Updates - May 10 10:00 - 11:00 UTC"
+    assert args[2] == "eve@example.com"
 
 
 def test_send_recent_calendar_change_notifications_ignores_non_matching_audits():
@@ -300,3 +339,119 @@ def test_send_recent_calendar_change_notifications_skips_removed_absences():
         send_recent_calendar_change_notifications(now=now)
 
     mock_send_email.assert_not_called()
+
+
+def test_send_recent_calendar_change_notifications_skips_member_when_emails_match():
+    now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+
+    shared_email = "shared@example.com"
+    actor = User(
+        tenants=[tenant],
+        name="Member Example",
+        email=shared_email,
+        auth_details=AuthDetails(username=str(uuid.uuid4())),
+    ).save()
+
+    member = TeamMember(name="Member Example", country="Sweden", email=shared_email)
+    team = Team(
+        tenant=tenant,
+        name="Team Shared",
+        team_members=[member],
+    ).save()
+
+    day_key = str(datetime.date(2025, 5, 12))
+    team.team_members[0].days = {day_key: DayEntry(day_types=[vacation])}
+    team.save()
+
+    DayAudit(
+        tenant=tenant,
+        team=team,
+        member_uid=str(member.uid),
+        date=datetime.date(2025, 5, 12),
+        user=actor,
+        timestamp=datetime.datetime(2025, 5, 10, 10, 15, tzinfo=datetime.timezone.utc),
+        old_day_types=[],
+        new_day_types=[vacation],
+        old_comment="",
+        new_comment="Enjoy!",
+        action="created",
+    ).save()
+
+    with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email:
+        send_recent_calendar_change_notifications(now=now)
+
+    mock_send_email.assert_not_called()
+
+
+def test_send_recent_calendar_change_notifications_aggregates_member_entries():
+    now = datetime.datetime(2025, 5, 10, 12, 0, tzinfo=datetime.timezone.utc)
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+    compensatory = DayType.objects(tenant=tenant, identifier="compensatory_leave").first()
+
+    actor = _create_user("Manager Example", tenant)
+
+    member = TeamMember(name="Member One", country="Sweden", email="member.one@example.com")
+    team = Team(
+        tenant=tenant,
+        name="Team Aggregated",
+        team_members=[member],
+    ).save()
+
+    first_day = str(datetime.date(2025, 5, 12))
+    second_day = str(datetime.date(2025, 5, 13))
+    team.team_members[0].days = {
+        first_day: DayEntry(day_types=[vacation]),
+        second_day: DayEntry(day_types=[compensatory]),
+    }
+    team.save()
+
+    DayAudit(
+        tenant=tenant,
+        team=team,
+        member_uid=str(member.uid),
+        date=datetime.date(2025, 5, 12),
+        user=actor,
+        timestamp=datetime.datetime(2025, 5, 10, 10, 10, tzinfo=datetime.timezone.utc),
+        old_day_types=[],
+        new_day_types=[vacation],
+        old_comment="",
+        new_comment="Enjoy!",
+        action="created",
+    ).save()
+
+    DayAudit(
+        tenant=tenant,
+        team=team,
+        member_uid=str(member.uid),
+        date=datetime.date(2025, 5, 13),
+        user=actor,
+        timestamp=datetime.datetime(2025, 5, 10, 10, 20, tzinfo=datetime.timezone.utc),
+        old_day_types=[],
+        new_day_types=[compensatory],
+        old_comment="",
+        new_comment="",
+        action="created",
+    ).save()
+
+    with patch("backend.scheduled.day_audit_notifications.send_email") as mock_send_email:
+        send_recent_calendar_change_notifications(now=now)
+
+    mock_send_email.assert_called_once()
+    args, _ = mock_send_email.call_args
+    assert args[0] == "Your Calendar Updates - May 10 10:00 - 11:00 UTC"
+    assert args[2] == "member.one@example.com"
+    assert args[1] == (
+        "Hello!\n\n"
+        "The following updates were made to your calendar between May 10, 2025 10:00 and 11:00 UTC:\n\n"
+        "In Team Aggregated:\n"
+        "- Member One was assigned Vacation on 2025-05-12. Added by Manager Example. Comment: Enjoy!\n"
+        "- Member One was assigned Compensatory leave on 2025-05-13. Added by Manager Example.\n\n"
+        "For details, visit the vacation calendar.\n\n"
+        "Best regards,\n"
+        "Vacation Calendar"
+    )
