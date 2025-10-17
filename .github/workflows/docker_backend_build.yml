@@ -20,6 +20,12 @@ jobs:
     - name: Check out the repo
       uses: actions/checkout@v4
 
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -54,6 +60,7 @@ jobs:
         context: ./backend
         file: ./backend/Dockerfile
         push: true
+        platforms: linux/amd64,linux/arm64
         tags: |
           ghcr.io/${{ github.repository }}:${{ env.SHORT_SHA }}
           ghcr.io/${{ github.repository }}:latest
