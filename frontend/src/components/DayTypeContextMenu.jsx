@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import './DayTypeContextMenu.css';
 import {format, isWeekend} from 'date-fns';
 import {toast} from 'react-toastify';
@@ -109,44 +109,6 @@ const DayTypeContextMenu = ({
     }
   }, [activeMember, dateRange, isOpen, selectedDayInfo, selectedDayTypes]);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
-    };
-
-    if (isOpen) document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-
-    const handlePointerDown = (event) => {
-      const menuElement = contextMenuRef?.current;
-      if (!menuElement) {
-        return;
-      }
-
-      const target = event.target;
-      if (menuElement.contains(target)) {
-        return;
-      }
-
-      if (target?.closest?.('.calendar-table')) {
-        return;
-      }
-
-      onClose();
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-    };
-  }, [contextMenuRef, isOpen, onClose]);
-
   const handleCheckboxChange = async (typeObj, checked) => {
     if (!selectedDayInfo) {
       toast.error('Unable to update day types. Please try again.');
@@ -192,7 +154,7 @@ const DayTypeContextMenu = ({
   const openHistoryModal = () => setShowHistory(true);
   const closeHistoryModal = () => setShowHistory(false);
 
-  const updateDayData = async (dayTypes, comment) => {
+  const updateDayData = useCallback(async (dayTypes, commentValue) => {
     if (!selectedDayInfo) {
       console.error('Selected day info missing for update.');
       toast.error('Unable to update day types. Please refresh and try again.');
@@ -220,13 +182,13 @@ const DayTypeContextMenu = ({
       const preservedIds = currentIds.filter((id) => !editableDayTypeIds.has(id));
       const finalIds = Array.from(new Set([...dayTypes, ...preservedIds]));
 
-      dayTypeData[dateStr] = {day_types: finalIds, comment};
+      dayTypeData[dateStr] = {day_types: finalIds, comment: commentValue};
       updateLocalTeamData(
         selectedDayInfo.teamId,
         selectedDayInfo.memberId,
         dateStr,
         finalIds,
-        comment,
+        commentValue,
       );
     });
 
@@ -237,8 +199,8 @@ const DayTypeContextMenu = ({
         payload: dayTypeData,
       });
       updateTeamData();
-      setComment(comment);
-      setInitialComment(comment);
+      setComment(commentValue);
+      setInitialComment(commentValue);
       return true;
     } catch (error) {
       console.error('Error updating day types:', error);
@@ -246,7 +208,52 @@ const DayTypeContextMenu = ({
       toast.error(detailMessage || 'Error updating day types');
       return false;
     }
-  };
+  }, [activeMember, activeTeam, dateRange, dayAssignmentsMutation, editableDayTypeIds, selectedDayInfo, updateLocalTeamData, updateTeamData]);
+
+  const handleClose = useCallback(async () => {
+    if (comment !== initialComment) {
+      await updateDayData(selectedDayTypes, comment);
+    }
+    onClose();
+  }, [comment, initialComment, onClose, selectedDayTypes, updateDayData]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') handleClose();
+    };
+
+    if (isOpen) document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleClose, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      const menuElement = contextMenuRef?.current;
+      if (!menuElement) {
+        return;
+      }
+
+      const target = event.target;
+      if (menuElement.contains(target)) {
+        return;
+      }
+
+      if (target?.closest?.('.calendar-table')) {
+        return;
+      }
+
+      handleClose();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [contextMenuRef, handleClose, isOpen]);
 
   if (!isOpen) return null;
 
@@ -285,7 +292,7 @@ const DayTypeContextMenu = ({
           )}
         </div>
       )}
-      <div className="close-button" onClick={onClose}>
+      <div className="close-button" onClick={handleClose}>
         &times;
       </div>
 
