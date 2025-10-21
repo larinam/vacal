@@ -283,14 +283,19 @@ const DayTypeContextMenu = ({
     <>
     <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
       {selectedDayInfo && (
-        <div className="display-date-info">
-          {displayDate}
+        <>
+          <div className="member-info">
+            {selectedDayInfo.memberName}
+          </div>
+          <div className="display-date-info">
+            {displayDate}
             {selectedDayInfo.dateRange && selectedDayInfo.dateRange.length === 1 && (
-            <span className="history-icon" onClick={openHistoryModal} title="View history">
-              <FontAwesomeIcon icon={faHistory}/>
-            </span>
-          )}
-        </div>
+              <span className="history-icon" onClick={openHistoryModal} title="View history">
+                <FontAwesomeIcon icon={faHistory}/>
+              </span>
+            )}
+          </div>
+        </>
       )}
       <div className="close-button" onClick={handleClose}>
         &times;
@@ -340,13 +345,6 @@ const DayTypeContextMenu = ({
         onChange={handleCommentChange}
         onBlur={handleCommentBlur}
       />
-
-      {selectedDayInfo && (
-        <div className="member-info">
-          {selectedDayInfo.memberName}
-          <br/>
-        </div>
-      )}
 
     </div>
     <DayHistoryModal
