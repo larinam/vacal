@@ -238,6 +238,9 @@ const DayTypeContextMenu = ({
       }
 
       const target = event.target;
+      if (target?.closest?.('.modal')) {
+        return;
+      }
       if (menuElement.contains(target)) {
         return;
       }
