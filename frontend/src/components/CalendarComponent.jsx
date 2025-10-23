@@ -23,6 +23,7 @@ import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
 import TeamSubscriptionContextMenu from './TeamSubscriptionContextMenu';
 import MemberHistoryModal from './MemberHistoryModal';
+import Tooltip from './common/Tooltip';
 import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
@@ -719,8 +720,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           </tr>
           <tr>
             <th>
-              Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
-              / Member
+              Team
+              <Tooltip content="Add team">
+                <span className="add-icon" onClick={handleAddTeamIconClick}>➕</span>
+              </Tooltip>
+              {' '}/ Member
             </th>
             {daysHeader.map(({day, date}, idx) => {
               const isOutOfMonth = date.getMonth() !== displayMonth.getMonth();
@@ -766,20 +770,23 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       </span>
                       {team.name}
                       <span className="team-member-count">({team.team_members.length})</span>
-                      <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
-                            title="Add team member">➕</span>
-                      <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
-                            onClick={(event) => openSubscriptionMenu(event, team._id)}
-                            title="Manage team subscription">
+                      <Tooltip content="Add team member">
+                        <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}>➕</span>
+                      </Tooltip>
+                      <Tooltip content="Manage team subscription">
+                        <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
+                              onClick={(event) => openSubscriptionMenu(event, team._id)}>
                           <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
-                      </span>
+                        </span>
+                      </Tooltip>
                       <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
                           <FontAwesomeIcon icon={faEdit}/>
                       </span>
-                      <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team._id)}
-                            title="Copy calendar feed link">
+                      <Tooltip content="Copy calendar feed link">
+                        <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team._id)}>
                           <FontAwesomeIcon icon={faLink}/>
-                      </span>
+                        </span>
+                      </Tooltip>
                       {team.team_members.length === 0 && (
                         <span className="delete-icon" onClick={() => deleteTeam(team._id)}>
                           <FontAwesomeIcon icon={faTrashAlt}/>
@@ -799,21 +806,30 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                   {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
                     <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                       <td className="member-name-cell">
-                        {member.name} <span title={member.country}>{member.country_flag}</span>
-                        <span className="info-icon" title={renderVacationDaysTooltip(member)}>
+                        {member.name}{' '}
+                        <Tooltip content={member.country}>
+                          <span>{member.country_flag}</span>
+                        </Tooltip>
+                        <Tooltip content={renderVacationDaysTooltip(member)}>
+                          <span className="info-icon">
                             <FontAwesomeIcon icon={faInfoCircle}/>
-                        </span>
-                        <span className="history-icon" onClick={() => openMemberHistory(team._id, member)} title="View history">
-                          <FontAwesomeIcon icon={faHistory}/>
-                        </span>
-                        <span
-                          className="drag-icon"
-                          draggable="true"
-                          onDragStart={(e) => handleDragStart(e, team._id, member.uid, member.name)}
-                          onDragEnd={handleDragEnd}
-                          title="Drag and drop">
-                              <FontAwesomeIcon icon={faGripVertical}/>
                           </span>
+                        </Tooltip>
+                        <Tooltip content="View history">
+                          <span className="history-icon" onClick={() => openMemberHistory(team._id, member)}>
+                            <FontAwesomeIcon icon={faHistory}/>
+                          </span>
+                        </Tooltip>
+                        <Tooltip content="Drag and drop">
+                          <span
+                            className="drag-icon"
+                            draggable="true"
+                            onDragStart={(e) => handleDragStart(e, team._id, member.uid, member.name)}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <FontAwesomeIcon icon={faGripVertical}/>
+                          </span>
+                        </Tooltip>
                         <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
                             <FontAwesomeIcon icon={faEdit}/>
                         </span>
@@ -826,26 +842,27 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         const dateDayTypes = dayEntry?.day_types || [];
                         const isHolidayDay = isHoliday(member.country, date);
                         const hasComment = dayEntry?.comment && dayEntry.comment.trim().length > 0;
+                        const cellTitle = getCellTitle(member, date);
 
                         return (
-                          <td
-                            key={idx}
-                            onMouseDown={() => handleMouseDown(team._id, member.uid, date, isSelectableDay(member, date))}
-                            onMouseOver={() => handleMouseOver(team._id, member.uid, date, member)}
-                            onMouseUp={handleMouseUp}
-                            onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
-                            title={getCellTitle(member, date)}
-                            className={`
+                          <Tooltip key={idx} content={cellTitle}>
+                            <td
+                              onMouseDown={() => handleMouseDown(team._id, member.uid, date, isSelectableDay(member, date))}
+                              onMouseOver={() => handleMouseOver(team._id, member.uid, date, member)}
+                              onMouseUp={handleMouseUp}
+                              onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
+                              className={`
     ${isHolidayDay ? 'holiday-cell' : ''}
     ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}
     ${selectedCells.some((cell) => cell.date.getTime() === date.getTime() && cell.memberId === member.uid) ? 'selected-range' : ''}
   `}
-                            style={generateGradientStyle(dateDayTypes)}
-                          >
-                            <div className="day-cell-content">
-                              {hasComment && <span className="comment-icon">*</span>}
-                            </div>
-                          </td>
+                              style={generateGradientStyle(dateDayTypes)}
+                            >
+                              <div className="day-cell-content">
+                                {hasComment && <span className="comment-icon">*</span>}
+                              </div>
+                            </td>
+                          </Tooltip>
                         );
                       })}
                     </tr>

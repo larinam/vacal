@@ -1,0 +1,60 @@
+.tooltip-bubble {
+  position: absolute;
+  background-color: rgba(33, 33, 33, 0.95);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-line;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transform-origin: center;
+  transition: opacity 0.1s ease-in-out;
+}
+
+.tooltip-bubble[data-show='true'] {
+  opacity: 1;
+}
+
+.tooltip-bubble::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+.tooltip-top::after {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0 6px;
+  border-color: rgba(33, 33, 33, 0.95) transparent transparent transparent;
+}
+
+.tooltip-bottom::after {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 6px 6px 6px;
+  border-color: transparent transparent rgba(33, 33, 33, 0.95) transparent;
+}
+
+.tooltip-left::after {
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px 0 6px 6px;
+  border-color: transparent transparent transparent rgba(33, 33, 33, 0.95);
+}
+
+.tooltip-right::after {
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px 6px 6px 0;
+  border-color: transparent rgba(33, 33, 33, 0.95) transparent transparent;
+}

@@ -7,6 +7,7 @@ import {faHistory} from '@fortawesome/free-solid-svg-icons';
 import DayTypeCheckbox from './DayTypeCheckbox';
 import DayHistoryModal from './DayHistoryModal';
 import useDayAssignmentsMutation from '../hooks/mutations/useDayAssignmentsMutation';
+import Tooltip from './common/Tooltip';
 
 const DayTypeContextMenu = ({
                               contextMenuRef,
@@ -293,9 +294,11 @@ const DayTypeContextMenu = ({
           <div className="display-date-info">
             {displayDate}
             {selectedDayInfo.dateRange && selectedDayInfo.dateRange.length === 1 && (
-              <span className="history-icon" onClick={openHistoryModal} title="View history">
-                <FontAwesomeIcon icon={faHistory}/>
-              </span>
+              <Tooltip content="View history">
+                <span className="history-icon" onClick={openHistoryModal}>
+                  <FontAwesomeIcon icon={faHistory}/>
+                </span>
+              </Tooltip>
             )}
           </div>
         </>
