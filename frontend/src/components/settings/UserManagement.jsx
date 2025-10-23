@@ -18,7 +18,6 @@ import TelegramLogin from '../auth/TelegramLogin';
 import Modal from '../Modal';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useUsersQuery, USERS_QUERY_KEY} from '../../hooks/queries/useUsersQuery';
-import Tooltip from '../common/Tooltip';
 
 const UserManagement = () => {
   const location = useLocation();
@@ -244,38 +243,35 @@ const UserManagement = () => {
   const GoogleConnectButton = () => {
     const googleConnect = useGoogleAuth(handleGoogleConnect);
     return (
-      <Tooltip content="Connect Google account">
-        <FontAwesomeIcon
-          icon={faGoogle}
-          onClick={() => !googleConnectMutation.isPending && googleConnect()}
-          className="actionIcon"
-          aria-label="Connect Google account"
-        />
-      </Tooltip>
+      <FontAwesomeIcon
+        icon={faGoogle}
+        onClick={() => !googleConnectMutation.isPending && googleConnect()}
+        className="actionIcon"
+        title="Connect Google account"
+        aria-label="Connect Google account"
+      />
     );
   };
 
   const GoogleDisconnectButton = () => (
-    <Tooltip content="Disconnect Google account">
-      <FontAwesomeIcon
-        icon={faUnlink}
-        onClick={handleGoogleDisconnect}
-        className="actionIcon"
-        aria-label="Disconnect Google account"
-      />
-    </Tooltip>
+    <FontAwesomeIcon
+      icon={faUnlink}
+      onClick={handleGoogleDisconnect}
+      className="actionIcon"
+      title="Disconnect Google account"
+      aria-label="Disconnect Google account"
+    />
   );
 
   const TelegramConnectButton = () => (
     <>
-      <Tooltip content="Connect Telegram account">
-        <FontAwesomeIcon
-          icon={faTelegram}
-          onClick={() => setShowTelegramModal(true)}
-          className="actionIcon"
-          aria-label="Connect Telegram account"
-        />
-      </Tooltip>
+      <FontAwesomeIcon
+        icon={faTelegram}
+        onClick={() => setShowTelegramModal(true)}
+        className="actionIcon"
+        title="Connect Telegram account"
+        aria-label="Connect Telegram account"
+      />
       <Modal isOpen={showTelegramModal} onClose={() => setShowTelegramModal(false)}>
         <TelegramLogin
           telegramBotUsername={telegramBotUsername}
@@ -287,14 +283,13 @@ const UserManagement = () => {
   );
 
   const TelegramDisconnectButton = () => (
-    <Tooltip content="Disconnect Telegram account">
-      <FontAwesomeIcon
-        icon={faUnlink}
-        onClick={handleTelegramDisconnect}
-        className="actionIcon"
-        aria-label="Disconnect Telegram account"
-      />
-    </Tooltip>
+    <FontAwesomeIcon
+      icon={faUnlink}
+      onClick={handleTelegramDisconnect}
+      className="actionIcon"
+      title="Disconnect Telegram account"
+      aria-label="Disconnect Telegram account"
+    />
   );
 
   const handleResetMfa = (userId, userName) => {
@@ -349,48 +344,43 @@ const UserManagement = () => {
                 <td>{u.auth_details?.google_email ?? ''}</td>
                 <td>{u.disabled ? 'Disabled' : 'Active'}</td>
                 <td>
-                  <Tooltip content="Edit user">
-                    <FontAwesomeIcon
-                      icon={faEdit}
-                      onClick={() => handleEditUserClick(u)}
-                      className="firstActionIcon"
-                      aria-label="Edit user"
-                    />
-                  </Tooltip>
-                  <Tooltip content="Delete user">
-                    <FontAwesomeIcon
-                      icon={faTrashAlt}
-                      onClick={() => handleDeleteUser(u._id, u.name)}
-                      className="actionIcon"
-                      aria-label="Delete user"
-                    />
-                  </Tooltip>
-                  <Tooltip content="Reset MFA">
-                    <FontAwesomeIcon
-                      icon={faSyncAlt}
-                      onClick={() => handleResetMfa(u._id, u.name)}
-                      className="actionIcon"
-                      aria-label="Reset MFA"
-                    />
-                  </Tooltip>
+                  <FontAwesomeIcon
+                    icon={faEdit}
+                    onClick={() => handleEditUserClick(u)}
+                    className="firstActionIcon"
+                    title="Edit user"
+                    aria-label="Edit user"
+                  />
+                  <FontAwesomeIcon
+                    icon={faTrashAlt}
+                    onClick={() => handleDeleteUser(u._id, u.name)}
+                    className="actionIcon"
+                    title="Delete user"
+                    aria-label="Delete user"
+                  />
+                  <FontAwesomeIcon
+                    icon={faSyncAlt}
+                    onClick={() => handleResetMfa(u._id, u.name)}
+                    className="actionIcon"
+                    title="Reset MFA"
+                    aria-label="Reset MFA"
+                  />
                   {u._id === user?._id && (
                     <>
-                      <Tooltip content="Change password">
-                        <FontAwesomeIcon
-                          icon={faLock}
-                          onClick={() => handlePasswordChangeClick(u)}
-                          className="actionIcon"
-                          aria-label="Change password"
-                        />
-                      </Tooltip>
-                      <Tooltip content="Show API key">
-                        <FontAwesomeIcon
-                          icon={faKey}
-                          onClick={handleApiKeyClick}
-                          className="actionIcon"
-                          aria-label="Show API key"
-                        />
-                      </Tooltip>
+                      <FontAwesomeIcon
+                        icon={faLock}
+                        onClick={() => handlePasswordChangeClick(u)}
+                        className="actionIcon"
+                        title="Change password"
+                        aria-label="Change password"
+                      />
+                      <FontAwesomeIcon
+                        icon={faKey}
+                        onClick={handleApiKeyClick}
+                        className="actionIcon"
+                        title="Show API key"
+                        aria-label="Show API key"
+                      />
                       {googleClientId && !u.auth_details?.google_id && (
                         <GoogleConnectButton/>
                       )}
