@@ -105,11 +105,15 @@ const DayTypes = () => {
                     icon={faEdit}
                     onClick={() => handleEditDayTypeClick(dayType)}
                     className="firstActionIcon"
+                    title="Edit day type"
+                    aria-label="Edit day type"
                   />
                   <FontAwesomeIcon
                     icon={faTrashAlt}
                     onClick={() => handleDeleteDayType(dayType._id)}
                     className="actionIcon"
+                    title="Delete day type"
+                    aria-label="Delete day type"
                   />
                 </td>
               </tr>

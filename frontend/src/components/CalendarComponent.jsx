@@ -744,6 +744,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           <tbody>
           {filterTeamsAndMembers(teamData).map(team => {
             const isSubscribed = team.subscribers?.some(sub => sub._id === user._id);
+            const isTeamCollapsed = collapsedTeams.includes(team._id);
+            const collapseIconTitle = isTeamCollapsed ? 'Expand team' : 'Collapse team';
+            const isTeamFocused = focusedTeamId === team._id;
+            const focusIconTitle = isTeamFocused ? 'Show all teams' : 'Focus on team';
             return (
             <React.Fragment key={team.id}>
               {(!focusedTeamId || focusedTeamId === team._id) && (
@@ -756,12 +760,14 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                   >
                     <td className="team-name-cell">
                       <span className="collapse-icon"
-                            onClick={() => toggleTeamCollapse(team._id)}>
+                            onClick={() => toggleTeamCollapse(team._id)}
+                            title={collapseIconTitle}>
                           <FontAwesomeIcon
-                            icon={collapsedTeams.includes(team._id) ? faChevronRight : faChevronDown}/>
+                            icon={isTeamCollapsed ? faChevronRight : faChevronDown}/>
                       </span>
-                      <span className={`eye-icon ${focusedTeamId === team._id ? 'eye-icon-active' : ''}`}
-                            onClick={() => handleFocusTeam(team._id)}>
+                      <span className={`eye-icon ${isTeamFocused ? 'eye-icon-active' : ''}`}
+                            onClick={() => handleFocusTeam(team._id)}
+                            title={focusIconTitle}>
                           <FontAwesomeIcon icon={faEye}/>
                       </span>
                       {team.name}
@@ -773,7 +779,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             title="Manage team subscription">
                           <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
                       </span>
-                      <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)}>
+                      <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)} title="Edit team">
                           <FontAwesomeIcon icon={faEdit}/>
                       </span>
                       <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team._id)}
@@ -781,7 +787,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                           <FontAwesomeIcon icon={faLink}/>
                       </span>
                       {team.team_members.length === 0 && (
-                        <span className="delete-icon" onClick={() => deleteTeam(team._id)}>
+                        <span className="delete-icon" onClick={() => deleteTeam(team._id)} title="Delete team">
                           <FontAwesomeIcon icon={faTrashAlt}/>
                         </span>
                       )}
@@ -814,10 +820,18 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                           title="Drag and drop">
                               <FontAwesomeIcon icon={faGripVertical}/>
                           </span>
-                        <span className="edit-icon" onClick={() => handleEditMemberClick(team._id, member.uid)}>
+                        <span
+                          className="edit-icon"
+                          onClick={() => handleEditMemberClick(team._id, member.uid)}
+                          title="Edit member"
+                        >
                             <FontAwesomeIcon icon={faEdit}/>
                         </span>
-                        <span className="delete-icon" onClick={() => deleteTeamMember(team._id, member.uid)}>
+                        <span
+                          className="delete-icon"
+                          onClick={() => deleteTeamMember(team._id, member.uid)}
+                          title="Delete member"
+                        >
                           <FontAwesomeIcon icon={faTrashAlt}/>
                         </span>
                       </td>

@@ -335,69 +335,79 @@ const UserManagement = () => {
               <td colSpan={7}>No users found.</td>
             </tr>
           ) : (
-            users.map((u) => (
-              <tr key={u._id}>
-                <td>{u.name}</td>
-                <td>{u.email}</td>
-                <td>{u.username}</td>
-                <td>{u.telegram_username}</td>
-                <td>{u.auth_details?.google_email ?? ''}</td>
-                <td>{u.disabled ? 'Disabled' : 'Active'}</td>
-                <td>
-                  <FontAwesomeIcon
-                    icon={faEdit}
-                    onClick={() => handleEditUserClick(u)}
-                    className="firstActionIcon"
-                    title="Edit user"
-                    aria-label="Edit user"
-                  />
-                  <FontAwesomeIcon
-                    icon={faTrashAlt}
-                    onClick={() => handleDeleteUser(u._id, u.name)}
-                    className="actionIcon"
-                    title="Delete user"
-                    aria-label="Delete user"
-                  />
-                  <FontAwesomeIcon
-                    icon={faSyncAlt}
-                    onClick={() => handleResetMfa(u._id, u.name)}
-                    className="actionIcon"
-                    title="Reset MFA"
-                    aria-label="Reset MFA"
-                  />
-                  {u._id === user?._id && (
-                    <>
-                      <FontAwesomeIcon
-                        icon={faLock}
-                        onClick={() => handlePasswordChangeClick(u)}
-                        className="actionIcon"
-                        title="Change password"
-                        aria-label="Change password"
-                      />
-                      <FontAwesomeIcon
-                        icon={faKey}
-                        onClick={handleApiKeyClick}
-                        className="actionIcon"
-                        title="Show API key"
-                        aria-label="Show API key"
-                      />
-                      {googleClientId && !u.auth_details?.google_id && (
-                        <GoogleConnectButton/>
-                      )}
-                      {googleClientId && u.auth_details?.google_id && (
-                        <GoogleDisconnectButton/>
-                      )}
-                      {isTelegramEnabled && !u.auth_details?.telegram_id && (
-                        <TelegramConnectButton/>
-                      )}
-                      {isTelegramEnabled && u.auth_details?.telegram_id && (
-                        <TelegramDisconnectButton/>
-                      )}
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))
+            users.map((u) => {
+              const displayName = u.name || u.username || u.email || 'user';
+              const editUserLabel = `Edit ${displayName}`;
+              const deleteUserLabel = `Delete ${displayName}`;
+              const resetMfaLabel = `Reset MFA for ${displayName}`;
+              const isCurrentUser = u._id === user?._id;
+              const changePasswordLabel = isCurrentUser ? 'Change your password' : 'Change password';
+              const showApiKeyLabel = isCurrentUser ? 'Show your API key' : 'Show API key';
+
+              return (
+                <tr key={u._id}>
+                  <td>{u.name}</td>
+                  <td>{u.email}</td>
+                  <td>{u.username}</td>
+                  <td>{u.telegram_username}</td>
+                  <td>{u.auth_details?.google_email ?? ''}</td>
+                  <td>{u.disabled ? 'Disabled' : 'Active'}</td>
+                  <td>
+                    <FontAwesomeIcon
+                      icon={faEdit}
+                      onClick={() => handleEditUserClick(u)}
+                      className="firstActionIcon"
+                      title={editUserLabel}
+                      aria-label={editUserLabel}
+                    />
+                    <FontAwesomeIcon
+                      icon={faTrashAlt}
+                      onClick={() => handleDeleteUser(u._id, displayName)}
+                      className="actionIcon"
+                      title={deleteUserLabel}
+                      aria-label={deleteUserLabel}
+                    />
+                    <FontAwesomeIcon
+                      icon={faSyncAlt}
+                      onClick={() => handleResetMfa(u._id, displayName)}
+                      className="actionIcon"
+                      title={resetMfaLabel}
+                      aria-label={resetMfaLabel}
+                    />
+                    {isCurrentUser && (
+                      <>
+                        <FontAwesomeIcon
+                          icon={faLock}
+                          onClick={() => handlePasswordChangeClick(u)}
+                          className="actionIcon"
+                          title={changePasswordLabel}
+                          aria-label={changePasswordLabel}
+                        />
+                        <FontAwesomeIcon
+                          icon={faKey}
+                          onClick={handleApiKeyClick}
+                          className="actionIcon"
+                          title={showApiKeyLabel}
+                          aria-label={showApiKeyLabel}
+                        />
+                        {googleClientId && !u.auth_details?.google_id && (
+                          <GoogleConnectButton/>
+                        )}
+                        {googleClientId && u.auth_details?.google_id && (
+                          <GoogleDisconnectButton/>
+                        )}
+                        {isTelegramEnabled && !u.auth_details?.telegram_id && (
+                          <TelegramConnectButton/>
+                        )}
+                        {isTelegramEnabled && u.auth_details?.telegram_id && (
+                          <TelegramDisconnectButton/>
+                        )}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>
