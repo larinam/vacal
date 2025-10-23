@@ -4,6 +4,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useInvitesQuery, INVITES_QUERY_KEY} from '../../hooks/queries/useInvitesQuery';
+import Tooltip from '../common/Tooltip';
 
 const InviteManagement = ({refreshTrigger}) => {
   const {apiCall} = useApi();
@@ -80,13 +81,14 @@ const InviteManagement = ({refreshTrigger}) => {
             <td>{invite.status}</td>
             <td>{new Date(invite.expiration_date).toLocaleDateString()}</td>
             <td>
-              <FontAwesomeIcon
-                icon={faTrashAlt}
-                onClick={() => handleWithdrawInvite(invite._id, invite.email)}
-                className="firstActionIcon"
-                title="Withdraw invite"
-                aria-label="Withdraw invite"
-              />
+              <Tooltip content="Withdraw invite">
+                <FontAwesomeIcon
+                  icon={faTrashAlt}
+                  onClick={() => handleWithdrawInvite(invite._id, invite.email)}
+                  className="firstActionIcon"
+                  aria-label="Withdraw invite"
+                />
+              </Tooltip>
             </td>
           </tr>
         ))}

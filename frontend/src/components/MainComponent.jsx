@@ -12,6 +12,7 @@ import UserProfileMenu from "./UserProfileMenu";
 import {useTeamsQuery} from '../hooks/queries/useTeamsQuery';
 import {useIsFetching, useIsMutating} from '@tanstack/react-query';
 import {useExportAbsencesMutation} from '../hooks/mutations/useExportAbsencesMutation';
+import Tooltip from './common/Tooltip';
 
 const MainComponent = () => {
     const navigate = useNavigate();
@@ -116,9 +117,11 @@ const MainComponent = () => {
                 {isBusy && <div className="spinner" role="status" aria-label="Loading" />}
             </div>
             <div className="iconContainer">
-                <div className="reportIcon" onClick={openReportModal} title="Generate Report">
-                    <FontAwesomeIcon icon={faFileExcel}/>
-                </div>
+                <Tooltip content="Generate Report">
+                    <div className="reportIcon" onClick={openReportModal}>
+                        <FontAwesomeIcon icon={faFileExcel}/>
+                    </div>
+                </Tooltip>
                 <div className="userIcon" onClick={toggleDropdown}>
                     {getUserInitials() || <FontAwesomeIcon icon={faUserCircle} />}
                 </div>
