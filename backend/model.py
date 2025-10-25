@@ -390,6 +390,7 @@ class TeamMember(EmbeddedDocument):
     birthday = StringField(regex='^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')  # only MM-DD
     employee_start_date = DateField()
     yearly_vacation_days = DecimalField()
+    last_working_day = DateField()
     is_deleted = BooleanField(default=False)
     deleted_at = DateTimeField(default=None)
     deleted_by = ReferenceField('User', default=None)

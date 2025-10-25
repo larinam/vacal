@@ -57,6 +57,7 @@ class TeamMemberWriteDTO(BaseModel):
     birthday: str | None = Field(None, pattern=r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
     employee_start_date: datetime.date | None = None
     yearly_vacation_days: Decimal | None = None
+    last_working_day: datetime.date | None = None
 
     @field_validator("country")
     @classmethod
@@ -205,6 +206,10 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
         if country:
             return country.flag
         raise ValueError(f"Invalid country name: {self.country}")
+
+
+class TeamMemberDeleteDTO(BaseModel):
+    last_working_day: datetime.date
 
 
 class TeamWriteDTO(BaseModel):
@@ -426,6 +431,7 @@ async def delete_team(team_id: str, current_user: Annotated[User, Depends(get_cu
 
 @router.delete("/{team_id}/members/{team_member_id}")
 async def delete_team_member(team_id: str, team_member_id: str,
+                             delete_data: TeamMemberDeleteDTO,
                              current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                              tenant: Annotated[Tenant, Depends(get_tenant)]):
     team = Team.objects(tenant=tenant, id=team_id).first()
@@ -434,12 +440,13 @@ async def delete_team_member(team_id: str, team_member_id: str,
     team_member_to_remove = team.get_member(team_member_id, include_archived=True)
     if not team_member_to_remove:
         raise HTTPException(status_code=404, detail="Team member not found")
+    team_member_to_remove.last_working_day = delete_data.last_working_day
     if not getattr(team_member_to_remove, "is_deleted", False):
         team_member_to_remove.is_deleted = True
         team_member_to_remove.deleted_at = datetime.datetime.now(datetime.timezone.utc)
         team_member_to_remove.deleted_by = current_user
-        team.save()
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    team.save()
+    return {"message": "Team member deleted successfully"}
 
 
 @router.put("/{team_id}")

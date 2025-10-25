@@ -1,0 +1,60 @@
+.deleteMemberModal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 320px;
+}
+
+.deleteMemberModal__description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.deleteMemberModal__label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.deleteMemberModal__label input {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.deleteMemberModal__error {
+  margin: 0;
+  color: #d93025;
+  font-size: 13px;
+}
+
+.deleteMemberModal__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.deleteMemberModal__buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.deleteMemberModal__buttons button[type='submit'] {
+  background-color: #d93025;
+  color: white;
+}
+
+.deleteMemberModal__buttons button[type='button'] {
+  background-color: #e0e0e0;
+}
+
+.deleteMemberModal__buttons button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

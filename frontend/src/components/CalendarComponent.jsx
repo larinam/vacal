@@ -23,6 +23,7 @@ import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
 import TeamSubscriptionContextMenu from './TeamSubscriptionContextMenu';
 import MemberHistoryModal from './MemberHistoryModal';
+import DeleteMemberModal from './DeleteMemberModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
@@ -55,6 +56,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [selectedDayInfo, setSelectedDayInfo] = useState(null);
   const [showMemberHistory, setShowMemberHistory] = useState(false);
   const [memberHistoryInfo, setMemberHistoryInfo] = useState({teamId: null, memberId: null, memberName: ''});
+  const [showDeleteMemberModal, setShowDeleteMemberModal] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState(null);
   const contextMenuRef = useRef(null);
   const [contextMenuPosition, setContextMenuPosition] = useState({x: 0, y: 0});
   const [showContextMenu, setShowContextMenu] = useState(false);
@@ -393,35 +396,47 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
   };
 
-  const deleteTeamMember = (teamId, memberId) => {
-    const member = teamData.find(team => team._id === teamId).team_members.find(member => member.uid === memberId);
-    const memberName = member ? member.name : '';
+  const openDeleteMemberModal = (teamId, memberId) => {
+    const team = teamData.find(t => t._id === teamId);
+    const member = team?.team_members.find(m => m.uid === memberId);
 
-    const message = `To confirm deletion, please type the name of the member: '${memberName}'`;
-    const confirmedName = window.prompt(message);
-
-    // Check if the prompt was cancelled
-    if (confirmedName === null) {
+    if (!team || !member) {
+      toast.error('Unable to identify the selected team member.');
       return;
     }
 
-    if (confirmedName === memberName) {
-      deleteMemberMutation.mutate(
-        {teamId, memberId},
-        {
-          onSuccess: () => {
-            toast.success(`Member ${memberName} deleted`);
-            updateTeamData();
-          },
-          onError: (error) => {
-            console.error('Error deleting team member:', error);
-            toast.error('Error deleting team member');
-          },
-        }
-      );
-    } else {
-      alert("The entered name did not match. Deletion cancelled.");
+    setMemberToDelete({teamId, member});
+    setShowDeleteMemberModal(true);
+  };
+
+  const closeDeleteMemberModal = () => {
+    setShowDeleteMemberModal(false);
+    setMemberToDelete(null);
+  };
+
+  const handleConfirmDeleteMember = (lastWorkingDay) => {
+    if (!memberToDelete) {
+      return;
     }
+
+    const {teamId, member} = memberToDelete;
+
+    deleteMemberMutation.mutate(
+      {teamId, memberId: member.uid, payload: {last_working_day: lastWorkingDay}},
+      {
+        onSuccess: () => {
+          toast.success(`Member ${member.name} deleted`);
+          if (typeof updateTeamData === 'function') {
+            updateTeamData();
+          }
+          closeDeleteMemberModal();
+        },
+        onError: (error) => {
+          console.error('Error deleting team member:', error);
+          toast.error('Error deleting team member');
+        },
+      }
+    );
   };
 
   const handleAddTeamIconClick = () => {
@@ -655,6 +670,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         memberId={memberHistoryInfo.memberId}
         memberName={memberHistoryInfo.memberName}
       />
+      <DeleteMemberModal
+        isOpen={showDeleteMemberModal}
+        memberName={memberToDelete?.member.name || ''}
+        onClose={closeDeleteMemberModal}
+        onConfirm={handleConfirmDeleteMember}
+        isSubmitting={deleteMemberMutation.isPending}
+      />
       <DayTypeContextMenu
         contextMenuRef={contextMenuRef}
         isOpen={showContextMenu}
@@ -873,7 +895,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                           title="Delete member"
                           wrapperClassName="delete-icon"
                           wrapperProps={{
-                            onClick: () => deleteTeamMember(team._id, member.uid),
+                            onClick: () => openDeleteMemberModal(team._id, member.uid),
                             role: 'button',
                           }}
                         />
