@@ -16,7 +16,7 @@ def find_birthdays(team):
     birthday_notifications = []
 
     # Iterate over team members and check if today is their birthday
-    for member in team.team_members:
+    for member in team.members():
         if member.birthday == today:  # Compare MM-DD format
             birthday_notifications.append({
                 'name': member.name,

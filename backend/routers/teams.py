@@ -6,7 +6,7 @@ import logging
 import time
 from collections import defaultdict
 from decimal import Decimal
-from functools import lru_cache
+from functools import lru_cache, partial
 from io import BytesIO
 from typing import List, Dict, Annotated, Self, Generator, Optional, Tuple
 
@@ -85,6 +85,9 @@ class DayEntryDTO(BaseModel):
 class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
     days: Dict[str, DayEntryDTO] = Field(default_factory=dict)
+    is_deleted: bool = False
+    deleted_at: datetime.datetime | None = None
+    deleted_by: UserWithoutTenantsDTO | None = None
     _vacation_split_cache: Optional[Tuple[Dict[int, int], Dict[int, int]]] = PrivateAttr(default=None)
 
     def _split_vacation_days(self) -> tuple[Dict[int, int], Dict[int, int]]:
@@ -186,6 +189,15 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
             return converted_days
         return v
 
+    @field_validator('deleted_by', mode="before")
+    @classmethod
+    def convert_deleted_by(cls, value):
+        if isinstance(value, ObjectId):
+            return UserWithoutTenantsDTO.from_mongo_reference_field(value)
+        if isinstance(value, User):
+            return mongo_to_pydantic(value, UserWithoutTenantsDTO)
+        return value
+
     @computed_field
     @property
     def country_flag(self) -> str:
@@ -204,6 +216,9 @@ class TeamReadDTO(TeamWriteDTO):
     id: str = Field(None, alias='_id')
     team_members: List[TeamMemberReadDTO]
     subscribers: List[UserWithoutTenantsDTO] = []
+    is_deleted: bool = False
+    deleted_at: datetime.datetime | None = None
+    deleted_by: UserWithoutTenantsDTO | None = None
 
     @field_validator('team_members')
     @classmethod
@@ -227,6 +242,15 @@ class TeamReadDTO(TeamWriteDTO):
             else:
                 converted_subscribers.append(subscriber)
         return converted_subscribers
+
+    @field_validator('deleted_by', mode="before")
+    @classmethod
+    def convert_deleted_by(cls, value):
+        if isinstance(value, ObjectId):
+            return UserWithoutTenantsDTO.from_mongo_reference_field(value)
+        if isinstance(value, User):
+            return mongo_to_pydantic(value, UserWithoutTenantsDTO)
+        return value
 
 
 class NotificationTypeDTO(BaseModel):
@@ -325,24 +349,41 @@ def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
     return holidays_dict
 
 
-def team_to_read_dto(team: Team) -> TeamReadDTO:
-    team_dict = team.to_mongo().to_dict()
-    if "_id" in team_dict:
-        team_dict["_id"] = str(team_dict["_id"])
-    team_dict["subscribers"] = [
-        mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
-        for subscriber in team.list_subscribers()
+def team_to_read_dto(team: Team, include_archived_members: bool = False) -> TeamReadDTO:
+    member_dtos = [
+        mongo_to_pydantic(member, TeamMemberReadDTO)
+        for member in team.members(include_archived=include_archived_members)
     ]
+    team_dict = {
+        "_id": str(team.id),
+        "name": team.name,
+        "available_day_types": [
+            mongo_to_pydantic(day_type, DayTypeReadDTO)
+            for day_type in team.available_day_types
+        ],
+        "team_members": member_dtos,
+        "subscribers": [
+            mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
+            for subscriber in team.list_subscribers()
+        ],
+        "is_deleted": team.is_deleted,
+        "deleted_at": team.deleted_at,
+        "deleted_by": team.deleted_by,
+    }
     return TeamReadDTO(**team_dict)
 
 
 @router.get("")
 async def list_teams(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                     tenant: Annotated[Tenant, Depends(get_tenant)]):
+                     tenant: Annotated[Tenant, Depends(get_tenant)],
+                     include_archived: bool = Query(False),
+                     include_archived_members: bool = Query(False)):
     start_time = time.perf_counter()
-    teams_list = Team.objects(tenant=tenant).order_by("name")
+    teams_qs = Team.objects_with_deleted(tenant=tenant) if include_archived else Team.objects(tenant=tenant)
+    teams_list = teams_qs.order_by("name")
+    converter = partial(team_to_read_dto, include_archived_members=include_archived_members)
     teams = {"teams": await asyncio.gather(
-        *(run_in_threadpool(team_to_read_dto, team) for team in teams_list))}
+        *(run_in_threadpool(converter, team) for team in teams_list))}
     print("teams preparation " + str(time.perf_counter() - start_time))
     return teams | {"holidays": get_holidays(tenant)} | await get_all_day_types(current_user, tenant)
 
@@ -372,7 +413,14 @@ async def add_team(team_dto: TeamWriteDTO, current_user: Annotated[User, Depends
 @router.delete("/{team_id}")
 async def delete_team(team_id: str, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                       tenant: Annotated[Tenant, Depends(get_tenant)]):
-    Team.objects(tenant=tenant, id=team_id).delete()
+    team = Team.objects_with_deleted(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    if not team.is_deleted:
+        team.is_deleted = True
+        team.deleted_at = datetime.datetime.now(datetime.timezone.utc)
+        team.deleted_by = current_user
+        team.save()
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -381,10 +429,16 @@ async def delete_team_member(team_id: str, team_member_id: str,
                              current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                              tenant: Annotated[Tenant, Depends(get_tenant)]):
     team = Team.objects(tenant=tenant, id=team_id).first()
-    team_members = team.team_members
-    team_member_to_remove = team_members.get(uid=team_member_id)
-    team_members.remove(team_member_to_remove)
-    team.save()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team_member_to_remove = team.get_member(team_member_id, include_archived=True)
+    if not team_member_to_remove:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if not getattr(team_member_to_remove, "is_deleted", False):
+        team_member_to_remove.is_deleted = True
+        team_member_to_remove.deleted_at = datetime.datetime.now(datetime.timezone.utc)
+        team_member_to_remove.deleted_by = current_user
+        team.save()
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -410,9 +464,11 @@ async def update_team_member(team_id: str, team_member_id: str, team_member_dto:
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    team_member: TeamMember = team.team_members.get(uid=team_member_id)
+    team_member: TeamMember | None = team.get_member(team_member_id, include_archived=True)
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
+    if getattr(team_member, "is_deleted", False):
+        raise HTTPException(status_code=400, detail="Team member is archived")
 
     team_member.name = team_member_dto.name
     team_member.country = team_member_dto.country
@@ -561,14 +617,14 @@ async def transfer_team_member(current_user: Annotated[User, Depends(get_current
     if not source_team or not target_team:
         raise HTTPException(status_code=404, detail="One or both teams not found")
 
-    team_member = next((member for member in source_team.team_members if str(member.uid) == str(team_member_uid)), None)
+    team_member = source_team.get_member(team_member_uid)
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found in source team")
 
     source_team.team_members = [member for member in source_team.team_members if member.uid != team_member.uid]
     source_team.save()
 
-    if not any(member.uid == team_member.uid for member in target_team.team_members):
+    if not target_team.get_member(team_member.uid, include_archived=True):
         target_team.team_members.append(team_member)
         target_team.save()
 
@@ -645,7 +701,7 @@ def build_team_calendar(team: Team) -> Calendar:
         "X-WR-CALNAME",
         value=f"{team.name} - {team.tenant.name} - Vacal",
     ))
-    for member in sorted(team.team_members, key=lambda m: m.name):
+    for member in sorted(team.members(), key=lambda m: m.name):
         for date_str in sorted(member.days.keys()):
             day_entry = member.days[date_str]
             date = datetime.date.fromisoformat(date_str)
@@ -683,7 +739,7 @@ async def get_report_body_rows(tenant, start_date, end_date, day_type_names, tea
     if team_ids:
         teams_qs = teams_qs.filter(id__in=team_ids)
     for team in teams_qs:
-        for member in team.team_members:
+        for member in team.members():
             day_type_counts = {}
             member_holidays = country_holidays.get(member.country, [])
             absence_days_count = 0
@@ -731,9 +787,11 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, Dict[st
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    team_member: TeamMember = team.team_members.get(uid=team_member_id)
+    team_member: TeamMember | None = team.get_member(team_member_id, include_archived=True)
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
+    if getattr(team_member, "is_deleted", False):
+        raise HTTPException(status_code=400, detail="Team member is archived")
 
     updated_days = {}
     enforce_absence_limit = current_user.role == "employee"
@@ -769,11 +827,11 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, Dict[st
 
         if (
             enforce_absence_limit
-            and len(team.team_members) > 1
+            and len(team.members()) > 1
             and any(day_type.is_absence for day_type in day_types)
         ):
             all_members_absent = True
-            for member in team.team_members:
+            for member in team.members():
                 if member.uid == team_member.uid:
                     entry = day_entry
                 else:
@@ -833,10 +891,9 @@ async def get_day_history(
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    team_member: TeamMember = team.team_members.get(uid=team_member_id)
+    team_member: TeamMember | None = team.get_member(team_member_id, include_archived=True)
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
-
     validate_date(date)
     date_obj = datetime.datetime.strptime(date, "%Y-%m-%d").date()
     audits = _get_paginated_audits(tenant, team, team_member, skip, limit, date_obj)
@@ -856,10 +913,9 @@ async def get_member_history(
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    team_member: TeamMember = team.team_members.get(uid=team_member_id)
+    team_member: TeamMember | None = team.get_member(team_member_id, include_archived=True)
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
-
     audits = _get_paginated_audits(tenant, team, team_member, skip, limit)
     return [mongo_to_pydantic(a, DayAuditDTO) for a in audits]
 

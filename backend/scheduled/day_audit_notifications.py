@@ -40,13 +40,6 @@ def _get_added_day_types(audit: DayAudit) -> List:
     return added_day_types
 
 
-def _get_member_by_uid(team: Team, member_uid: str):
-    for member in team.team_members:
-        if str(member.uid) == member_uid:
-            return member
-    return None
-
-
 def _get_current_day_type_ids(member, date: datetime.date) -> Set[str]:
     day_entry = member.days.get(str(date)) if getattr(member, "days", None) else None
     if not day_entry:
@@ -115,7 +108,7 @@ def _collect_notifications(
         team = audit.team
         if team is None:
             continue
-        member = _get_member_by_uid(team, audit.member_uid)
+        member = team.get_member(audit.member_uid)
         if member is None:
             continue
         current_day_type_ids = _get_current_day_type_ids(member, audit.date)
