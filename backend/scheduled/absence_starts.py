@@ -25,7 +25,7 @@ def find_absence_periods(team, start_date) -> list:
     day_before = start_date - datetime.timedelta(days=1)
     day_before_str = str(day_before)
 
-    for member in team.team_members:
+    for member in team.members():
         if (is_absent(member, start_date_str, absence_day_types) and
                 not (is_absent(member, day_before_str, absence_day_types))):
             end_date = calculate_end_date(member, start_date, absence_day_types)
@@ -120,7 +120,7 @@ def send_upcoming_absence_email_updates() -> None:
 
     for team in Team.objects():
         absence_day_types = list(DayType.objects(tenant=team.tenant, is_absence=True))
-        for member in team.team_members:
+        for member in team.members():
             if not is_working_day(member, today) or is_absent(member, str(today), absence_day_types):
                 continue  # skip sending notifications on weekends, holidays and if it is already absence for the team member
             next_working_day = get_next_working_day(member, today)

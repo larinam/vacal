@@ -85,7 +85,7 @@ def _is_day_type_in_use(tenant: Tenant, day_type_id: str) -> bool:
     for team in Team.objects(tenant=tenant):
         if any(str(dt.id) == day_type_id for dt in team.available_day_types):
             return True
-        for member in team.team_members:
+        for member in team.members():
             if any(str(dt.id) == day_type_id for dt in member.available_day_types):
                 return True
             for entry in member.days.values():

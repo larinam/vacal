@@ -14,7 +14,8 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from mongoengine import StringField, ListField, connect, Document, EmbeddedDocument, \
     EmbeddedDocumentListField, UUIDField, EmailField, ReferenceField, MapField, EmbeddedDocumentField, BooleanField, \
-    LongField, DateTimeField, IntField, DateField, DecimalField
+    LongField, DateTimeField, IntField, DateField, DecimalField, QuerySet
+from mongoengine.queryset.manager import queryset_manager
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 from pwdlib.hashers.bcrypt import BcryptHasher
@@ -358,6 +359,26 @@ class DayEntry(EmbeddedDocument):
     comment = StringField()
 
 
+class SoftDeleteQuerySet(QuerySet):
+    """Query helpers for toggling archived documents on queryset chains.
+
+    MongoEngine reuses the configured ``queryset_class`` for managers such as
+    :func:`objects_with_deleted`.  Providing a custom subclass lets us expose
+    ``alive()``/``deleted()`` helpers that callers (and tests) can chain after
+    applying additional filters when they explicitly need archived rows.
+    """
+
+    def alive(self):
+        """Return only documents that have not been soft-deleted."""
+
+        return self.filter(is_deleted=False)
+
+    def deleted(self):
+        """Return only soft-deleted documents."""
+
+        return self.filter(is_deleted=True)
+
+
 class TeamMember(EmbeddedDocument):
     uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
     name = StringField(required=True)
@@ -369,6 +390,9 @@ class TeamMember(EmbeddedDocument):
     birthday = StringField(regex='^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')  # only MM-DD
     employee_start_date = DateField()
     yearly_vacation_days = DecimalField()
+    is_deleted = BooleanField(default=False)
+    deleted_at = DateTimeField(default=None)
+    deleted_by = ReferenceField('User', default=None)
 
 
 class Team(Document):
@@ -377,14 +401,48 @@ class Team(Document):
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
     notification_preferences = MapField(ListField(StringField()), default=dict)
+    is_deleted = BooleanField(default=False)
+    deleted_at = DateTimeField(default=None)
+    deleted_by = ReferenceField('User', reverse_delete_rule=mongoengine.NULLIFY, default=None)
 
     meta = {
         "indexes": [
             "tenant",
             ("tenant", "team_members.email"),
         ],
-        "index_background": True
+        "index_background": True,
+        "queryset_class": SoftDeleteQuerySet,
     }
+
+    @queryset_manager
+    def objects(doc_cls, queryset):
+        return queryset.alive()
+
+    @queryset_manager
+    def objects_with_deleted(doc_cls, queryset):
+        return queryset
+
+    @property
+    def active_members(self) -> list[TeamMember]:
+        return [member for member in self.team_members if not getattr(member, "is_deleted", False)]
+
+    @property
+    def archived_members(self) -> list[TeamMember]:
+        return [member for member in self.team_members if getattr(member, "is_deleted", False)]
+
+    def members(self, include_archived: bool = False) -> list[TeamMember]:
+        return list(self.team_members) if include_archived else self.active_members
+
+    def get_member(self, uid: str | uuid.UUID, include_archived: bool = False) -> TeamMember | None:
+        uid_str = str(uid)
+        for member in self.members(include_archived=include_archived):
+            if str(member.uid) == uid_str:
+                return member
+        if include_archived:
+            for member in self.archived_members:
+                if str(member.uid) == uid_str:
+                    return member
+        return None
 
     def subscriber_ids(self) -> list[str]:
         return list((self.notification_preferences or {}).keys())
@@ -467,6 +525,7 @@ def get_unique_countries(tenant):
     pipeline = [
         {"$match": {"tenant": tenant.id}},
         {"$unwind": "$team_members"},
+        {"$match": {"team_members.is_deleted": {"$ne": True}}},
         {"$group": {"_id": None, "countries": {"$addToSet": "$team_members.country"}}},
     ]
     result = list(Team.objects.aggregate(pipeline))
@@ -500,7 +559,7 @@ def get_team_id_and_member_uid_by_email(tenant, email):
     ).first()
     if not team:
         return None, None
-    for member in team.team_members:
+    for member in team.members():
         if member.email == email:
             return str(team.id), str(member.uid)
     return None, None
@@ -509,7 +568,7 @@ def get_team_id_and_member_uid_by_email(tenant, email):
 def calculate_team_members_number_in_tenant(tenant):
     team_member_count = 0
     for team in Team.objects(tenant=tenant):
-        team_member_count += len(team.team_members)
+        team_member_count += len(team.members())
     return team_member_count
 
 

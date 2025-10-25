@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from backend.model import (
@@ -9,8 +10,12 @@ from backend.model import (
 )
 
 
+def _create_tenant() -> Tenant:
+    return Tenant(name=str(uuid.uuid4()), identifier=str(uuid.uuid4())).save()
+
+
 def test_get_unique_countries() -> None:
-    tenant = Tenant(name=str(uuid.uuid4()), identifier=str(uuid.uuid4())).save()
+    tenant = _create_tenant()
     Team(
         tenant=tenant,
         name="A",
@@ -30,7 +35,7 @@ def test_get_unique_countries() -> None:
 
 
 def test_get_team_id_and_member_uid_by_email() -> None:
-    tenant = Tenant(name=str(uuid.uuid4()), identifier=str(uuid.uuid4())).save()
+    tenant = _create_tenant()
     member = TeamMember(name="Dan", country="United States", email="dan@example.com")
     team = Team(tenant=tenant, name="Team", team_members=[member]).save()
 
@@ -39,4 +44,53 @@ def test_get_team_id_and_member_uid_by_email() -> None:
     assert member_uid == str(member.uid)
 
     assert get_team_id_and_member_uid_by_email(tenant, "missing@example.com") == (None, None)
+
+
+def test_team_soft_delete_filters_objects() -> None:
+    tenant = _create_tenant()
+    team = Team(tenant=tenant, name="Team", team_members=[]).save()
+
+    assert Team.objects(tenant=tenant).count() == 1
+
+    team.is_deleted = True
+    team.deleted_at = datetime.datetime.now(datetime.timezone.utc)
+    team.save()
+
+    assert Team.objects(tenant=tenant).count() == 0
+    assert Team.objects_with_deleted(tenant=tenant).count() == 1
+    assert Team.objects_with_deleted(tenant=tenant).deleted().count() == 1
+
+    team.is_deleted = False
+    team.deleted_at = None
+    team.save()
+
+    assert Team.objects(tenant=tenant).count() == 1
+
+
+def test_team_member_soft_delete_and_restore() -> None:
+    tenant = _create_tenant()
+    member = TeamMember(name="Eve", country="United States")
+    team = Team(tenant=tenant, name="Team", team_members=[member]).save()
+    member_uid = str(team.team_members[0].uid)
+
+    team_member = team.get_member(member_uid)
+    team_member.is_deleted = True
+    team_member.deleted_at = datetime.datetime.now(datetime.timezone.utc)
+    team.save()
+
+    team.reload()
+    assert team.get_member(member_uid) is None
+    archived_member = team.get_member(member_uid, include_archived=True)
+    assert archived_member is not None and archived_member.is_deleted
+    assert team.members() == []
+
+    archived_member.is_deleted = False
+    archived_member.deleted_at = None
+    archived_member.deleted_by = None
+    team.save()
+
+    team.reload()
+    restored_member = team.get_member(member_uid)
+    assert restored_member is not None and not restored_member.is_deleted
+    assert len(team.members()) == 1
 
