@@ -28,6 +28,7 @@ import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
 import useTeamManagementMutations from '../hooks/mutations/useTeamManagementMutations';
 import useMemberMutations from '../hooks/mutations/useMemberMutations';
+import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
@@ -759,37 +760,65 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                     onDrop={(e) => handleDrop(e, team._id)}
                   >
                     <td className="team-name-cell">
-                      <span className="collapse-icon"
-                            onClick={() => toggleTeamCollapse(team._id)}
-                            title={collapseIconTitle}>
-                          <FontAwesomeIcon
-                            icon={isTeamCollapsed ? faChevronRight : faChevronDown}/>
-                      </span>
-                      <span className={`eye-icon ${isTeamFocused ? 'eye-icon-active' : ''}`}
-                            onClick={() => handleFocusTeam(team._id)}
-                            title={focusIconTitle}>
-                          <FontAwesomeIcon icon={faEye}/>
-                      </span>
+                      <FontAwesomeIconWithTitle
+                        icon={isTeamCollapsed ? faChevronRight : faChevronDown}
+                        title={collapseIconTitle}
+                        wrapperClassName="collapse-icon"
+                        wrapperProps={{
+                          onClick: () => toggleTeamCollapse(team._id),
+                          role: 'button',
+                        }}
+                      />
+                      <FontAwesomeIconWithTitle
+                        icon={faEye}
+                        title={focusIconTitle}
+                        wrapperClassName={`eye-icon ${isTeamFocused ? 'eye-icon-active' : ''}`}
+                        wrapperProps={{
+                          onClick: () => handleFocusTeam(team._id),
+                          role: 'button',
+                        }}
+                      />
                       {team.name}
                       <span className="team-member-count">({team.team_members.length})</span>
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
-                      <span className={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
-                            onClick={(event) => openSubscriptionMenu(event, team._id)}
-                            title="Manage team subscription">
-                          <FontAwesomeIcon icon={isSubscribed ? faSolidBell : faRegularBell}/>
-                      </span>
-                      <span className="edit-icon" onClick={() => handleEditTeamClick(team._id)} title="Edit team">
-                          <FontAwesomeIcon icon={faEdit}/>
-                      </span>
-                      <span className="calendar-link-icon" onClick={() => handleCopyCalendarLink(team._id)}
-                            title="Copy calendar feed link">
-                          <FontAwesomeIcon icon={faLink}/>
-                      </span>
+                      <FontAwesomeIconWithTitle
+                        icon={isSubscribed ? faSolidBell : faRegularBell}
+                        title="Manage team subscription"
+                        wrapperClassName={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
+                        wrapperProps={{
+                          onClick: (event) => openSubscriptionMenu(event, team._id),
+                          role: 'button',
+                        }}
+                      />
+                      <FontAwesomeIconWithTitle
+                        icon={faEdit}
+                        title="Edit team"
+                        wrapperClassName="edit-icon"
+                        wrapperProps={{
+                          onClick: () => handleEditTeamClick(team._id),
+                          role: 'button',
+                        }}
+                      />
+                      <FontAwesomeIconWithTitle
+                        icon={faLink}
+                        title="Copy calendar feed link"
+                        wrapperClassName="calendar-link-icon"
+                        wrapperProps={{
+                          onClick: () => handleCopyCalendarLink(team._id),
+                          role: 'button',
+                        }}
+                      />
                       {team.team_members.length === 0 && (
-                        <span className="delete-icon" onClick={() => deleteTeam(team._id)} title="Delete team">
-                          <FontAwesomeIcon icon={faTrashAlt}/>
-                        </span>
+                        <FontAwesomeIconWithTitle
+                          icon={faTrashAlt}
+                          title="Delete team"
+                          wrapperClassName="delete-icon"
+                          wrapperProps={{
+                            onClick: () => deleteTeam(team._id),
+                            role: 'button',
+                          }}
+                        />
                       )}
                     </td>
                     {daysHeader.map(({date}, idx) => {
@@ -806,34 +835,48 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                     <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                       <td className="member-name-cell">
                         {member.name} <span title={member.country}>{member.country_flag}</span>
-                        <span className="info-icon" title={renderVacationDaysTooltip(member)}>
-                            <FontAwesomeIcon icon={faInfoCircle}/>
-                        </span>
-                        <span className="history-icon" onClick={() => openMemberHistory(team._id, member)} title="View history">
-                          <FontAwesomeIcon icon={faHistory}/>
-                        </span>
-                        <span
-                          className="drag-icon"
-                          draggable="true"
-                          onDragStart={(e) => handleDragStart(e, team._id, member.uid, member.name)}
-                          onDragEnd={handleDragEnd}
-                          title="Drag and drop">
-                              <FontAwesomeIcon icon={faGripVertical}/>
-                          </span>
-                        <span
-                          className="edit-icon"
-                          onClick={() => handleEditMemberClick(team._id, member.uid)}
+                        <FontAwesomeIconWithTitle
+                          icon={faInfoCircle}
+                          title={renderVacationDaysTooltip(member)}
+                          wrapperClassName="info-icon"
+                        />
+                        <FontAwesomeIconWithTitle
+                          icon={faHistory}
+                          title="View history"
+                          wrapperClassName="history-icon"
+                          wrapperProps={{
+                            onClick: () => openMemberHistory(team._id, member),
+                            role: 'button',
+                          }}
+                        />
+                        <FontAwesomeIconWithTitle
+                          icon={faGripVertical}
+                          title="Drag and drop"
+                          wrapperClassName="drag-icon"
+                          wrapperProps={{
+                            draggable: true,
+                            onDragStart: (e) => handleDragStart(e, team._id, member.uid, member.name),
+                            onDragEnd: handleDragEnd,
+                          }}
+                        />
+                        <FontAwesomeIconWithTitle
+                          icon={faEdit}
                           title="Edit member"
-                        >
-                            <FontAwesomeIcon icon={faEdit}/>
-                        </span>
-                        <span
-                          className="delete-icon"
-                          onClick={() => deleteTeamMember(team._id, member.uid)}
+                          wrapperClassName="edit-icon"
+                          wrapperProps={{
+                            onClick: () => handleEditMemberClick(team._id, member.uid),
+                            role: 'button',
+                          }}
+                        />
+                        <FontAwesomeIconWithTitle
+                          icon={faTrashAlt}
                           title="Delete member"
-                        >
-                          <FontAwesomeIcon icon={faTrashAlt}/>
-                        </span>
+                          wrapperClassName="delete-icon"
+                          wrapperProps={{
+                            onClick: () => deleteTeamMember(team._id, member.uid),
+                            role: 'button',
+                          }}
+                        />
                       </td>
                       {daysHeader.map(({date}, idx) => {
                         const dayEntry = getMemberDayEntry(member, date);
