@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import UserModal from './UserModal';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
 import {faEdit, faKey, faTrashAlt, faSyncAlt, faLock, faUnlink} from '@fortawesome/free-solid-svg-icons';
 import {faGoogle, faTelegram} from '@fortawesome/free-brands-svg-icons';
 import {useAuth} from '../../contexts/AuthContext';
@@ -243,7 +243,7 @@ const UserManagement = () => {
   const GoogleConnectButton = () => {
     const googleConnect = useGoogleAuth(handleGoogleConnect);
     return (
-      <FontAwesomeIcon
+      <FontAwesomeIconWithTitle
         icon={faGoogle}
         onClick={() => !googleConnectMutation.isPending && googleConnect()}
         className="actionIcon"
@@ -254,7 +254,7 @@ const UserManagement = () => {
   };
 
   const GoogleDisconnectButton = () => (
-    <FontAwesomeIcon
+    <FontAwesomeIconWithTitle
       icon={faUnlink}
       onClick={handleGoogleDisconnect}
       className="actionIcon"
@@ -265,7 +265,7 @@ const UserManagement = () => {
 
   const TelegramConnectButton = () => (
     <>
-      <FontAwesomeIcon
+      <FontAwesomeIconWithTitle
         icon={faTelegram}
         onClick={() => setShowTelegramModal(true)}
         className="actionIcon"
@@ -283,7 +283,7 @@ const UserManagement = () => {
   );
 
   const TelegramDisconnectButton = () => (
-    <FontAwesomeIcon
+    <FontAwesomeIconWithTitle
       icon={faUnlink}
       onClick={handleTelegramDisconnect}
       className="actionIcon"
@@ -353,21 +353,21 @@ const UserManagement = () => {
                   <td>{u.auth_details?.google_email ?? ''}</td>
                   <td>{u.disabled ? 'Disabled' : 'Active'}</td>
                   <td>
-                    <FontAwesomeIcon
+                    <FontAwesomeIconWithTitle
                       icon={faEdit}
                       onClick={() => handleEditUserClick(u)}
                       className="firstActionIcon"
                       title={editUserLabel}
                       aria-label={editUserLabel}
                     />
-                    <FontAwesomeIcon
+                    <FontAwesomeIconWithTitle
                       icon={faTrashAlt}
                       onClick={() => handleDeleteUser(u._id, displayName)}
                       className="actionIcon"
                       title={deleteUserLabel}
                       aria-label={deleteUserLabel}
                     />
-                    <FontAwesomeIcon
+                    <FontAwesomeIconWithTitle
                       icon={faSyncAlt}
                       onClick={() => handleResetMfa(u._id, displayName)}
                       className="actionIcon"
@@ -376,14 +376,14 @@ const UserManagement = () => {
                     />
                     {isCurrentUser && (
                       <>
-                        <FontAwesomeIcon
+                        <FontAwesomeIconWithTitle
                           icon={faLock}
                           onClick={() => handlePasswordChangeClick(u)}
                           className="actionIcon"
                           title={changePasswordLabel}
                           aria-label={changePasswordLabel}
                         />
-                        <FontAwesomeIcon
+                        <FontAwesomeIconWithTitle
                           icon={faKey}
                           onClick={handleApiKeyClick}
                           className="actionIcon"
