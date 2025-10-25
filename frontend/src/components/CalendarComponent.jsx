@@ -851,7 +851,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         />
                         <FontAwesomeIconWithTitle
                           icon={faGripVertical}
-                          title="Drag and drop"
+                          title="Move to another team"
                           wrapperClassName="drag-icon"
                           wrapperProps={{
                             draggable: true,
