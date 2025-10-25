@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
 import {faEdit, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import './DayTypes.css';
 import {useApi} from '../../hooks/useApi';
@@ -101,14 +101,14 @@ const DayTypes = () => {
                 </td>
                 <td>{dayType.is_absence ? 'Yes' : 'No'}</td>
                 <td>
-                  <FontAwesomeIcon
+                  <FontAwesomeIconWithTitle
                     icon={faEdit}
                     onClick={() => handleEditDayTypeClick(dayType)}
                     className="firstActionIcon"
                     title="Edit day type"
                     aria-label="Edit day type"
                   />
-                  <FontAwesomeIcon
+                  <FontAwesomeIconWithTitle
                     icon={faTrashAlt}
                     onClick={() => handleDeleteDayType(dayType._id)}
                     className="actionIcon"

@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import {useApi} from '../../hooks/useApi';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
 import {faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useInvitesQuery, INVITES_QUERY_KEY} from '../../hooks/queries/useInvitesQuery';
@@ -80,7 +80,7 @@ const InviteManagement = ({refreshTrigger}) => {
             <td>{invite.status}</td>
             <td>{new Date(invite.expiration_date).toLocaleDateString()}</td>
             <td>
-              <FontAwesomeIcon
+              <FontAwesomeIconWithTitle
                 icon={faTrashAlt}
                 onClick={() => handleWithdrawInvite(invite._id, invite.email)}
                 className="firstActionIcon"
