@@ -12,6 +12,7 @@ import UserProfileMenu from "./UserProfileMenu";
 import {useTeamsQuery} from '../hooks/queries/useTeamsQuery';
 import {useIsFetching, useIsMutating} from '@tanstack/react-query';
 import {useExportAbsencesMutation} from '../hooks/mutations/useExportAbsencesMutation';
+import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
 
 const MainComponent = () => {
     const navigate = useNavigate();
@@ -116,9 +117,15 @@ const MainComponent = () => {
                 {isBusy && <div className="spinner" role="status" aria-label="Loading" />}
             </div>
             <div className="iconContainer">
-                <div className="reportIcon" onClick={openReportModal} title="Generate Report">
-                    <FontAwesomeIcon icon={faFileExcel}/>
-                </div>
+                <FontAwesomeIconWithTitle
+                    icon={faFileExcel}
+                    title="Generate Report"
+                    wrapperClassName="reportIcon"
+                    wrapperProps={{
+                        onClick: openReportModal,
+                        role: 'button',
+                    }}
+                />
                 <div className="userIcon" onClick={toggleDropdown}>
                     {getUserInitials() || <FontAwesomeIcon icon={faUserCircle} />}
                 </div>

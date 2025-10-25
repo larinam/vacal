@@ -2,11 +2,11 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import './DayTypeContextMenu.css';
 import {format, isWeekend} from 'date-fns';
 import {toast} from 'react-toastify';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faHistory} from '@fortawesome/free-solid-svg-icons';
 import DayTypeCheckbox from './DayTypeCheckbox';
 import DayHistoryModal from './DayHistoryModal';
 import useDayAssignmentsMutation from '../hooks/mutations/useDayAssignmentsMutation';
+import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
 
 const DayTypeContextMenu = ({
                               contextMenuRef,
@@ -293,9 +293,15 @@ const DayTypeContextMenu = ({
           <div className="display-date-info">
             {displayDate}
             {selectedDayInfo.dateRange && selectedDayInfo.dateRange.length === 1 && (
-              <span className="history-icon" onClick={openHistoryModal} title="View history">
-                <FontAwesomeIcon icon={faHistory}/>
-              </span>
+              <FontAwesomeIconWithTitle
+                icon={faHistory}
+                title="View history"
+                wrapperClassName="history-icon"
+                wrapperProps={{
+                  onClick: openHistoryModal,
+                  role: 'button',
+                }}
+              />
             )}
           </div>
         </>
