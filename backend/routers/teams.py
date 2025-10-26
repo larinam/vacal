@@ -24,7 +24,17 @@ from pydantic.functional_validators import field_validator, model_validator
 from starlette.concurrency import run_in_threadpool
 
 from ..dependencies import get_current_active_user_check_tenant, get_tenant, mongo_to_pydantic, tenant_var
-from ..model import Team, TeamMember, get_unique_countries, DayType, User, Tenant, DayEntry, DayAudit
+from ..model import (
+    Team,
+    TeamMember,
+    get_unique_countries,
+    DayType,
+    User,
+    Tenant,
+    DayEntry,
+    DayAudit,
+    DepartureInitiator,
+)
 from ..notification_types import (
     ensure_valid_notification_types,
     list_notification_type_ids,
@@ -89,6 +99,7 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     is_deleted: bool = False
     deleted_at: datetime.datetime | None = None
     deleted_by: UserWithoutTenantsDTO | None = None
+    departure_initiated_by: DepartureInitiator | None = None
     _vacation_split_cache: Optional[Tuple[Dict[int, int], Dict[int, int]]] = PrivateAttr(default=None)
 
     def _split_vacation_days(self) -> tuple[Dict[int, int], Dict[int, int]]:
@@ -210,6 +221,7 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
 
 class TeamMemberDeleteDTO(BaseModel):
     last_working_day: datetime.date
+    departure_initiated_by: DepartureInitiator
 
 
 class TeamWriteDTO(BaseModel):
@@ -446,6 +458,7 @@ async def delete_team_member(team_id: str, team_member_id: str,
     if not team_member_to_remove:
         raise HTTPException(status_code=404, detail="Team member not found")
     team_member_to_remove.last_working_day = delete_data.last_working_day
+    team_member_to_remove.departure_initiated_by = delete_data.departure_initiated_by.value
     if not getattr(team_member_to_remove, "is_deleted", False):
         team_member_to_remove.is_deleted = True
         team_member_to_remove.deleted_at = datetime.datetime.now(datetime.timezone.utc)

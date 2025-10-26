@@ -4,6 +4,7 @@ import random
 import secrets
 import uuid
 from datetime import datetime, timezone, timedelta
+from enum import Enum
 from typing import Iterable
 
 import mongoengine
@@ -379,6 +380,11 @@ class SoftDeleteQuerySet(QuerySet):
         return self.filter(is_deleted=True)
 
 
+class DepartureInitiator(str, Enum):
+    TEAM_MEMBER = "team_member"
+    COMPANY = "company"
+
+
 class TeamMember(EmbeddedDocument):
     uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
     name = StringField(required=True)
@@ -394,6 +400,9 @@ class TeamMember(EmbeddedDocument):
     is_deleted = BooleanField(default=False)
     deleted_at = DateTimeField(default=None)
     deleted_by = ReferenceField('User', default=None)
+    departure_initiated_by = StringField(
+        choices=[choice.value for choice in DepartureInitiator], default=None
+    )
 
 
 class Team(Document):

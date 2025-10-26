@@ -414,7 +414,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     setMemberToDelete(null);
   };
 
-  const handleConfirmDeleteMember = (lastWorkingDay) => {
+  const handleConfirmDeleteMember = ({lastWorkingDay, departureInitiatedBy}) => {
     if (!memberToDelete) {
       return;
     }
@@ -422,7 +422,14 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const {teamId, member} = memberToDelete;
 
     deleteMemberMutation.mutate(
-      {teamId, memberId: member.uid, payload: {last_working_day: lastWorkingDay}},
+      {
+        teamId,
+        memberId: member.uid,
+        payload: {
+          last_working_day: lastWorkingDay,
+          departure_initiated_by: departureInitiatedBy,
+        },
+      },
       {
         onSuccess: () => {
           toast.success(`Member ${member.name} deleted`);

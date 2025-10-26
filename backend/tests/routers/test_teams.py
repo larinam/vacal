@@ -9,7 +9,14 @@ from fastapi.testclient import TestClient
 
 from backend.dependencies import get_current_active_user_check_tenant, get_tenant
 from backend.main import app
-from backend.model import AuthDetails, Team, TeamMember, Tenant, User
+from backend.model import (
+    AuthDetails,
+    Team,
+    TeamMember,
+    Tenant,
+    User,
+    DepartureInitiator,
+)
 
 
 client = TestClient(app)
@@ -34,7 +41,10 @@ def test_delete_team_member_stores_last_working_day():
         response = client.request(
             "DELETE",
             f"/teams/{team.id}/members/{team_member.uid}",
-            json={"last_working_day": "2024-06-01"},
+            json={
+                "last_working_day": "2024-06-01",
+                "departure_initiated_by": DepartureInitiator.TEAM_MEMBER.value,
+            },
             headers={"Tenant-ID": tenant.identifier},
         )
 
@@ -46,6 +56,7 @@ def test_delete_team_member_stores_last_working_day():
         assert stored_member is not None
         assert stored_member.is_deleted is True
         assert stored_member.last_working_day == datetime.date(2024, 6, 1)
+        assert stored_member.departure_initiated_by == DepartureInitiator.TEAM_MEMBER.value
     finally:
         app.dependency_overrides = {}
 
