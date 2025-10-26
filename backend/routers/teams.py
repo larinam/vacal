@@ -13,7 +13,7 @@ from typing import List, Dict, Annotated, Self, Generator, Optional, Tuple
 import pycountry
 from bson import ObjectId
 from fastapi import APIRouter, status, Body, Depends, Query, HTTPException
-from fastapi.responses import RedirectResponse, StreamingResponse, Response
+from fastapi.responses import StreamingResponse, Response
 from ics import Calendar, Event
 from ics.grammar.parse import ContentLine
 from openpyxl import Workbook
@@ -426,7 +426,8 @@ async def delete_team(team_id: str, current_user: Annotated[User, Depends(get_cu
         team.deleted_at = datetime.datetime.now(datetime.timezone.utc)
         team.deleted_by = current_user
         team.save()
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+    return {"message": "Team deleted successfully"}
 
 
 @router.delete("/{team_id}/members/{team_member_id}")
