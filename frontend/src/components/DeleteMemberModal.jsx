@@ -5,12 +5,14 @@ import './DeleteMemberModal.css';
 const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting = false}) => {
   const [confirmationName, setConfirmationName] = useState('');
   const [lastWorkingDay, setLastWorkingDay] = useState('');
+  const [departureInitiatedBy, setDepartureInitiatedBy] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setConfirmationName('');
       setLastWorkingDay('');
+      setDepartureInitiatedBy('');
       setError('');
     }
   }, [isOpen]);
@@ -31,8 +33,13 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
       return;
     }
 
+    if (!departureInitiatedBy) {
+      setError('Please select who initiated the departure.');
+      return;
+    }
+
     setError('');
-    onConfirm(lastWorkingDay);
+    onConfirm({lastWorkingDay, departureInitiatedBy});
   };
 
   return (
@@ -63,6 +70,31 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
             required
           />
         </label>
+        <fieldset className="deleteMemberModal__choiceGroup" disabled={isSubmitting}>
+          <legend>Who initiated this departure?</legend>
+          <label className="deleteMemberModal__radio">
+            <input
+              type="radio"
+              name="departureInitiatedBy"
+              value="team_member"
+              checked={departureInitiatedBy === 'team_member'}
+              onChange={(event) => setDepartureInitiatedBy(event.target.value)}
+              disabled={isSubmitting}
+            />
+            <span>The team member (voluntary resignation)</span>
+          </label>
+          <label className="deleteMemberModal__radio">
+            <input
+              type="radio"
+              name="departureInitiatedBy"
+              value="company"
+              checked={departureInitiatedBy === 'company'}
+              onChange={(event) => setDepartureInitiatedBy(event.target.value)}
+              disabled={isSubmitting}
+            />
+            <span>The company (asked to leave)</span>
+          </label>
+        </fieldset>
         {error && <p className="deleteMemberModal__error" role="alert">{error}</p>}
         <div className="deleteMemberModal__buttons">
           <button type="button" onClick={onClose} disabled={isSubmitting}>Cancel</button>
