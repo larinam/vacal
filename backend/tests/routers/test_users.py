@@ -1,10 +1,5 @@
 from unittest.mock import patch
-import os
-from unittest.mock import patch
-
-# Use in-memory MongoDB for tests
-os.environ.setdefault("MONGO_MOCK", "1")
-os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
+import uuid
 
 import pytest
 from bson.objectid import ObjectId
@@ -14,6 +9,8 @@ from backend.main import app
 from backend.model import User, AuthDetails, Tenant
 from backend.dependencies import (get_current_user, get_current_active_user,
                                   get_current_active_user_check_tenant, get_tenant)
+
+pytestmark = pytest.mark.usefixtures("clean_user_collections")
 
 client = TestClient(app)
 
@@ -91,13 +88,13 @@ def test_read_users(mock_user, mock_tenant):
         mock_user_objects.assert_called_once_with(tenants__in=[mock_tenant])
 
 
-def test_manager_cannot_demote_self():
-    tenant = Tenant(name="Manager Tenant", identifier="manager-tenant")
+def test_manager_cannot_demote_self(unique_suffix):
+    tenant = Tenant(name=f"Manager Tenant {unique_suffix}", identifier=f"manager-tenant-{unique_suffix}")
     tenant.save()
     user = User(
         name="Manager",
-        email="manager@example.com",
-        auth_details=AuthDetails(username="manager"),
+        email=f"manager-{unique_suffix}@example.com",
+        auth_details=AuthDetails(username=f"manager-{unique_suffix}"),
         tenants=[tenant],
         disabled=False,
         role="manager"
