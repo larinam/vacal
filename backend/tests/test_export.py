@@ -1,10 +1,13 @@
-from fastapi.testclient import TestClient
-
-from openpyxl import load_workbook
-from backend.main import app
-from backend.model import Tenant, DayType, Team, TeamMember, DayEntry, User
-from backend.dependencies import get_current_active_user_check_tenant, get_tenant
+import datetime
 import uuid
+
+from fastapi.testclient import TestClient
+from openpyxl import load_workbook
+
+from backend.dependencies import get_current_active_user_check_tenant, get_tenant
+from backend.main import app
+from backend.model import DayEntry, DayType, Team, TeamMember, Tenant, User
+from backend.routers.teams import get_holidays, get_working_days
 
 client = TestClient(app)
 
@@ -60,3 +63,92 @@ def test_export_selected_team():
     assert team1_row[abs_idx] == 2
     assert team1_row[vac_idx] == 1
     assert team1_row[comp_idx] == 1
+
+
+def test_export_includes_deleted_member_until_last_working_day():
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+
+    deleted_member = TeamMember(
+        name="Charlie",
+        country="Sweden",
+        days={
+            "2025-01-10": DayEntry(day_types=[vacation]),
+            "2025-01-20": DayEntry(day_types=[vacation]),
+        },
+        last_working_day=datetime.date(2025, 1, 15),
+        is_deleted=True,
+    )
+
+    team = Team(tenant=tenant, name="TeamDeleted", team_members=[deleted_member])
+    team.save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: User(tenants=[tenant])
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    response = client.get(
+        f"/teams/export-absences?start_date=2025-01-01&end_date=2025-01-31&team_ids={team.id}"
+    )
+
+    app.dependency_overrides = {}
+
+    assert response.status_code == 200
+
+    from io import BytesIO
+
+    workbook = load_workbook(BytesIO(response.content))
+    worksheet = workbook.active
+    rows = list(worksheet.iter_rows(values_only=True))
+    headers = rows[0]
+    working_idx = headers.index("Working Days")
+    absence_idx = headers.index("Absence Days")
+    vacation_idx = headers.index("Vacation")
+
+    member_row = next(r for r in rows[1:] if r[1] == "Charlie")
+
+    holidays = get_holidays(tenant)
+    effective_end = datetime.date(2025, 1, 15)
+    expected_working_days = get_working_days(
+        datetime.date(2025, 1, 1), effective_end, holidays.get("Sweden", {})
+    )
+
+    assert member_row[working_idx] == expected_working_days
+    assert member_row[absence_idx] == 1
+    assert member_row[vacation_idx] == 1
+
+
+def test_export_excludes_deleted_member_before_period():
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+
+    deleted_member = TeamMember(
+        name="Dana",
+        country="Sweden",
+        days={"2024-12-15": DayEntry(day_types=[vacation])},
+        last_working_day=datetime.date(2024, 12, 31),
+        is_deleted=True,
+    )
+
+    team = Team(tenant=tenant, name="TeamArchive", team_members=[deleted_member])
+    team.save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: User(tenants=[tenant])
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    response = client.get(
+        f"/teams/export-absences?start_date=2025-01-01&end_date=2025-01-31&team_ids={team.id}"
+    )
+
+    app.dependency_overrides = {}
+
+    assert response.status_code == 200
+
+    from io import BytesIO
+
+    workbook = load_workbook(BytesIO(response.content))
+    worksheet = workbook.active
+    rows = list(worksheet.iter_rows(values_only=True))
+
+    assert all(r[1] != "Dana" for r in rows[1:])
