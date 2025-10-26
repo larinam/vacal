@@ -421,6 +421,10 @@ async def delete_team(team_id: str, current_user: Annotated[User, Depends(get_cu
     team = Team.objects_with_deleted(tenant=tenant, id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
+    if not team.team_members:
+        team.delete()
+        return {"message": "Team deleted successfully"}
+
     if not team.is_deleted:
         team.is_deleted = True
         team.deleted_at = datetime.datetime.now(datetime.timezone.utc)
