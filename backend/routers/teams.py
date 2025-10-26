@@ -746,13 +746,23 @@ async def get_report_body_rows(tenant, start_date, end_date, day_type_names, tea
     if team_ids:
         teams_qs = teams_qs.filter(id__in=team_ids)
     for team in teams_qs:
-        for member in team.members():
+        members_in_scope: List[TeamMember] = list(team.members())
+        for archived_member in team.archived_members:
+            last_working_day = getattr(archived_member, "last_working_day", None)
+            if last_working_day and last_working_day >= start_date:
+                members_in_scope.append(archived_member)
+
+        for member in members_in_scope:
+            member_last_day = getattr(member, "last_working_day", None)
+            effective_end_date = min(end_date, member_last_day) if member_last_day else end_date
+            if effective_end_date < start_date:
+                continue
             day_type_counts = {}
             member_holidays = country_holidays.get(member.country, [])
             absence_days_count = 0
             for date_str, day_entry in member.days.items():
                 date = datetime.date.fromisoformat(date_str)
-                if start_date <= date <= end_date:
+                if start_date <= date <= effective_end_date:
                     is_absence_day = False
                     for day_type in day_entry.day_types:
                         if day_type.is_absence:
@@ -764,7 +774,7 @@ async def get_report_body_rows(tenant, start_date, end_date, day_type_names, tea
                             day_type_counts[day_type_name] = 1
                     if is_absence_day:
                         absence_days_count += 1
-            working_days = get_working_days(start_date, end_date, member_holidays)
+            working_days = get_working_days(start_date, effective_end_date, member_holidays)
             body_rows.append(
                 [team.name, member.name, member.country, absence_days_count, working_days,
                  working_days - absence_days_count,
