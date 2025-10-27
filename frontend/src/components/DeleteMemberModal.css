@@ -43,14 +43,21 @@
 
 .deleteMemberModal__radio {
   display: flex;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 8px;
   font-weight: 500;
   font-size: 14px;
+  line-height: 1.4;
 }
 
 .deleteMemberModal__radio input {
+  margin: 2px 0 0;
   accent-color: #d93025;
+}
+
+.deleteMemberModal__radio span {
+  flex: 1;
 }
 
 .deleteMemberModal__error {
