@@ -933,6 +933,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             title={getCellTitle(member, date)}
                             className={`
     ${isHolidayDay ? 'holiday-cell' : ''}
+    ${isWeekend(date) ? 'weekend-cell' : ''}
     ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}
     ${selectedCells.some((cell) => cell.date.getTime() === date.getTime() && cell.memberId === member.uid) ? 'selected-range' : ''}
   `}
