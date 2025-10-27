@@ -35,6 +35,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
   const {deleteMemberMutation} = useMemberMutations();
   const {user} = useAuth();
+  const canManageMembers = user?.role === 'manager';
   const today = new Date();
   const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
   const todayYear = today.getFullYear();
@@ -897,15 +898,17 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             role: 'button',
                           }}
                         />
-                        <FontAwesomeIconWithTitle
-                          icon={faTrashAlt}
-                          title="Delete member"
-                          wrapperClassName="delete-icon"
-                          wrapperProps={{
-                            onClick: () => openDeleteMemberModal(team._id, member.uid),
-                            role: 'button',
-                          }}
-                        />
+                        {canManageMembers && (
+                          <FontAwesomeIconWithTitle
+                            icon={faTrashAlt}
+                            title="Delete member"
+                            wrapperClassName="delete-icon"
+                            wrapperProps={{
+                              onClick: () => openDeleteMemberModal(team._id, member.uid),
+                              role: 'button',
+                            }}
+                          />
+                        )}
                       </td>
                       {daysHeader.map(({date}, idx) => {
                         const dayEntry = getMemberDayEntry(member, date);

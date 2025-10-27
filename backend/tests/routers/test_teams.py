@@ -61,6 +61,43 @@ def test_delete_team_member_stores_last_working_day():
         app.dependency_overrides = {}
 
 
+def test_delete_team_member_requires_manager_role():
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    team_member = TeamMember(name="Alice", country="Sweden")
+    team = Team(tenant=tenant, name="Team Alpha", team_members=[team_member]).save()
+    user = User(
+        name="Employee",
+        role="employee",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"employee-{unique_suffix}"),
+    ).save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    try:
+        response = client.request(
+            "DELETE",
+            f"/teams/{team.id}/members/{team_member.uid}",
+            json={
+                "last_working_day": "2024-06-01",
+                "departure_initiated_by": DepartureInitiator.TEAM_MEMBER.value,
+            },
+            headers={"Tenant-ID": tenant.identifier},
+        )
+
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Only managers can delete team members."}
+
+        team.reload()
+        stored_member = team.get_member(team_member.uid, include_archived=True)
+        assert stored_member is not None
+        assert getattr(stored_member, "is_deleted", False) is False
+    finally:
+        app.dependency_overrides = {}
+
+
 def test_delete_team_without_members_removes_document():
     unique_suffix = str(uuid.uuid4())
     tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
