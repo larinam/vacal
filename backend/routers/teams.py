@@ -451,6 +451,11 @@ async def delete_team_member(team_id: str, team_member_id: str,
                              delete_data: TeamMemberDeleteDTO,
                              current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                              tenant: Annotated[Tenant, Depends(get_tenant)]):
+    if not current_user.is_manager():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only managers can delete team members."
+        )
     team = Team.objects(tenant=tenant, id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
