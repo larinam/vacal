@@ -342,6 +342,43 @@ th.day-number-header {
     user-select: none;
 }
 
+.day-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 0;
+    line-height: 1.1;
+}
+
+.day-header-name {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #5d5d5d;
+}
+
+.day-number-header .day-header-number,
+.current-day-number .day-header-number,
+.out-of-month-day-number .day-header-number {
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.out-of-month-day-number .day-header-number,
+.out-of-month-day-number .day-header-name {
+    font-weight: 500;
+}
+
+.current-day-number .day-header-number {
+    font-weight: 700;
+}
+
+.weekend-day-header .day-header-name,
+.weekend-day-header .day-header-number {
+    color: #ffffff;
+}
+
 .calendar-table thead tr th {
     border-bottom: 0;
     border-top: 0;
