@@ -21,6 +21,9 @@ const UserModal = ({isOpen, onClose, editingUser}) => {
   const {apiCall} = useApi();
   const queryClient = useQueryClient();
   const {user: currentUser} = useAuth();
+  const isEditingCurrentUser = Boolean(
+    editingUser && currentUser && editingUser._id === currentUser._id,
+  );
 
   useEffect(() => {
     if (editingUser) {
@@ -58,7 +61,11 @@ const UserModal = ({isOpen, onClose, editingUser}) => {
       return;
     }
     const url = `/users/${editingUser._id}`;
-    updateUserMutation.mutate({url, payload: newUserData});
+    const payload = {
+      ...newUserData,
+      disabled: isEditingCurrentUser ? editingUser.disabled || false : newUserData.disabled,
+    };
+    updateUserMutation.mutate({url, payload});
   };
 
   if (!isOpen) return null;
@@ -110,7 +117,14 @@ const UserModal = ({isOpen, onClose, editingUser}) => {
           <input
             type="checkbox"
             checked={newUserData.disabled}
-            onChange={(e) => setNewUserData({...newUserData, disabled: e.target.checked})}
+            onChange={(e) => {
+              if (isEditingCurrentUser) {
+                return;
+              }
+              setNewUserData({...newUserData, disabled: e.target.checked});
+            }}
+            disabled={isEditingCurrentUser}
+            title={isEditingCurrentUser ? 'You cannot disable your own account' : undefined}
           />
           <span>Disabled</span>
         </label>
@@ -120,7 +134,7 @@ const UserModal = ({isOpen, onClose, editingUser}) => {
             <select
               value={newUserData.role}
               onChange={(e) => setNewUserData({...newUserData, role: e.target.value})}
-              disabled={editingUser && currentUser && editingUser._id === currentUser._id}
+              disabled={isEditingCurrentUser}
             >
               <option value="employee">Employee</option>
               <option value="manager">Manager</option>
