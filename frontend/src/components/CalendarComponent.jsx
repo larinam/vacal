@@ -923,6 +923,16 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         const isHolidayDay = isHoliday(member.country, date);
                         const hasComment = dayEntry?.comment && dayEntry.comment.trim().length > 0;
 
+                        const cellClassNames = [
+                          'clickable-cell',
+                          isHolidayDay ? 'holiday-cell' : '',
+                          isWeekend(date) ? 'weekend-cell' : '',
+                          isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : ''),
+                          selectedCells.some((cell) => cell.date.getTime() === date.getTime() && cell.memberId === member.uid)
+                            ? 'selected-range'
+                            : '',
+                        ].filter(Boolean).join(' ');
+
                         return (
                           <td
                             key={idx}
@@ -931,12 +941,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             onMouseUp={handleMouseUp}
                             onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
                             title={getCellTitle(member, date)}
-                            className={`
-    ${isHolidayDay ? 'holiday-cell' : ''}
-    ${isWeekend(date) ? 'weekend-cell' : ''}
-    ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}
-    ${selectedCells.some((cell) => cell.date.getTime() === date.getTime() && cell.memberId === member.uid) ? 'selected-range' : ''}
-  `}
+                            className={cellClassNames}
                             style={generateGradientStyle(dateDayTypes)}
                           >
                             <div className="day-cell-content">
