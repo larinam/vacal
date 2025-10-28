@@ -265,9 +265,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const endDay = getLastSunday(displayMonth);
     const daysInterval = eachDayOfInterval({start: startDay, end: endDay});
 
+    const weekdayFormatter = new Intl.DateTimeFormat(navigator.language, {weekday: 'short'});
+
     const newDaysHeader = daysInterval.map(date => ({
       day: date.getDate(),
       week: getISOWeek(date),
+      weekday: weekdayFormatter.format(date),
       date
     }));
 
@@ -753,8 +756,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
               Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
               / Member
             </th>
-            {daysHeader.map(({day, date}, idx) => {
+            {daysHeader.map(({day, weekday, date}, idx) => {
               const isOutOfMonth = date.getMonth() !== displayMonth.getMonth();
+              const isWeekendDay = isWeekend(date);
               return (
                 <th
                   key={idx}
@@ -764,9 +768,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       : isOutOfMonth
                         ? 'out-of-month-day-number' // Assign a different class for out-of-month days
                         : 'day-number-header'
-                  } ${isYesterday(date) ? 'yesterday' : ''}`}
+                  } ${isWeekendDay ? 'weekend-day-header' : ''} ${isYesterday(date) ? 'yesterday' : ''}`}
                 >
-                  {day}
+                  <div className="day-header">
+                    <span className="day-header-name">{weekday}</span>
+                    <span className="day-header-number">{day}</span>
+                  </div>
                 </th>
               );
             })}
@@ -926,6 +933,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                             title={getCellTitle(member, date)}
                             className={`
     ${isHolidayDay ? 'holiday-cell' : ''}
+    ${isWeekend(date) ? 'weekend-cell' : ''}
     ${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}
     ${selectedCells.some((cell) => cell.date.getTime() === date.getTime() && cell.memberId === member.uid) ? 'selected-range' : ''}
   `}
