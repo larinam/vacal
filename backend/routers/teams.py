@@ -176,8 +176,27 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
             birthday_date = f"{year}-{self.birthday}"
             if birthday_date not in self.days:
                 self.days[birthday_date] = DayEntryDTO()
-            self.days[birthday_date].day_types.append(
-                DayTypeReadDTO.from_mongo_reference_field(DayType.get_birthday_day_type_id(tenant_var.get())))
+
+            day_entry = self.days[birthday_date]
+            birthday_day_type = DayTypeReadDTO.from_mongo_reference_field(
+                DayType.get_birthday_day_type_id(tenant_var.get())
+            )
+
+            birthday_already_present = any(
+                (
+                    isinstance(day_type, DayTypeReadDTO)
+                    and day_type.id == birthday_day_type.id
+                )
+                or (
+                    isinstance(day_type, ObjectId)
+                    and str(day_type) == birthday_day_type.id
+                )
+                or (isinstance(day_type, str) and day_type == birthday_day_type.id)
+                for day_type in day_entry.day_types
+            )
+
+            if not birthday_already_present:
+                day_entry.day_types.append(birthday_day_type)
 
         if self.birthday:
             current_year = datetime.datetime.now().year
