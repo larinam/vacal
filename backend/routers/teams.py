@@ -385,6 +385,10 @@ def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
     return holidays_dict
 
 
+def invalidate_holidays_cache():
+    get_holidays.cache_clear()
+
+
 def team_to_read_dto(team: Team, include_archived_members: bool = False) -> TeamReadDTO:
     member_dtos = [
         mongo_to_pydantic(member, TeamMemberReadDTO)
@@ -433,6 +437,7 @@ async def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
     team = Team.objects(tenant=tenant, id=team_id).first()
     team.team_members.append(team_member)
     team.save()
+    invalidate_holidays_cache()
     tenant.update_max_team_members_in_the_period()
     return {"message": "Team member created successfully"}
 
@@ -488,6 +493,7 @@ async def delete_team_member(team_id: str, team_member_id: str,
         team_member_to_remove.deleted_at = datetime.datetime.now(datetime.timezone.utc)
         team_member_to_remove.deleted_by = current_user
     team.save()
+    invalidate_holidays_cache()
     return {"message": "Team member deleted successfully"}
 
 
@@ -529,6 +535,7 @@ async def update_team_member(team_id: str, team_member_id: str, team_member_dto:
     team_member.yearly_vacation_days = team_member_dto.yearly_vacation_days
 
     team.save()
+    invalidate_holidays_cache()
     return {"message": "Team member modified successfully"}
 
 
