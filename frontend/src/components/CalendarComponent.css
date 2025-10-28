@@ -77,6 +77,17 @@
     border-collapse: collapse;
     width: 100%;
     table-layout: fixed;
+    --weekend-accent-rgb: 210, 92, 92;
+    --weekend-header-top-alpha: 0.14;
+    --weekend-header-bottom-alpha: 0.05;
+    --weekend-border-alpha: 0.14;
+    --weekend-border-strong-alpha: 0.2;
+    --weekend-shadow-alpha: 0.16;
+    --weekend-surface-alpha: 0.028;
+    --weekend-column-top-alpha: 0.08;
+    --weekend-column-bottom-alpha: 0.024;
+    --weekend-text-color: #a65a5a;
+    --weekend-muted-text-color: #a98c8c;
 }
 
 .calendar-table thead {
@@ -158,36 +169,15 @@
     visibility: visible;
 }
 
-.edit-icon {
-    cursor: pointer;
-    margin-left: 10px;
-}
-
-.delete-icon {
-    cursor: pointer;
-    margin-left: 10px;
-}
-
 .add-icon {
     cursor: pointer;
     margin-left: 10px;
     color: #0000ff;
 }
 
-.watch-icon {
-    cursor: pointer;
-    margin-left: 10px;
-}
-
 .watch-icon-active {
     visibility: visible !important;
     color: green;
-}
-
-.calendar-link-icon {
-    cursor: pointer;
-    margin-left: 10px;
-    color: inherit;
 }
 
 .collapse-icon {
@@ -210,15 +200,23 @@
     color: grey;
 }
 
-.history-icon {
-    margin-left: 10px;
-    cursor: pointer;
-    color: grey;
-}
 
 .drag-icon {
     cursor: grab;
     margin-left: 10px;
+}
+
+:is(.edit-icon, .delete-icon, .watch-icon, .calendar-link-icon, .history-icon) {
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.calendar-link-icon {
+    color: inherit;
+}
+
+.history-icon {
+    color: grey;
 }
 
 .drag-icon:active {
@@ -226,7 +224,11 @@
 }
 
 .weekend-column {
-    background: linear-gradient(180deg, rgba(217, 91, 91, 0.1) 0%, rgba(217, 91, 91, 0.035) 100%);
+    background: linear-gradient(
+        180deg,
+        rgba(var(--weekend-accent-rgb), var(--weekend-column-top-alpha)) 0%,
+        rgba(var(--weekend-accent-rgb), var(--weekend-column-bottom-alpha)) 100%
+    );
 }
 
 .day-cell {
@@ -375,15 +377,19 @@ th.day-number-header {
 }
 
 .weekend-day-header {
-    background: linear-gradient(180deg, rgba(217, 91, 91, 0.18) 0%, rgba(217, 91, 91, 0.06) 100%);
-    border-left-color: rgba(217, 91, 91, 0.28);
-    border-right-color: rgba(217, 91, 91, 0.28);
-    box-shadow: inset 0 -1px 0 rgba(158, 56, 56, 0.2);
+    background: linear-gradient(
+        180deg,
+        rgba(var(--weekend-accent-rgb), var(--weekend-header-top-alpha)) 0%,
+        rgba(var(--weekend-accent-rgb), var(--weekend-header-bottom-alpha)) 100%
+    );
+    border-left-color: rgba(var(--weekend-accent-rgb), var(--weekend-border-strong-alpha));
+    border-right-color: rgba(var(--weekend-accent-rgb), var(--weekend-border-strong-alpha));
+    box-shadow: inset 0 -1px 0 rgba(var(--weekend-accent-rgb), var(--weekend-shadow-alpha));
 }
 
 .weekend-day-header .day-header-name,
 .weekend-day-header .day-header-number {
-    color: #a34747;
+    color: var(--weekend-text-color);
 }
 
 .weekend-day-header .day-header-name {
@@ -392,7 +398,7 @@ th.day-number-header {
 
 .out-of-month-day-number.weekend-day-header .day-header-name,
 .out-of-month-day-number.weekend-day-header .day-header-number {
-    color: #a38484;
+    color: var(--weekend-muted-text-color);
 }
 
 .out-of-month-day-number.weekend-day-header .day-header-name {
@@ -400,12 +406,12 @@ th.day-number-header {
 }
 
 .calendar-table td.weekend-cell:not(.holiday-cell):not(.current-day) {
-    border-left-color: rgba(217, 91, 91, 0.16);
-    border-right-color: rgba(217, 91, 91, 0.16);
+    border-left-color: rgba(var(--weekend-accent-rgb), var(--weekend-border-alpha));
+    border-right-color: rgba(var(--weekend-accent-rgb), var(--weekend-border-alpha));
 }
 
 .calendar-table td.weekend-cell:not(.holiday-cell) {
-    background-color: rgba(217, 91, 91, 0.035);
+    background-color: rgba(var(--weekend-accent-rgb), var(--weekend-surface-alpha));
 }
 
 .calendar-table thead tr th {
