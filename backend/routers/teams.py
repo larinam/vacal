@@ -89,7 +89,7 @@ class TeamMemberWriteDTO(BaseModel):
 
 
 class DayEntryDTO(BaseModel):
-    day_types: List[DayTypeReadDTO] = []
+    day_types: List[DayTypeReadDTO] = Field(default_factory=list)
     comment: str = ''
 
 
@@ -176,26 +176,31 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
             birthday_date = f"{year}-{self.birthday}"
             if birthday_date not in self.days:
                 self.days[birthday_date] = DayEntryDTO()
-
             day_entry = self.days[birthday_date]
             birthday_day_type = DayTypeReadDTO.from_mongo_reference_field(
                 DayType.get_birthday_day_type_id(tenant_var.get())
             )
 
-            birthday_already_present = any(
-                (
-                    isinstance(day_type, DayTypeReadDTO)
-                    and day_type.id == birthday_day_type.id
-                )
-                or (
-                    isinstance(day_type, ObjectId)
-                    and str(day_type) == birthday_day_type.id
-                )
-                or (isinstance(day_type, str) and day_type == birthday_day_type.id)
-                for day_type in day_entry.day_types
-            )
+            def extract_day_type_id(day_type):
+                if isinstance(day_type, DayTypeReadDTO):
+                    return day_type.id
+                if isinstance(day_type, ObjectId):
+                    return str(day_type)
+                if isinstance(day_type, str):
+                    return day_type
+                if isinstance(day_type, dict):
+                    return str(day_type.get("_id") or day_type.get("id"))
+                if hasattr(day_type, "id"):
+                    return str(day_type.id)
+                return None
 
-            if not birthday_already_present:
+            existing_ids = set()
+            for day_type in day_entry.day_types:
+                day_type_id = extract_day_type_id(day_type)
+                if day_type_id is not None:
+                    existing_ids.add(day_type_id)
+
+            if birthday_day_type.id not in existing_ids:
                 day_entry.day_types.append(birthday_day_type)
 
         if self.birthday:
