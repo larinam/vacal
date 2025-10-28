@@ -226,7 +226,7 @@
 }
 
 .weekend-column {
-    background: linear-gradient(180deg, rgba(77, 180, 215, 0.12) 0%, rgba(77, 180, 215, 0.03) 100%);
+    background: linear-gradient(180deg, rgba(217, 91, 91, 0.1) 0%, rgba(217, 91, 91, 0.035) 100%);
 }
 
 .day-cell {
@@ -375,15 +375,15 @@ th.day-number-header {
 }
 
 .weekend-day-header {
-    background: linear-gradient(180deg, rgba(77, 180, 215, 0.24) 0%, rgba(77, 180, 215, 0.08) 100%);
-    border-left-color: rgba(77, 180, 215, 0.32);
-    border-right-color: rgba(77, 180, 215, 0.32);
-    box-shadow: inset 0 -1px 0 rgba(22, 98, 125, 0.28);
+    background: linear-gradient(180deg, rgba(217, 91, 91, 0.18) 0%, rgba(217, 91, 91, 0.06) 100%);
+    border-left-color: rgba(217, 91, 91, 0.28);
+    border-right-color: rgba(217, 91, 91, 0.28);
+    box-shadow: inset 0 -1px 0 rgba(158, 56, 56, 0.2);
 }
 
 .weekend-day-header .day-header-name,
 .weekend-day-header .day-header-number {
-    color: #2a6b7f;
+    color: #a34747;
 }
 
 .weekend-day-header .day-header-name {
@@ -392,7 +392,7 @@ th.day-number-header {
 
 .out-of-month-day-number.weekend-day-header .day-header-name,
 .out-of-month-day-number.weekend-day-header .day-header-number {
-    color: #71848f;
+    color: #a38484;
 }
 
 .out-of-month-day-number.weekend-day-header .day-header-name {
@@ -400,12 +400,12 @@ th.day-number-header {
 }
 
 .calendar-table td.weekend-cell:not(.holiday-cell):not(.current-day) {
-    border-left-color: rgba(77, 180, 215, 0.18);
-    border-right-color: rgba(77, 180, 215, 0.18);
+    border-left-color: rgba(217, 91, 91, 0.16);
+    border-right-color: rgba(217, 91, 91, 0.16);
 }
 
 .calendar-table td.weekend-cell:not(.holiday-cell) {
-    background-color: rgba(77, 180, 215, 0.05);
+    background-color: rgba(217, 91, 91, 0.035);
 }
 
 .calendar-table thead tr th {
