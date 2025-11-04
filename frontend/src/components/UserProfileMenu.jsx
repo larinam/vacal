@@ -5,6 +5,7 @@ import {faCog, faPlus, faQuestion, faSignOut, faUserPlus, faBriefcase, faUser} f
 import './UserProfileMenu.css';
 import {useAuth} from '../contexts/AuthContext';
 import useDismiss from '../hooks/useDismiss';
+import {motion} from 'motion/react';
 
 const UserProfileMenu = ({setShowDropdown}) => {
   const navigate = useNavigate();
@@ -23,7 +24,14 @@ const UserProfileMenu = ({setShowDropdown}) => {
   };
 
   return (
-    <div className="dropdownMenu" ref={dropdownRef}>
+    <motion.div
+      className="dropdownMenu"
+      ref={dropdownRef}
+      initial={{opacity: 0, scale: 0.95, y: -8}}
+      animate={{opacity: 1, scale: 1, y: 0}}
+      exit={{opacity: 0, scale: 0.95, y: -8}}
+      transition={{duration: 0.2, ease: 'easeOut'}}
+    >
       <div className="dropdownItem" style={{cursor: 'default', backgroundColor: 'transparent', transition: 'none'}}>
         <span>{user.name}{user.tenants.length > 1 ? ` (${currentTenant})` : ''}</span>
       </div>
@@ -86,7 +94,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
         <FontAwesomeIcon icon={faSignOut}/>
         <span>Log out</span>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
