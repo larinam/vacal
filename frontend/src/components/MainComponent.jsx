@@ -9,6 +9,7 @@ import {faFileExcel, faUserCircle} from '@fortawesome/free-solid-svg-icons';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import UserProfileMenu from "./UserProfileMenu";
+import {AnimatePresence} from 'motion/react';
 import {useTeamsQuery} from '../hooks/queries/useTeamsQuery';
 import {useIsFetching, useIsMutating} from '@tanstack/react-query';
 import {useExportAbsencesMutation} from '../hooks/mutations/useExportAbsencesMutation';
@@ -129,7 +130,11 @@ const MainComponent = () => {
                 <div className="userIcon" onClick={toggleDropdown}>
                     {getUserInitials() || <FontAwesomeIcon icon={faUserCircle} />}
                 </div>
-                {showDropdown && <UserProfileMenu setShowDropdown={setShowDropdown} />}
+                <AnimatePresence>
+                    {showDropdown && (
+                        <UserProfileMenu setShowDropdown={setShowDropdown} />
+                    )}
+                </AnimatePresence>
             </div>
             <div className="content">
                 <Routes>
