@@ -30,6 +30,7 @@ import {API_URL} from '../utils/apiConfig';
 import useTeamManagementMutations from '../hooks/mutations/useTeamManagementMutations';
 import useMemberMutations from '../hooks/mutations/useMemberMutations';
 import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
+import {AnimatePresence} from 'motion/react';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
@@ -688,21 +689,25 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         onConfirm={handleConfirmDeleteMember}
         isSubmitting={deleteMemberMutation.isPending}
       />
-      <DayTypeContextMenu
-        contextMenuRef={contextMenuRef}
-        isOpen={showContextMenu}
-        position={contextMenuPosition}
-        onClose={() => {
-          setShowContextMenu(false);
-          setSelectedCells([]);
-          setSelectionStart(null);
-        }}
-        dayTypes={dayTypes}
-        selectedDayInfo={selectedDayInfo}
-        teamData={teamData}
-        updateTeamData={updateTeamData}
-        updateLocalTeamData={updateLocalTeamData}
-      />
+      <AnimatePresence>
+        {showContextMenu && (
+          <DayTypeContextMenu
+            contextMenuRef={contextMenuRef}
+            isOpen={showContextMenu}
+            position={contextMenuPosition}
+            onClose={() => {
+              setShowContextMenu(false);
+              setSelectedCells([]);
+              setSelectionStart(null);
+            }}
+            dayTypes={dayTypes}
+            selectedDayInfo={selectedDayInfo}
+            teamData={teamData}
+            updateTeamData={updateTeamData}
+            updateLocalTeamData={updateLocalTeamData}
+          />
+        )}
+      </AnimatePresence>
       <TeamSubscriptionContextMenu
         contextMenuRef={subscriptionMenuRef}
         isOpen={showSubscriptionMenu}

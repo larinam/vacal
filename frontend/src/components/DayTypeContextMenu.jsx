@@ -7,6 +7,7 @@ import DayTypeCheckbox from './DayTypeCheckbox';
 import DayHistoryModal from './DayHistoryModal';
 import useDayAssignmentsMutation from '../hooks/mutations/useDayAssignmentsMutation';
 import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
+import {motion} from 'motion/react';
 
 const DayTypeContextMenu = ({
                               contextMenuRef,
@@ -258,13 +259,14 @@ const DayTypeContextMenu = ({
     };
   }, [contextMenuRef, handleClose, isOpen]);
 
-  if (!isOpen) return null;
-
   const contextMenuStyle = {
     position: 'absolute',
     top: `${position.y}px`,
     left: `${position.x}px`,
+    transformOrigin: 'top left',
   };
+
+  if (!isOpen) return null;
 
   let displayDate = '';
 
@@ -284,7 +286,15 @@ const DayTypeContextMenu = ({
 
   return (
     <>
-    <div className="context-menu" style={contextMenuStyle} ref={contextMenuRef}>
+    <motion.div
+      className="context-menu"
+      style={contextMenuStyle}
+      ref={contextMenuRef}
+      initial={{opacity: 0, scale: 0.92}}
+      animate={{opacity: 1, scale: 1}}
+      exit={{opacity: 0, scale: 0.9}}
+      transition={{duration: 0.16, ease: 'easeOut'}}
+    >
       {selectedDayInfo && (
         <>
           <div className="member-info">
@@ -355,7 +365,7 @@ const DayTypeContextMenu = ({
         onBlur={handleCommentBlur}
       />
 
-    </div>
+    </motion.div>
     <DayHistoryModal
       isOpen={showHistory}
       onClose={closeHistoryModal}
