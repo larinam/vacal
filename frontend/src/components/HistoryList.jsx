@@ -1,82 +1,152 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {format} from 'date-fns';
 
-const HistoryList = React.forwardRef(({history, showDate = false, onScroll}, ref) => (
-  <div className="day-history-list" ref={ref} onScroll={onScroll}>
-    {history.length === 0 && <p>No history found.</p>}
-    {history.map((entry) => {
-      const dayTypesEqual = () => {
-        if (entry.old_day_types.length !== entry.new_day_types.length) return false;
-        const oldIds = entry.old_day_types.map((dt) => dt._id || dt.id).sort();
-        const newIds = entry.new_day_types.map((dt) => dt._id || dt.id).sort();
-        return oldIds.every((id, idx) => id === newIds[idx]);
-      };
+const HistoryList = React.forwardRef(({history, showDate = false, onScroll}, ref) => {
+  const sortedHistory = useMemo(() => {
+    if (!Array.isArray(history)) {
+      return [];
+    }
+    return [...history].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+  }, [history]);
 
-      const showDayTypesRow =
-        (entry.old_day_types.length > 0 || entry.new_day_types.length > 0) &&
-        !dayTypesEqual();
+  const timelineElements = useMemo(() => {
+    if (sortedHistory.length === 0) {
+      return [];
+    }
 
-      const showCommentsRow =
-        ((entry.old_comment && entry.old_comment !== '') ||
-          (entry.new_comment && entry.new_comment !== '')) &&
-        entry.old_comment !== entry.new_comment;
+    const elements = [];
 
-      const showDiff = showDayTypesRow || showCommentsRow;
+    sortedHistory.forEach((entry, index) => {
+      const entryKey = entry._id || entry.id || `history-${index}`;
 
-      return (
-        <div key={entry._id || entry.id} className="day-history-entry">
-          <div>
-            {format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm')}
-            {showDate && ` [${entry.date}]`} - {entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}
-            <span className={`action-tag action-${entry.action}`}>
-              {entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}
-            </span>
-          </div>
-          {showDiff && (
-            <div className="diff-container">
-              <span className="diff-arrow">&rarr;</span>
-              <table className="diff-table">
-                <tbody>
-                  {showDayTypesRow && (
-                    <tr>
-                      <td>
-                        {entry.old_day_types.map((dt) => (
+      elements.push({
+        type: 'state',
+        key: `state-${entryKey}`,
+        label: showDate && entry.date ? `State as of ${entry.date}` : 'State',
+        dayTypes: Array.isArray(entry.new_day_types) ? entry.new_day_types : [],
+        comment: entry.new_comment,
+        isLatest: index === 0,
+      });
+
+      elements.push({
+        type: 'connector',
+        key: `connector-${entryKey}`,
+        entry,
+      });
+    });
+
+    const oldestEntry = sortedHistory[sortedHistory.length - 1];
+
+    elements.push({
+      type: 'state',
+      key: 'state-beginning',
+      label: 'Beginning',
+      dayTypes:
+        oldestEntry && Array.isArray(oldestEntry.old_day_types)
+          ? oldestEntry.old_day_types
+          : [],
+      comment: oldestEntry ? oldestEntry.old_comment : '',
+      isBeginning: true,
+    });
+
+    return elements;
+  }, [sortedHistory, showDate]);
+
+  return (
+    <div className="day-history-list" ref={ref} onScroll={onScroll}>
+      {history.length === 0 ? (
+        <p>No history found.</p>
+      ) : (
+        <div className="history-timeline">
+          {timelineElements.map((element) => {
+            if (element.type === 'state') {
+              const dayTypes = element.dayTypes || [];
+              return (
+                <div
+                  key={element.key}
+                  className={`timeline-state${
+                    element.isLatest ? ' timeline-state-latest' : ''
+                  }${element.isBeginning ? ' timeline-state-beginning' : ''}`}
+                >
+                  <div className="timeline-state-header">
+                    <span>{element.label}</span>
+                    {element.isLatest && <span className="timeline-latest-badge">Latest</span>}
+                  </div>
+                  <div className="timeline-state-section">
+                    <span className="timeline-section-title">Day types</span>
+                    <div className="timeline-day-types">
+                      {dayTypes.length > 0 ? (
+                        dayTypes.map((dt) => (
                           <span
-                            key={dt._id || dt.id}
+                            key={dt._id || dt.id || dt.name}
                             className="day-type-tag"
-                            style={{backgroundColor: dt.color}}
+                            style={dt?.color ? {backgroundColor: dt.color} : undefined}
                           >
-                            {dt.name}
+                            {dt?.name || 'Unnamed'}
                           </span>
-                        ))}
-                      </td>
-                      <td>
-                        {entry.new_day_types.map((dt) => (
-                          <span
-                            key={dt._id || dt.id}
-                            className="day-type-tag"
-                            style={{backgroundColor: dt.color}}
-                          >
-                            {dt.name}
-                          </span>
-                        ))}
-                      </td>
-                    </tr>
+                        ))
+                      ) : (
+                        <span className="timeline-empty">None</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="timeline-state-section">
+                    <span className="timeline-section-title">Comment</span>
+                    {element.comment ? (
+                      <p className="timeline-comment">{element.comment}</p>
+                    ) : (
+                      <span className="timeline-empty">No comment</span>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            const {entry} = element;
+            const formattedTimestamp = entry?.timestamp
+              ? format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm')
+              : 'Unknown time';
+            const userName = entry?.user
+              ? entry.user.name || entry.user.username || 'Unknown'
+              : 'Unknown';
+            const actionLabel = entry?.action
+              ? entry.action.charAt(0).toUpperCase() + entry.action.slice(1)
+              : 'Unknown';
+
+            return (
+              <div key={element.key} className="timeline-connector">
+                <div className="timeline-arrow" aria-hidden="true">
+                  ↑
+                </div>
+                <div className="timeline-meta">
+                  <div>
+                    <span className="timeline-meta-label">Changed:</span> {formattedTimestamp}
+                  </div>
+                  <div>
+                    <span className="timeline-meta-label">Author:</span> {userName}
+                  </div>
+                  {entry?.date && (
+                    <div>
+                      <span className="timeline-meta-label">Target date:</span>{' '}
+                      {entry.date}
+                    </div>
                   )}
-                  {showCommentsRow && (
-                    <tr>
-                      <td>{entry.old_comment}</td>
-                      <td>{entry.new_comment}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  <div className="timeline-action">
+                    <span className="timeline-meta-label">Action:</span>
+                    <span className={`action-tag action-${entry?.action || 'unknown'}`}>
+                      {actionLabel}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
-  </div>
-));
+      )}
+    </div>
+  );
+});
 
 export default HistoryList;
