@@ -1,5 +1,5 @@
 import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, isYesterday, startOfWeek} from 'date-fns';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
   faBell as faSolidBell,
@@ -220,7 +220,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
   }, [showAddMemberForm]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (showContextMenu && contextMenuRef.current) {
       const menuWidth = contextMenuRef.current.offsetWidth;
       let adjustedX = contextMenuPosition.x;
@@ -235,7 +235,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
   }, [showContextMenu, contextMenuPosition]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (showSubscriptionMenu && subscriptionMenuRef.current) {
       const menuWidth = subscriptionMenuRef.current.offsetWidth;
       let adjustedX = subscriptionMenuPosition.x;
