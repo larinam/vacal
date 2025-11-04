@@ -29,7 +29,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
       ref={dropdownRef}
       initial={{opacity: 0, scale: 0.95, y: -8}}
       animate={{opacity: 1, scale: 1, y: 0}}
-      exit={{opacity: 0, scale: 0.95, y: -8}}
+      exit={{opacity: 0, scale: 0.95, y: -8, transition: {duration: 0.05, ease: 'easeIn'}}}
       transition={{duration: 0.2, ease: 'easeOut'}}
     >
       <div className="dropdownItem" style={{cursor: 'default', backgroundColor: 'transparent', transition: 'none'}}>
