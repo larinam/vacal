@@ -1,5 +1,5 @@
 import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, isYesterday, startOfWeek} from 'date-fns';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
   faBell as faSolidBell,
@@ -32,6 +32,58 @@ import useMemberMutations from '../hooks/mutations/useMemberMutations';
 import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
 import {AnimatePresence} from 'motion/react';
 
+const MENU_VIEWPORT_PADDING = 12;
+
+const clamp = (value, min, max) => {
+  const upperBound = max < min ? min : max;
+  return Math.min(Math.max(value, min), upperBound);
+};
+
+const calculateMenuLayout = (anchor, menuRect) => {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+
+  const hasSpaceOnRight = anchor.clientX + menuRect.width + MENU_VIEWPORT_PADDING <= viewportWidth;
+  const hasSpaceOnLeft = anchor.clientX - menuRect.width - MENU_VIEWPORT_PADDING >= 0;
+  const hasSpaceBelow = anchor.clientY + menuRect.height + MENU_VIEWPORT_PADDING <= viewportHeight;
+  const hasSpaceAbove = anchor.clientY - menuRect.height - MENU_VIEWPORT_PADDING >= 0;
+
+  let horizontalPlacement = 'left';
+  if (!hasSpaceOnRight && hasSpaceOnLeft) {
+    horizontalPlacement = 'right';
+  }
+
+  let verticalPlacement = 'top';
+  if (!hasSpaceBelow && hasSpaceAbove) {
+    verticalPlacement = 'bottom';
+  }
+
+  const minX = scrollX + MENU_VIEWPORT_PADDING;
+  const maxX = scrollX + viewportWidth - menuRect.width - MENU_VIEWPORT_PADDING;
+  const minY = scrollY + MENU_VIEWPORT_PADDING;
+  const maxY = scrollY + viewportHeight - menuRect.height - MENU_VIEWPORT_PADDING;
+
+  let x = horizontalPlacement === 'right'
+    ? anchor.pageX - menuRect.width
+    : anchor.pageX;
+  x = clamp(x, minX, maxX);
+
+  let y = verticalPlacement === 'bottom'
+    ? anchor.pageY - menuRect.height
+    : anchor.pageY;
+  y = clamp(y, minY, maxY);
+
+  return {
+    position: {x, y},
+    placement: {
+      horizontal: horizontalPlacement,
+      vertical: verticalPlacement,
+    },
+  };
+};
+
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
   const {deleteMemberMutation} = useMemberMutations();
@@ -62,9 +114,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [memberToDelete, setMemberToDelete] = useState(null);
   const contextMenuRef = useRef(null);
   const [contextMenuPosition, setContextMenuPosition] = useState({x: 0, y: 0});
+  const [contextMenuPlacement, setContextMenuPlacement] = useState({horizontal: 'left', vertical: 'top'});
+  const [contextMenuAnchor, setContextMenuAnchor] = useState(null);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const subscriptionMenuRef = useRef(null);
   const [subscriptionMenuPosition, setSubscriptionMenuPosition] = useState({x: 0, y: 0});
+  const [subscriptionMenuAnchor, setSubscriptionMenuAnchor] = useState(null);
   const [showSubscriptionMenu, setShowSubscriptionMenu] = useState(false);
   const [subscriptionTeamId, setSubscriptionTeamId] = useState(null);
   const [draggedMember, setDraggedMember] = useState({memberId: null, originTeamId: null, memberName: ''});
@@ -139,6 +194,18 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
     const xPosition = event.clientX + window.scrollX;
     const yPosition = event.clientY + window.scrollY;
+
+    setContextMenuAnchor({
+      pageX: xPosition,
+      pageY: yPosition,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
+    const approximatePlacement = {
+      horizontal: event.clientX > window.innerWidth / 2 ? 'right' : 'left',
+      vertical: event.clientY > window.innerHeight / 2 ? 'bottom' : 'top',
+    };
+    setContextMenuPlacement(approximatePlacement);
     setContextMenuPosition({x: xPosition, y: yPosition});
     setShowContextMenu(true);
   };
@@ -221,35 +288,88 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
   }, [showAddMemberForm]);
 
-  useEffect(() => {
-    if (showContextMenu && contextMenuRef.current) {
-      const menuWidth = contextMenuRef.current.offsetWidth;
-      let adjustedX = contextMenuPosition.x;
-
-      if (adjustedX + menuWidth > window.innerWidth) {
-        adjustedX = Math.max(0, adjustedX - menuWidth);
-      }
-
-      if (adjustedX !== contextMenuPosition.x) {
-        setContextMenuPosition({x: adjustedX, y: contextMenuPosition.y});
-      }
+  const updateContextMenuLayout = useCallback(() => {
+    if (!showContextMenu || !contextMenuRef.current || !contextMenuAnchor) {
+      return;
     }
-  }, [showContextMenu, contextMenuPosition]);
+
+    const menuRect = contextMenuRef.current.getBoundingClientRect();
+    const {position, placement} = calculateMenuLayout(contextMenuAnchor, menuRect);
+
+    setContextMenuPosition((prev) => {
+      if (Math.abs(prev.x - position.x) < 0.5 && Math.abs(prev.y - position.y) < 0.5) {
+        return prev;
+      }
+      return position;
+    });
+
+    setContextMenuPlacement((prev) => {
+      if (prev.horizontal === placement.horizontal && prev.vertical === placement.vertical) {
+        return prev;
+      }
+      return placement;
+    });
+  }, [contextMenuAnchor, showContextMenu]);
+
+  const updateSubscriptionMenuLayout = useCallback(() => {
+    if (!showSubscriptionMenu || !subscriptionMenuRef.current || !subscriptionMenuAnchor) {
+      return;
+    }
+
+    const menuRect = subscriptionMenuRef.current.getBoundingClientRect();
+    const {position} = calculateMenuLayout(subscriptionMenuAnchor, menuRect);
+
+    setSubscriptionMenuPosition((prev) => {
+      if (Math.abs(prev.x - position.x) < 0.5 && Math.abs(prev.y - position.y) < 0.5) {
+        return prev;
+      }
+      return position;
+    });
+  }, [showSubscriptionMenu, subscriptionMenuAnchor]);
+
+  useLayoutEffect(() => {
+    updateContextMenuLayout();
+  }, [updateContextMenuLayout, selectedDayInfo, dayTypes]);
+
+  useLayoutEffect(() => {
+    updateSubscriptionMenuLayout();
+  }, [updateSubscriptionMenuLayout, subscriptionTeamId]);
 
   useEffect(() => {
-    if (showSubscriptionMenu && subscriptionMenuRef.current) {
-      const menuWidth = subscriptionMenuRef.current.offsetWidth;
-      let adjustedX = subscriptionMenuPosition.x;
-
-      if (adjustedX + menuWidth > window.innerWidth) {
-        adjustedX = Math.max(0, adjustedX - menuWidth);
-      }
-
-      if (adjustedX !== subscriptionMenuPosition.x) {
-        setSubscriptionMenuPosition({x: adjustedX, y: subscriptionMenuPosition.y});
-      }
+    if (!showContextMenu) {
+      return undefined;
     }
-  }, [showSubscriptionMenu, subscriptionMenuPosition]);
+
+    const handleWindowChange = () => {
+      updateContextMenuLayout();
+    };
+
+    window.addEventListener('resize', handleWindowChange);
+    window.addEventListener('scroll', handleWindowChange, true);
+
+    return () => {
+      window.removeEventListener('resize', handleWindowChange);
+      window.removeEventListener('scroll', handleWindowChange, true);
+    };
+  }, [showContextMenu, updateContextMenuLayout]);
+
+  useEffect(() => {
+    if (!showSubscriptionMenu) {
+      return undefined;
+    }
+
+    const handleWindowChange = () => {
+      updateSubscriptionMenuLayout();
+    };
+
+    window.addEventListener('resize', handleWindowChange);
+    window.addEventListener('scroll', handleWindowChange, true);
+
+    return () => {
+      window.removeEventListener('resize', handleWindowChange);
+      window.removeEventListener('scroll', handleWindowChange, true);
+    };
+  }, [showSubscriptionMenu, updateSubscriptionMenuLayout]);
 
   const getFirstMonday = (date) => {
     const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -503,6 +623,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     event.stopPropagation();
     const xPosition = event.clientX + window.scrollX;
     const yPosition = event.clientY + window.scrollY;
+    setSubscriptionMenuAnchor({
+      pageX: xPosition,
+      pageY: yPosition,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
     setSubscriptionMenuPosition({x: xPosition, y: yPosition});
     setSubscriptionTeamId(teamId);
     setShowSubscriptionMenu(true);
@@ -511,6 +637,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const closeSubscriptionMenu = () => {
     setShowSubscriptionMenu(false);
     setSubscriptionTeamId(null);
+    setSubscriptionMenuAnchor(null);
   };
 
   const renderVacationDaysTooltip = (member) => {
@@ -695,10 +822,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
             contextMenuRef={contextMenuRef}
             isOpen={showContextMenu}
             position={contextMenuPosition}
+            placement={contextMenuPlacement}
             onClose={() => {
               setShowContextMenu(false);
               setSelectedCells([]);
               setSelectionStart(null);
+              setContextMenuAnchor(null);
+              setContextMenuPlacement({horizontal: 'left', vertical: 'top'});
             }}
             dayTypes={dayTypes}
             selectedDayInfo={selectedDayInfo}

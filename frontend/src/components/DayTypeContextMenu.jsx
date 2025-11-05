@@ -13,6 +13,7 @@ const DayTypeContextMenu = ({
                               contextMenuRef,
                               isOpen,
                               position,
+                              placement = {horizontal: 'left', vertical: 'top'},
                               onClose,
                               dayTypes,
                               selectedDayInfo,
@@ -263,7 +264,9 @@ const DayTypeContextMenu = ({
     position: 'absolute',
     top: `${position.y}px`,
     left: `${position.x}px`,
-    transformOrigin: 'top left',
+    transformOrigin: `${placement.vertical === 'bottom' ? 'bottom' : 'top'} ${
+      placement.horizontal === 'right' ? 'right' : 'left'
+    }`,
   };
 
   if (!isOpen) return null;
