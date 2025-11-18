@@ -79,6 +79,18 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [selectedCells, setSelectedCells] = useState([]);
   const [selectionDayTypes, setSelectionDayTypes] = useState([]);
 
+  const teamCountries = useMemo(() => {
+    const countries = new Set();
+    (teamData || []).forEach((team) => {
+      (team?.team_members || []).forEach((member) => {
+        if (member?.country) {
+          countries.add(member.country);
+        }
+      });
+    });
+    return Array.from(countries);
+  }, [teamData]);
+
   const haveSameDayTypes = (first = [], second = []) => {
     if (first.length !== second.length) {
       return false;
@@ -238,13 +250,25 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     return Array.from(years).sort();
   }, [daysHeader, selectedYear]);
 
-  const missingYears = useMemo(
-    () => displayedYears.filter((year) => !loadedHolidayYears.has(year)),
-    [displayedYears, loadedHolidayYears]
-  );
+  const yearsNeedingHolidays = useMemo(() => {
+    return displayedYears.filter((year) => {
+      if (!loadedHolidayYears.has(year)) {
+        return true;
+      }
+
+      return teamCountries.some((country) => {
+        const countryHolidays = holidayData?.[country];
+        if (!countryHolidays) {
+          return true;
+        }
+        const prefix = `${year}-`;
+        return !Object.keys(countryHolidays).some((dateStr) => dateStr.startsWith(prefix));
+      });
+    });
+  }, [displayedYears, holidayData, loadedHolidayYears, teamCountries]);
 
   const holidayQueries = useQueries({
-    queries: missingYears.map((year) => ({
+    queries: yearsNeedingHolidays.map((year) => ({
       queryKey: [...HOLIDAYS_QUERY_KEY, year],
       queryFn: ({signal}) => apiCall(`/teams/holidays?year=${year}`, 'GET', null, false, signal),
       enabled: true,
@@ -276,10 +300,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   useEffect(() => {
     holidayQueries.forEach((query, index) => {
       if (query.error) {
-        console.error('Failed to fetch holidays for year', missingYears[index], query.error);
+        console.error('Failed to fetch holidays for year', yearsNeedingHolidays[index], query.error);
       }
     });
-  }, [holidayQueries, missingYears]);
+  }, [holidayQueries, yearsNeedingHolidays]);
 
   useEffect(() => {
     if (filterInputRef.current) {
