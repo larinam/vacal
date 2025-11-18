@@ -22,7 +22,6 @@ const MainComponent = () => {
     const [lastCheckedDate, setLastCheckedDate] = useState(new Date().toDateString());
     const [showReportModal, setShowReportModal] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
-
     const {
         data: teamsResponse,
         refetch: refetchTeams,
@@ -141,7 +140,6 @@ const MainComponent = () => {
                     <Route index element={
                         <CalendarComponent
                             serverTeamData={teamsResponse?.teams}
-                            holidays={teamsResponse?.holidays}
                             dayTypes={teamsResponse?.day_types}
                             currentMonth={new Date()}
                             updateTeamData={refetchTeams}
