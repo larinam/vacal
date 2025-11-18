@@ -246,7 +246,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const holidayQueries = useQueries({
     queries: missingYears.map((year) => ({
       queryKey: [...HOLIDAYS_QUERY_KEY, year],
-      queryFn: ({signal}) => apiCall(`/holidays?year=${year}`, 'GET', null, false, signal),
+      queryFn: ({signal}) => apiCall(`/teams/holidays?year=${year}`, 'GET', null, false, signal),
       enabled: true,
     })),
   });
