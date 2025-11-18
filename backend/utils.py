@@ -1,5 +1,6 @@
-import logging
 import datetime
+import logging
+from functools import lru_cache
 
 import holidays
 import pycountry
@@ -12,6 +13,7 @@ def get_today() -> datetime.date:
     return datetime.date.today()
 
 
+@lru_cache(maxsize=768)
 def get_country_holidays(country_name, year) -> holidays.HolidayBase:
     country_alpha_2 = pycountry.countries.get(name=country_name).alpha_2
     country_holidays_obj = {}
