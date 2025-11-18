@@ -430,7 +430,14 @@ async def list_teams(current_user: Annotated[User, Depends(get_current_active_us
     teams = {"teams": await asyncio.gather(
         *(run_in_threadpool(converter, team) for team in teams_list))}
     print("teams preparation " + str(time.perf_counter() - start_time))
-    return teams | {"holidays": get_holidays(tenant)} | await get_all_day_types(current_user, tenant)
+    return teams | await get_all_day_types(current_user, tenant)
+
+
+@router.get("/holidays")
+async def list_holidays(current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                        tenant: Annotated[Tenant, Depends(get_tenant)],
+                        year: int = Query(datetime.datetime.now().year)):
+    return {"holidays": get_holidays(tenant, year)}
 
 
 @router.post("/{team_id}/members")

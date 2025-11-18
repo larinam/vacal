@@ -1,5 +1,5 @@
 import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, isYesterday, startOfWeek} from 'date-fns';
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
   faBell as faSolidBell,
@@ -27,20 +27,25 @@ import DeleteMemberModal from './DeleteMemberModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
+import {useApi} from '../hooks/useApi';
 import useTeamManagementMutations from '../hooks/mutations/useTeamManagementMutations';
 import useMemberMutations from '../hooks/mutations/useMemberMutations';
 import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
+import {useQueries} from '@tanstack/react-query';
+import {HOLIDAYS_QUERY_KEY} from '../hooks/queries/useHolidaysQuery';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
   const {deleteMemberMutation} = useMemberMutations();
   const {user} = useAuth();
+  const {apiCall} = useApi();
   const canManageMembers = user?.role === 'manager';
   const today = new Date();
   const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
   const todayYear = today.getFullYear();
 
   const [teamData, setTeamData] = useState(serverTeamData);
+  const [holidayData, setHolidayData] = useState(holidays || {});
   const [displayMonth, setDisplayMonth] = useState(new Date());
   const [showSaveIcon, setShowSaveIcon] = useState(false);
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
@@ -204,6 +209,79 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   }, [serverTeamData]);
 
   useEffect(() => {
+    setHolidayData(holidays || {});
+  }, [holidays]);
+
+  const loadedHolidayYears = useMemo(() => {
+    const years = new Set();
+    Object.values(holidayData || {}).forEach(countryHolidays => {
+      Object.keys(countryHolidays || {}).forEach(dateStr => {
+        const [year] = dateStr.split('-');
+        const parsedYear = Number(year);
+        if (!Number.isNaN(parsedYear)) {
+          years.add(parsedYear);
+        }
+      });
+    });
+    return years;
+  }, [holidayData]);
+
+  const selectedYear = displayMonth.getFullYear();
+  const displayedYears = useMemo(() => {
+    const years = new Set();
+    daysHeader.forEach(({date}) => years.add(date.getFullYear()));
+
+    if (years.size === 0) {
+      years.add(selectedYear);
+    }
+
+    return Array.from(years).sort();
+  }, [daysHeader, selectedYear]);
+
+  const missingYears = useMemo(
+    () => displayedYears.filter((year) => !loadedHolidayYears.has(year)),
+    [displayedYears, loadedHolidayYears]
+  );
+
+  const holidayQueries = useQueries({
+    queries: missingYears.map((year) => ({
+      queryKey: [...HOLIDAYS_QUERY_KEY, year],
+      queryFn: ({signal}) => apiCall(`/holidays?year=${year}`, 'GET', null, false, signal),
+      enabled: true,
+    })),
+  });
+
+  useEffect(() => {
+    const responses = holidayQueries
+      .map((query) => query.data)
+      .filter((response) => response?.holidays);
+
+    if (responses.length === 0) {
+      return;
+    }
+
+    setHolidayData((prevHolidays) => {
+      return responses.reduce((acc, current) => {
+        Object.entries(current.holidays).forEach(([country, countryHolidays]) => {
+          acc[country] = {
+            ...(acc[country] || {}),
+            ...countryHolidays,
+          };
+        });
+        return acc;
+      }, {...prevHolidays});
+    });
+  }, [holidayQueries]);
+
+  useEffect(() => {
+    holidayQueries.forEach((query, index) => {
+      if (query.error) {
+        console.error('Failed to fetch holidays for year', missingYears[index], query.error);
+      }
+    });
+  }, [holidayQueries, missingYears]);
+
+  useEffect(() => {
     if (filterInputRef.current) {
       filterInputRef.current.focus();
     }
@@ -339,12 +417,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const isHoliday = (country, date) => {
     const dateStr = formatDate(date);
-    return holidays[country] && holidays[country][dateStr];
+    return holidayData[country] && holidayData[country][dateStr];
   };
 
   const getHolidayName = (country, date) => {
     const dateStr = formatDate(date);
-    return holidays[country] && holidays[country][dateStr] ? holidays[country][dateStr] : '';
+    return holidayData[country] && holidayData[country][dateStr] ? holidayData[country][dateStr] : '';
   };
 
   const getCellTitle = (member, date) => {
