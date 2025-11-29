@@ -71,6 +71,15 @@ def test_update_days_creates_audit():
     assert member_history[0]["action"] == "updated"
     assert member_history[1]["action"] == "created"
 
+    team_hist_resp = client.get(
+        f"/teams/{team.id}/history",
+        headers={"Tenant-ID": team.tenant.identifier},
+    )
+    assert team_hist_resp.status_code == 200
+    team_history = team_hist_resp.json()
+    assert len(team_history) == 2
+    assert team_history[0]["member_name"] == member.name
+
     app.dependency_overrides = {}
 
 
@@ -79,6 +88,7 @@ def test_update_days_creates_audit():
     [
         "/teams/{team_id}/members/{member_uid}/history",
         "/teams/{team_id}/members/{member_uid}/days/2025-01-01/history",
+        "/teams/{team_id}/history",
     ],
 )
 def test_history_pagination(endpoint):

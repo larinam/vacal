@@ -23,6 +23,7 @@ import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
 import TeamSubscriptionContextMenu from './TeamSubscriptionContextMenu';
 import MemberHistoryModal from './MemberHistoryModal';
+import TeamHistoryModal from './TeamHistoryModal';
 import DeleteMemberModal from './DeleteMemberModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
@@ -60,6 +61,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [editingTeam, setEditingTeam] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
   const [selectedDayInfo, setSelectedDayInfo] = useState(null);
+  const [showTeamHistory, setShowTeamHistory] = useState(false);
+  const [teamHistoryInfo, setTeamHistoryInfo] = useState({teamId: null, teamName: ''});
   const [showMemberHistory, setShowMemberHistory] = useState(false);
   const [memberHistoryInfo, setMemberHistoryInfo] = useState({teamId: null, memberId: null, memberName: ''});
   const [showDeleteMemberModal, setShowDeleteMemberModal] = useState(false);
@@ -203,6 +206,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
     setSelectionStart(null);
     setSelectionDayTypes([]);
+  };
+
+  const openTeamHistory = (team) => {
+    setTeamHistoryInfo({teamId: team._id, teamName: team.name});
+    setShowTeamHistory(true);
   };
 
   const openMemberHistory = (teamId, member) => {
@@ -776,6 +784,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         updateTeamData={updateTeamData}
         editingMember={editingMember}
       />
+      <TeamHistoryModal
+        isOpen={showTeamHistory}
+        onClose={() => setShowTeamHistory(false)}
+        teamId={teamHistoryInfo.teamId}
+        teamName={teamHistoryInfo.teamName}
+        teamMembers={(teamData || []).find((team) => team._id === teamHistoryInfo.teamId)?.team_members || []}
+      />
       <MemberHistoryModal
         isOpen={showMemberHistory}
         onClose={() => setShowMemberHistory(false)}
@@ -921,6 +936,15 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       <span className="team-member-count">({team.team_members.length})</span>
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
+                      <FontAwesomeIconWithTitle
+                        icon={faHistory}
+                        title="View team history"
+                        wrapperClassName="history-icon"
+                        wrapperProps={{
+                          onClick: () => openTeamHistory(team),
+                          role: 'button',
+                        }}
+                      />
                       <FontAwesomeIconWithTitle
                         icon={isSubscribed ? faSolidBell : faRegularBell}
                         title="Manage team subscription"

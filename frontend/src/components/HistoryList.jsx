@@ -1,7 +1,7 @@
 import React from 'react';
 import {format} from 'date-fns';
 
-const HistoryList = React.forwardRef(({history, showDate = false, onScroll}, ref) => (
+const HistoryList = React.forwardRef(({history, showDate = false, memberLookup, onScroll}, ref) => (
   <div className="day-history-list" ref={ref} onScroll={onScroll}>
     {history.length === 0 && <p>No history found.</p>}
     {history.map((entry) => {
@@ -22,12 +22,15 @@ const HistoryList = React.forwardRef(({history, showDate = false, onScroll}, ref
         entry.old_comment !== entry.new_comment;
 
       const showDiff = showDayTypesRow || showCommentsRow;
+      const memberLabel = entry.member_name || (memberLookup ? memberLookup(entry.member_uid) : null);
 
       return (
         <div key={entry._id || entry.id} className="day-history-entry">
           <div>
             {format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm')}
-            {showDate && ` [${entry.date}]`} - {entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}
+            {showDate && ` [${entry.date}]`}
+            {memberLabel && ` • ${memberLabel}`}
+            {` - ${entry.user ? (entry.user.name || entry.user.username) : 'Unknown'}`}
             <span className={`action-tag action-${entry.action}`}>
               {entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}
             </span>

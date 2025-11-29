@@ -341,6 +341,7 @@ class DayAuditDTO(BaseModel):
     date: datetime.date
     user: UserWithoutTenantsDTO | None = None
     member_uid: str
+    member_name: str | None = None
     old_day_types: List[DayTypeReadDTO] = []
     old_comment: str = ''
     new_day_types: List[DayTypeReadDTO] = []
@@ -998,19 +999,43 @@ async def get_member_history(
     return [mongo_to_pydantic(a, DayAuditDTO) for a in audits]
 
 
+@router.get("/{team_id}/history")
+async def get_team_history(
+    team_id: str,
+    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+    tenant: Annotated[Tenant, Depends(get_tenant)],
+    skip: int = 0,
+    limit: int = 100,
+):
+    team: Team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    audits = _get_paginated_audits(tenant, team, None, skip, limit)
+    member_names = {str(member.uid): member.name for member in team.members(include_archived=True)}
+
+    result: list[DayAuditDTO] = []
+    for audit in audits:
+        dto = mongo_to_pydantic(audit, DayAuditDTO)
+        dto.member_name = member_names.get(audit.member_uid)
+        result.append(dto)
+
+    return result
+
+
 def _get_paginated_audits(
     tenant: Tenant,
     team: Team,
-    team_member: TeamMember,
+    team_member: TeamMember | None,
     skip: int,
     limit: int,
     date: datetime.date | None = None,
 ):
     skip = max(skip, 0)
     limit = min(limit, 100)
-    query = DayAudit.objects(
-        tenant=tenant, team=team, member_uid=str(team_member.uid)
-    )
+    query = DayAudit.objects(tenant=tenant, team=team)
+    if team_member is not None:
+        query = query.filter(member_uid=str(team_member.uid))
     if date is not None:
         query = query.filter(date=date)
     return query.order_by("-timestamp").skip(skip).limit(limit)
