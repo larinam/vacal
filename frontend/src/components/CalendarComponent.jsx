@@ -853,7 +853,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       <div className="contentBelowStickyHeader">
         <table className="calendar-table">
           <colgroup>
-            <col/>
+            <col className="name-col"/>
             {/* This col is for the non-date column */}
             {daysHeader.map(({date}, idx) => (
               <col key={idx} className={isWeekend(date) ? 'weekend-column' : ''}/>
@@ -932,8 +932,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                           role: 'button',
                         }}
                       />
-                      {team.name}
-                      <span className="team-member-count">({team.team_members.length})</span>
+                      <span className="team-name-block">
+                        <span className="team-name-text" title={team.name}>{team.name}</span>
+                        <span className="team-member-count">({team.team_members.length})</span>
+                      </span>
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
                       <FontAwesomeIconWithTitle
@@ -997,7 +999,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                   {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
                     <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                       <td className="member-name-cell">
-                        {member.name} <span title={member.country}>{member.country_flag}</span>
+                        <span className="member-name-text" title={member.name}>
+                          {member.name}
+                        </span>
+                        <span className="member-flag" title={member.country}>{member.country_flag}</span>
                         <FontAwesomeIconWithTitle
                           icon={faInfoCircle}
                           title={renderVacationDaysTooltip(member)}

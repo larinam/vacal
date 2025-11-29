@@ -106,9 +106,69 @@
 }
 
 .calendar-table th:first-child, .calendar-table td:first-child {
-    width: 20%;
     text-align: left;
     cursor: default;
+}
+
+/* Keep first column borders as light as the grid to avoid a heavy divider */
+.calendar-table th:first-child,
+.calendar-table td:first-child {
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    border-right: none; /* avoid doubling with next column border */
+    border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+}
+
+.calendar-table tbody tr:last-child td:first-child {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.calendar-table col.name-col {
+    width: clamp(260px, 22vw, 360px);
+    min-width: 220px;
+}
+
+.team-name-cell,
+.member-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.team-name-block {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    flex: 0 1 auto;
+}
+
+.team-name-text,
+.member-name-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 0 1 auto;
+}
+
+.member-flag {
+    flex: 0 0 auto;
+}
+
+.team-member-count,
+.collapse-icon,
+.eye-icon,
+.add-icon,
+.history-icon,
+.watch-icon,
+.edit-icon,
+.calendar-link-icon,
+.drag-icon,
+.delete-icon,
+.info-icon {
+    flex: 0 0 auto;
 }
 
 .calendar-table th {
@@ -184,7 +244,6 @@
 
 .add-icon {
     cursor: pointer;
-    margin-left: 10px;
     color: #0000ff;
 }
 
@@ -195,12 +254,10 @@
 
 .collapse-icon {
     cursor: pointer;
-    margin-right: 10px;
 }
 
 .eye-icon {
     cursor: pointer;
-    margin-right: 10px;
 }
 
 .eye-icon-active {
@@ -208,7 +265,6 @@
 }
 
 .info-icon {
-    margin-left: 10px;
     cursor: help;
     color: grey;
 }
@@ -216,12 +272,10 @@
 
 .drag-icon {
     cursor: grab;
-    margin-left: 10px;
 }
 
 :is(.edit-icon, .delete-icon, .watch-icon, .calendar-link-icon, .history-icon) {
     cursor: pointer;
-    margin-left: 10px;
 }
 
 .calendar-link-icon {
