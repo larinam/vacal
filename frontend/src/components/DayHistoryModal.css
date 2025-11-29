@@ -5,7 +5,7 @@
 }
 
 .day-history-list {
-  max-height: 300px;
+  max-height: 60vh;
   overflow-y: auto;
 }
 
@@ -76,6 +76,7 @@
 .day-history-modal {
   position: relative;
 }
+
 
 .day-history-modal .close-button {
   position: absolute;
