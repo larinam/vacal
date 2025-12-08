@@ -939,20 +939,20 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
                             title="Add team member">➕</span>
                       <FontAwesomeIconWithTitle
-                        icon={faHistory}
-                        title="View team history"
-                        wrapperClassName="history-icon"
-                        wrapperProps={{
-                          onClick: () => openTeamHistory(team),
-                          role: 'button',
-                        }}
-                      />
-                      <FontAwesomeIconWithTitle
                         icon={isSubscribed ? faSolidBell : faRegularBell}
                         title="Manage team subscription"
                         wrapperClassName={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
                         wrapperProps={{
                           onClick: (event) => openSubscriptionMenu(event, team._id),
+                          role: 'button',
+                        }}
+                      />
+                      <FontAwesomeIconWithTitle
+                        icon={faHistory}
+                        title="View team history"
+                        wrapperClassName="history-icon"
+                        wrapperProps={{
+                          onClick: () => openTeamHistory(team),
                           role: 'button',
                         }}
                       />
