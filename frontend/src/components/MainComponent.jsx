@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Navigate, Route, Routes, useLocation, useNavigate} from 'react-router-dom';
+import {Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import CalendarComponent from './CalendarComponent';
 import SettingsComponent from './settings/SettingsComponent';
 import ReportFormModal from './ReportFormModal';
@@ -17,7 +17,6 @@ import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
 
 const MainComponent = () => {
     const navigate = useNavigate();
-    const location = useLocation();
     const {apiCall} = useApi();
     const { user } = useAuth();
     const [lastCheckedDate, setLastCheckedDate] = useState(new Date().toDateString());
@@ -137,7 +136,7 @@ const MainComponent = () => {
                 </AnimatePresence>
             </div>
             <div className="content">
-                <Routes location={location} key={location.pathname}>
+                <Routes>
                     <Route index element={
                         <CalendarComponent
                             serverTeamData={teamsResponse?.teams}
