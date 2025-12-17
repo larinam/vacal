@@ -6,14 +6,12 @@ import SubscriptionManagement from "./SubscriptionManagement";
 import './SettingsComponent.css';
 import {useConfig} from "../../contexts/ConfigContext";
 
-export const SETTINGS_BASE_PATH = '/main/settings';
-export const SETTINGS_DEFAULT_TAB = 'daytypes';
-export const SETTINGS_DEFAULT_PATH = `${SETTINGS_BASE_PATH}/${SETTINGS_DEFAULT_TAB}`;
+const SETTINGS_BASE_PATH = '/main/settings';
 
 const SettingsComponent = ({onClose}) => {
   const {isMultitenancyEnabled} = useConfig();
   const navItemClass = ({isActive}) => `navItem${isActive ? ' active' : ''}`;
-  const defaultTabPath = SETTINGS_DEFAULT_TAB;
+  const defaultTabPath = `${SETTINGS_BASE_PATH}/daytypes`;
 
   return (
     <div className="settingsContainer">
@@ -27,7 +25,7 @@ const SettingsComponent = ({onClose}) => {
           Day Types
         </NavLink>
         <NavLink
-          to="usermanagement"
+          to={`${SETTINGS_BASE_PATH}/usermanagement`}
           end
           className={navItemClass}
         >
@@ -35,7 +33,7 @@ const SettingsComponent = ({onClose}) => {
         </NavLink>
         {isMultitenancyEnabled && (
           <NavLink
-            to="subscription"
+            to={`${SETTINGS_BASE_PATH}/subscription`}
             end
             className={navItemClass}
           >

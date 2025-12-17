@@ -6,7 +6,6 @@ import './UserProfileMenu.css';
 import {useAuth} from '../contexts/AuthContext';
 import useDismiss from '../hooks/useDismiss';
 import {motion} from 'motion/react';
-import {SETTINGS_BASE_PATH, SETTINGS_DEFAULT_PATH} from './settings/SettingsComponent';
 
 const UserProfileMenu = ({setShowDropdown}) => {
   const navigate = useNavigate();
@@ -37,21 +36,21 @@ const UserProfileMenu = ({setShowDropdown}) => {
         <span>{user.name}{user.tenants.length > 1 ? ` (${currentTenant})` : ''}</span>
       </div>
       <div className="dropdownItem" onClick={() => {
-        navigate(`${SETTINGS_BASE_PATH}/usermanagement?profile=true`);
+        navigate('/main/settings/usermanagement?profile=true');
         closeDropdown();
       }}>
         <FontAwesomeIcon icon={faUser}/>
         <span>My profile</span>
       </div>
       <div className="dropdownItem" onClick={() => {
-        navigate(SETTINGS_DEFAULT_PATH);
+        navigate('/main/settings');
         closeDropdown();
       }}>
         <FontAwesomeIcon icon={faCog}/>
         <span>Settings</span>
       </div>
       <div className="dropdownItem" onClick={() => {
-        navigate(`${SETTINGS_BASE_PATH}/usermanagement?inviteUser=true`);
+        navigate('/main/settings/usermanagement?inviteUser=true');
         closeDropdown();
       }}>
         <FontAwesomeIcon icon={faUserPlus}/>
