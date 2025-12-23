@@ -293,15 +293,38 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     }
 
     setHolidayData((prevHolidays) => {
-      return responses.reduce((acc, current) => {
+      let nextHolidays = prevHolidays;
+      let changed = false;
+
+      responses.forEach((current) => {
         Object.entries(current.holidays).forEach(([country, countryHolidays]) => {
-          acc[country] = {
-            ...(acc[country] || {}),
-            ...countryHolidays,
-          };
+          const existingCountry = (nextHolidays === prevHolidays
+            ? prevHolidays[country]
+            : nextHolidays[country]) || {};
+          let updatedCountry = existingCountry;
+          let countryChanged = false;
+
+          Object.entries(countryHolidays || {}).forEach(([dateStr, holidayName]) => {
+            if (existingCountry[dateStr] !== holidayName) {
+              if (updatedCountry === existingCountry) {
+                updatedCountry = {...existingCountry};
+              }
+              updatedCountry[dateStr] = holidayName;
+              countryChanged = true;
+            }
+          });
+
+          if (countryChanged) {
+            if (nextHolidays === prevHolidays) {
+              nextHolidays = {...prevHolidays};
+            }
+            nextHolidays[country] = updatedCountry;
+            changed = true;
+          }
         });
-        return acc;
-      }, {...prevHolidays});
+      });
+
+      return changed ? nextHolidays : prevHolidays;
     });
   }, [holidayQueries]);
 
@@ -855,15 +878,15 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           <colgroup>
             <col className="name-col"/>
             {/* This col is for the non-date column */}
-            {daysHeader.map(({date}, idx) => (
-              <col key={idx} className={isWeekend(date) ? 'weekend-column' : ''}/>
+            {daysHeader.map(({date}) => (
+              <col key={formatDate(date)} className={isWeekend(date) ? 'weekend-column' : ''}/>
             ))}
           </colgroup>
           <thead>
           <tr>
             <th></th>
-            {Array.from(weekSpans).map(([week, span], idx) => (
-              <th key={idx} colSpan={span} className="week-number-header">
+            {Array.from(weekSpans).map(([week, span]) => (
+              <th key={week} colSpan={span} className="week-number-header">
                 {span < 2 ? week : `Week ${week}`}
               </th>
             ))}
@@ -873,12 +896,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
               Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
               / Member
             </th>
-            {daysHeader.map(({day, weekday, date}, idx) => {
+            {daysHeader.map(({day, weekday, date}) => {
               const isOutOfMonth = date.getMonth() !== displayMonth.getMonth();
               const isWeekendDay = isWeekend(date);
               return (
                 <th
-                  key={idx}
+                  key={formatDate(date)}
                   className={`${
                     isToday(date)
                       ? 'current-day-number'
@@ -897,14 +920,15 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           </tr>
           </thead>
           <tbody>
-          {filterTeamsAndMembers(teamData).map(team => {
+          {filterTeamsAndMembers(teamData).map((team) => {
             const isSubscribed = team.subscribers?.some(sub => sub._id === user._id);
             const isTeamCollapsed = collapsedTeams.includes(team._id);
             const collapseIconTitle = isTeamCollapsed ? 'Expand team' : 'Collapse team';
             const isTeamFocused = focusedTeamId === team._id;
             const focusIconTitle = isTeamFocused ? 'Show all teams' : 'Focus on team';
+            const teamKey = team._id;
             return (
-            <React.Fragment key={team.id}>
+            <React.Fragment key={teamKey}>
               {(!focusedTeamId || focusedTeamId === team._id) && (
                 <>
                   <tr
@@ -986,9 +1010,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         />
                       )}
                     </td>
-                    {daysHeader.map(({date}, idx) => {
+                    {daysHeader.map(({date}) => {
                       return (<td
-                        key={idx}
+                        key={`${teamKey}-${formatDate(date)}`}
                         className={`${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}`}
                       >
 
@@ -996,8 +1020,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                       </td>)
                     })}
                   </tr>
-                  {!collapsedTeams.includes(team._id) && team.team_members.map(member => (
-                    <tr key={member.uid} className={draggingMemberId === member.uid ? 'dragging' : ''}>
+                  {!collapsedTeams.includes(team._id) && team.team_members.map((member) => {
+                    const memberKey = member.uid;
+                    return (
+                    <tr key={memberKey} className={draggingMemberId === member.uid ? 'dragging' : ''}>
                       <td className="member-name-cell">
                         <span className="member-name-text" title={member.name}>
                           {member.name}
@@ -1048,7 +1074,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                           />
                         )}
                       </td>
-                      {daysHeader.map(({date}, idx) => {
+                      {daysHeader.map(({date}) => {
                         const dayEntry = getMemberDayEntry(member, date);
                         const dateDayTypes = dayEntry?.day_types || [];
                         const isHolidayDay = isHoliday(member.country, date);
@@ -1066,7 +1092,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
                         return (
                           <td
-                            key={idx}
+                            key={`${memberKey}-${formatDate(date)}`}
                             onMouseDown={() => handleMouseDown(team._id, member.uid, date, isSelectableDay(member, date))}
                             onMouseOver={() => handleMouseOver(team._id, member.uid, date, member)}
                             onMouseUp={handleMouseUp}
@@ -1082,7 +1108,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                         );
                       })}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </>
               )}
             </React.Fragment>

@@ -70,7 +70,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
           </div>
         ))
       }
-      <div className="dropdownItem" style={{'user-select': 'none'}} onClick={() => {
+      <div className="dropdownItem" style={{userSelect: 'none'}} onClick={() => {
         navigate('/create-additional-workspace');
         closeDropdown();
       }}>
@@ -86,7 +86,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
         <FontAwesomeIcon icon={faQuestion}/>
         <span>Support</span>
       </div>
-      <div className="dropdownItem" style={{'user-select': 'none'}} onClick={() => {
+      <div className="dropdownItem" style={{userSelect: 'none'}} onClick={() => {
         handleLogout();
         navigate('/');
         closeDropdown();
