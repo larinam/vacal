@@ -272,10 +272,14 @@ async def delete_user(
         current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
         tenant: Annotated[Tenant, Depends(get_tenant)]
 ):
-    user_to_delete = User.objects(id=user_id).first()
+    user_to_delete = User.objects(tenants__in=[tenant], id=user_id).first()
 
     if not user_to_delete:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if user_to_delete.id != current_user.id and not current_user.is_manager():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Only managers can delete other users.")
 
     # Check if the user is part of more than one tenant
     if len(user_to_delete.tenants) > 1:
