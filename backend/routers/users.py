@@ -232,11 +232,15 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    editing_self = user.id == current_user.id
+    if not editing_self and not current_user.is_manager():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Only managers can update other users.")
+
     user.name = user_update.name
     user.email = user_update.email
     user.auth_details.username = user_update.username
     role_change_requested = user_update.role is not None and user_update.role != user.role
-    editing_self = user.id == current_user.id
 
     if role_change_requested:
         if user_update.role == "manager" and not current_user.is_manager():
@@ -259,6 +263,9 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
     else:
         user.auth_details.telegram_username = user_update.telegram_username.lower()
     if user_update.disabled is not None:
+        if not current_user.is_manager():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="Only managers can disable users.")
         user.disabled = user_update.disabled
     # Don't update password here; handle password updates separately for security
     user.save()

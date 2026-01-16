@@ -51,6 +51,8 @@ def test_disabled_user_rejected_after_login():
 
 def test_user_can_be_disabled_via_update_endpoint():
     user = create_user()
+    user.role = "manager"
+    user.save()
     headers = auth_headers(user)
 
     payload = {

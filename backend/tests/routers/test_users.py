@@ -170,7 +170,7 @@ def test_employee_cannot_promote_user():
         app.dependency_overrides.clear()
 
     assert response.status_code == 403
-    assert response.json() == {"detail": "Only managers can promote users."}
+    assert response.json() == {"detail": "Only managers can update other users."}
 
 
 def test_remove_tenant(mock_user, mock_tenant):
