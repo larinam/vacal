@@ -796,6 +796,8 @@ async def get_calendar_feed(team_id: str, user_api_key: str | None = Query(None)
     user = User.objects(auth_details__api_key=user_api_key).first()
     if not user or user.disabled:
         raise HTTPException(status_code=404, detail="Calendar not found")
+    if team.tenant not in user.tenants:
+        raise HTTPException(status_code=404, detail="Calendar not found")
     cal = build_team_calendar(team)
     return Response(cal.serialize(), media_type="text/calendar")
 

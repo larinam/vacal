@@ -46,3 +46,18 @@ def test_calendar_feed_revoked_after_user_deleted():
     url = f"/teams/calendar/{team.id}?user_api_key={api_key}"
     resp = client.get(url)
     assert resp.status_code == 404
+
+
+def test_calendar_feed_blocks_cross_tenant_access():
+    team, _ = setup_team()
+    other_tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    other_user = User(
+        tenants=[other_tenant],
+        name="Other Subscriber",
+        email=f"sub{uuid.uuid4()}@example.com",
+        auth_details=AuthDetails(username=str(uuid.uuid4())),
+    ).save()
+
+    url = f"/teams/calendar/{team.id}?user_api_key={other_user.auth_details.api_key}"
+    resp = client.get(url)
+    assert resp.status_code == 404
