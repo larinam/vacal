@@ -20,7 +20,13 @@ from pydantic.functional_validators import field_validator, model_validator
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
-from .dependencies import create_access_token, TenantMiddleware, get_current_active_user
+from .dependencies import (
+    create_access_token,
+    TenantMiddleware,
+    get_current_active_user,
+    get_current_user_allow_expired,
+    create_refresh_token,
+)
 from .model import User, Tenant
 from .routers import users, daytypes, management, teams
 from .scheduled.activate_trials import activate_trials
@@ -39,8 +45,6 @@ origins = [
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
 if cors_origin:  # for production
     origins.append(cors_origin)
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 365
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")
@@ -116,6 +120,7 @@ async def get_config():
 
 class TokenDTO(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 
@@ -205,11 +210,56 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestFormM
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Invalid MFA code",
                                 headers={"WWW-Authenticate": "Bearer"})
-    access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.auth_details.username}, expires_delta=access_token_expires
-    )
-    return TokenDTO(access_token=access_token, token_type="bearer")
+    
+    access_token = create_access_token(data={"sub": user.auth_details.username})
+    refresh_token, _ = create_refresh_token(user)
+    return TokenDTO(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+@app.post("/token/refresh")
+async def refresh_access_token(request: RefreshTokenRequest) -> TokenDTO:
+    """Refresh access token using a valid refresh token."""
+    from .dependencies import verify_refresh_token
+
+    token_doc = verify_refresh_token(request.refresh_token)
+    if not token_doc or not token_doc.user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = token_doc.user
+    if user.disabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+
+    # Revoke the old refresh token (token rotation)
+    token_doc.revoke()
+
+    # Create new tokens
+    access_token = create_access_token(data={"sub": user.auth_details.username})
+    new_refresh_token, _ = create_refresh_token(user)
+
+    return TokenDTO(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer")
+
+
+@app.post("/logout")
+async def logout(
+    current_user: Annotated[User, Depends(get_current_user_allow_expired)],
+    request: RefreshTokenRequest
+):
+    """Logout by revoking the refresh token, even if access token is expired."""
+    from .dependencies import verify_refresh_token
+    
+    token_doc = verify_refresh_token(request.refresh_token, current_user)
+    if token_doc:
+        token_doc.revoke()
+    
+    return {"message": "Successfully logged out"}
 
 
 # noinspection PyNestedDecorators
@@ -264,12 +314,10 @@ async def telegram_login(auth_data: TelegramAuthData):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     if not user.auth_details.telegram_id:
         update_auth_details(user, telegram_id=telegram_id)
-    access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.auth_details.username}, expires_delta=access_token_expires
-    )
-
-    return TokenDTO(access_token=access_token, token_type="bearer")
+    
+    access_token = create_access_token(data={"sub": user.auth_details.username})
+    refresh_token, _ = create_refresh_token(user)
+    return TokenDTO(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 
 @app.post("/telegram-connect")
@@ -315,12 +363,9 @@ async def google_login(token_data: GoogleAuthDTO):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     link_google_account(user, google_id, email)
 
-    access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.auth_details.username}, expires_delta=access_token_expires
-    )
-
-    return TokenDTO(access_token=access_token, token_type="bearer")
+    access_token = create_access_token(data={"sub": user.auth_details.username})
+    refresh_token, _ = create_refresh_token(user)
+    return TokenDTO(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 
 @app.post("/google-connect")

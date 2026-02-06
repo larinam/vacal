@@ -41,6 +41,22 @@ Despite the name, it supports tracking all kinds of absences, not just vacations
 ### Authentication
 #### User/Password authentication
 * For USERNAME/PASSWORD AUTHENTICATION generate a string like this run: `openssl rand -hex 32` and set `AUTHENTICATION_SECRET_KEY` in the environment.
+
+#### Token Security
+Vacal implements a secure token refresh system with short-lived access tokens and revocable refresh tokens:
+* **Access tokens** expire after 15 minutes (configurable via `ACCESS_TOKEN_EXPIRE_MINUTES`)
+* **Refresh tokens** expire after 7 days (configurable via `REFRESH_TOKEN_EXPIRE_DAYS`)
+* The frontend automatically refreshes tokens before expiration for seamless user experience
+* Refresh tokens are stored securely in the database with hashed values and can be revoked on logout
+* Token rotation on each refresh prevents replay attacks
+* On 401 responses, the frontend attempts automatic token refresh before logging the user out
+* Deployments that switch refresh token format may invalidate existing sessions and require one re-login
+
+This approach significantly reduces the security risk compared to long-lived tokens:
+* Stolen access tokens are only valid for 15 minutes
+* Refresh tokens can be revoked server-side (e.g., on logout or security breach)
+* Token rotation helps detect token theft
+
 #### Telegram authentication
 * See https://core.telegram.org/widgets/login
 * Configure TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME in the backend .env

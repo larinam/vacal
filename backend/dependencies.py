@@ -12,7 +12,7 @@ from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from .model import User, Tenant
+from .model import User, Tenant, RefreshToken
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 AUTHENTICATION_SECRET_KEY = os.getenv("AUTHENTICATION_SECRET_KEY")
@@ -21,13 +21,29 @@ if AUTHENTICATION_SECRET_KEY is None:
 
 ALGORITHM = "HS256"
 
+# Token expiration configuration
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
     to_encode = data.copy()
-    expire = datetime.datetime.now(datetime.timezone.utc) + (expires_delta or datetime.timedelta(minutes=15))
+    expire = datetime.datetime.now(datetime.timezone.utc) + (expires_delta or datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, AUTHENTICATION_SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def create_refresh_token(user: User) -> tuple[str, RefreshToken]:
+    """Create a new refresh token for the user and store it in the database."""
+    return RefreshToken.create_token(user, expiration_days=REFRESH_TOKEN_EXPIRE_DAYS)
+
+
+def verify_refresh_token(raw_token: str, user: User | None = None) -> RefreshToken | None:
+    """Verify a refresh token and optionally enforce token ownership."""
+    if user:
+        return RefreshToken.verify_token(user, raw_token)
+    return RefreshToken.verify_token_by_id(raw_token)
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
@@ -38,6 +54,30 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
     )
     try:
         payload = jwt.decode(token, AUTHENTICATION_SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if not username:
+            raise credentials_exception
+        user = User.get_by_username(username)
+        if not user:
+            raise credentials_exception
+    except jwt.PyJWTError:
+        raise credentials_exception
+    return user
+
+
+def get_current_user_allow_expired(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(
+            token,
+            AUTHENTICATION_SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={"verify_exp": False},
+        )
         username: str = payload.get("sub")
         if not username:
             raise credentials_exception

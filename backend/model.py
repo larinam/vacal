@@ -314,6 +314,90 @@ class PasswordResetToken(Document):
         self.save()
 
 
+class RefreshToken(Document):
+    user = ReferenceField(User, required=True, reverse_delete_rule=mongoengine.CASCADE)
+    token_hash = StringField(required=True, unique=True)
+    created_at = DateTimeField(required=True, default=lambda: datetime.now(timezone.utc))
+    expiration_date = DateTimeField(required=True, default=lambda: datetime.now(timezone.utc) + timedelta(days=7))
+    is_revoked = BooleanField(default=False)
+
+    meta = {
+        "indexes": [
+            "user",
+            "token_hash",
+            "expiration_date",
+            "is_revoked",
+        ],
+        "index_background": True
+    }
+
+    @classmethod
+    def create_token(cls, user: User, expiration_days: int = 7):
+        """Create a new refresh token for the user."""
+        token_secret = secrets.token_urlsafe(32)
+        token_hash = pwd_context.hash(token_secret)
+
+        refresh_token = cls(
+            user=user,
+            token_hash=token_hash,
+            expiration_date=datetime.now(timezone.utc) + timedelta(days=expiration_days)
+        )
+        refresh_token.save()
+        raw_token = f"{refresh_token.id}.{token_secret}"
+        return raw_token, refresh_token
+
+    def is_expired(self):
+        """Check if token is expired."""
+        self.expiration_date = self.expiration_date.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > self.expiration_date
+
+    def is_valid(self):
+        """Check if token is valid (not expired and not revoked)."""
+        return not self.is_revoked and not self.is_expired()
+
+    def revoke(self):
+        """Revoke this token."""
+        self.is_revoked = True
+        self.save()
+
+    @classmethod
+    def verify_token(cls, user: User, raw_token: str):
+        """Verify a refresh token and return the token document if valid."""
+        token = cls.verify_token_by_id(raw_token)
+        if token and token.user and token.user.id == user.id:
+            return token
+        return None
+
+    @classmethod
+    def verify_token_by_id(cls, raw_token: str):
+        """Verify a refresh token via indexed token id lookup."""
+        if not raw_token or "." not in raw_token:
+            return None
+
+        token_id, token_secret = raw_token.split(".", 1)
+        if not token_id or not token_secret:
+            return None
+
+        try:
+            object_id = ObjectId(token_id)
+        except (InvalidId, TypeError):
+            return None
+
+        token = cls.objects(id=object_id, is_revoked=False).first()
+        if not token or token.is_expired():
+            return None
+
+        if pwd_context.verify(token_secret, token.token_hash):
+            return token
+        return None
+
+    @classmethod
+    def cleanup_expired(cls):
+        """Remove all expired tokens from the database."""
+        now = datetime.now(timezone.utc)
+        cls.objects(expiration_date__lt=now).delete()
+
+
 def generate_random_hex_color():
     """Generate a random hex color code."""
     return "#{:06x}".format(random.randint(0, 0xFFFFFF))

@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.model import User, AuthDetails
+from backend.model import User, AuthDetails, Tenant
 import pytest
 
 client = TestClient(app)
@@ -20,14 +20,20 @@ def test_read_config():
 
 
 @pytest.fixture
-def mock_user():
-    return User(
+def mock_user(clean_user_collections, unique_suffix):
+    tenant = Tenant(name=f"tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    user = User(
+        tenants=[tenant],
+        name="Test User",
+        email=f"{unique_suffix}@example.com",
         auth_details=AuthDetails(
             username="testuser",
             hashed_password="hashed_password",  # This should be a properly hashed password in reality
             mfa_confirmed=True
         )
     )
+    user.save()
+    return user
 
 
 def test_login_for_access_token(mock_user):

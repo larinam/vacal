@@ -1,22 +1,52 @@
-import React, {createContext, useContext, useEffect} from 'react';
+import React, {createContext, useContext, useEffect, useRef} from 'react';
 import {toast} from 'react-toastify';
 import {extractGoogleIdToken} from '../utils/google';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
+import {setupTokenRefreshTimer} from '../utils/tokenRefresh';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({children}) => {
     const [isAuthenticated, setIsAuthenticated] = useLocalStorage('isAuthenticated', false);
     const [authHeader, setAuthHeader] = useLocalStorage('authHeader', '');
+    const [refreshToken, setRefreshToken] = useLocalStorage('refreshToken', '');
     const [currentTenant, setCurrentTenant] = useLocalStorage('currentTenant', '');
     const [user, setUser] = useLocalStorage('user', null);
+    const refreshTimerRef = useRef(null);
 
     useEffect(() => {
         if (authHeader) {
             fetchCurrentUser();
         }
     }, [authHeader, currentTenant]);
+
+    // Setup automatic token refresh
+    useEffect(() => {
+        if (isAuthenticated && refreshToken) {
+            const onTokenRefreshed = (newAccessToken, newRefreshToken) => {
+                setAuthHeader(`Bearer ${newAccessToken}`);
+                setRefreshToken(newRefreshToken);
+            };
+
+            const onRefreshFailed = () => {
+                toast.error('Session expired. Please log in again.');
+                handleLogout();
+            };
+
+            refreshTimerRef.current = setupTokenRefreshTimer(
+                refreshToken,
+                onTokenRefreshed,
+                onRefreshFailed
+            );
+
+            return () => {
+                if (refreshTimerRef.current) {
+                    clearInterval(refreshTimerRef.current);
+                }
+            };
+        }
+    }, [isAuthenticated, refreshToken]);
 
     const fetchCurrentUser = async (token) => {
         const response = await fetch(`${API_URL}/users/me`, {
@@ -40,9 +70,10 @@ export const AuthProvider = ({children}) => {
     };
 
 
-    const loginSucceeded = async (accessToken) => {
+    const loginSucceeded = async (accessToken, newRefreshToken) => {
         const newAuthHeader = `Bearer ${accessToken}`;
         setAuthHeader(newAuthHeader);
+        setRefreshToken(newRefreshToken);
         setIsAuthenticated(true);
         await fetchCurrentUser(newAuthHeader);
         return {success: true};
@@ -63,7 +94,7 @@ export const AuthProvider = ({children}) => {
 
         if (response.ok) {
             const data = await response.json();
-            return await loginSucceeded(data.access_token);
+            return await loginSucceeded(data.access_token, data.refresh_token);
         } else if (response.status === 403) {
             const data = await response.json();
             return {otpUri: data.otp_uri};
@@ -78,6 +109,7 @@ export const AuthProvider = ({children}) => {
         } else {
             setIsAuthenticated(false);
             setAuthHeader('');
+            setRefreshToken('');
             return {error: 'Authentication failed'};
         }
     };
@@ -93,7 +125,7 @@ export const AuthProvider = ({children}) => {
 
         if (response.ok) {
             const data = await response.json();
-            return await loginSucceeded(data.access_token);
+            return await loginSucceeded(data.access_token, data.refresh_token);
         } else {
             if (response.status === 404) {
                 const errorData = await response.json();
@@ -103,6 +135,7 @@ export const AuthProvider = ({children}) => {
             }
             setIsAuthenticated(false);
             setAuthHeader('');
+            setRefreshToken('');
             return {error: 'Authentication failed'};
         }
     };
@@ -123,7 +156,7 @@ export const AuthProvider = ({children}) => {
 
             if (response.ok) {
                 const data = await response.json();
-                return await loginSucceeded(data.access_token);
+                return await loginSucceeded(data.access_token, data.refresh_token);
             } else {
                 if (response.status === 404) {
                     const errorData = await response.json();
@@ -140,18 +173,36 @@ export const AuthProvider = ({children}) => {
             toast.error('Authentication failed');
             setIsAuthenticated(false);
             setAuthHeader('');
+            setRefreshToken('');
             return {error: 'Authentication failed'};
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        // Call logout endpoint to revoke refresh token
+        if (refreshToken) {
+            try {
+                await fetch(`${API_URL}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader,
+                    },
+                    body: JSON.stringify({refresh_token: refreshToken})
+                });
+            } catch (error) {
+                console.error('Logout API call failed:', error);
+            }
+        }
+        
         setIsAuthenticated(false);
         setAuthHeader('');
+        setRefreshToken('');
         setUser(null);
     };
 
     return (
-        <AuthContext value={{isAuthenticated, authHeader, currentTenant, handleLogin, handleTelegramLogin, handleGoogleLogin, handleLogout, setCurrentTenant, user}}>
+        <AuthContext value={{isAuthenticated, authHeader, refreshToken, currentTenant, handleLogin, handleTelegramLogin, handleGoogleLogin, handleLogout, setCurrentTenant, setAuthHeader, setRefreshToken, user}}>
             {children}
         </AuthContext>
     );
