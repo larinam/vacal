@@ -16,6 +16,7 @@ pyjwt
 python-dateutil
 mongomock
 ics
+TatSu==5.13.1
 pyotp
 google-auth
 requests
