@@ -564,7 +564,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         memberId: member.uid,
         payload: {
           last_working_day: lastWorkingDay,
-          departure_initiated_by: departureInitiatedBy,
+          ...(departureInitiatedBy ? {departure_initiated_by: departureInitiatedBy} : {}),
         },
       },
       {

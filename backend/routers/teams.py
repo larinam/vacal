@@ -245,7 +245,7 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
 
 class TeamMemberDeleteDTO(BaseModel):
     last_working_day: datetime.date
-    departure_initiated_by: DepartureInitiator
+    departure_initiated_by: DepartureInitiator | None = None
 
 
 class TeamWriteDTO(BaseModel):
@@ -500,7 +500,11 @@ async def delete_team_member(team_id: str, team_member_id: str,
     if not team_member_to_remove:
         raise HTTPException(status_code=404, detail="Team member not found")
     team_member_to_remove.last_working_day = delete_data.last_working_day
-    team_member_to_remove.departure_initiated_by = delete_data.departure_initiated_by.value
+    team_member_to_remove.departure_initiated_by = (
+        delete_data.departure_initiated_by.value
+        if delete_data.departure_initiated_by is not None
+        else None
+    )
     if not getattr(team_member_to_remove, "is_deleted", False):
         team_member_to_remove.is_deleted = True
         team_member_to_remove.deleted_at = datetime.datetime.now(datetime.timezone.utc)

@@ -33,13 +33,11 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
       return;
     }
 
-    if (!departureInitiatedBy) {
-      setError('Please select who initiated the departure.');
-      return;
-    }
-
     setError('');
-    onConfirm({lastWorkingDay, departureInitiatedBy});
+    onConfirm({
+      lastWorkingDay,
+      departureInitiatedBy: departureInitiatedBy || null,
+    });
   };
 
   return (
@@ -71,7 +69,7 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
           />
         </label>
         <fieldset className="deleteMemberModal__choiceGroup" disabled={isSubmitting}>
-          <legend>Who initiated this departure?</legend>
+          <legend>Who initiated this departure? (optional)</legend>
           <label className="deleteMemberModal__radio">
             <input
               type="radio"
