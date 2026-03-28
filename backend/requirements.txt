@@ -15,8 +15,7 @@ pwdlib[argon2,bcrypt]
 pyjwt
 python-dateutil
 mongomock
-ics
-TatSu==5.13.1
+icalendar
 pyotp
 google-auth
 requests

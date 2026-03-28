@@ -14,8 +14,7 @@ import pycountry
 from bson import ObjectId
 from fastapi import APIRouter, status, Body, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse, Response
-from ics import Calendar, Event
-from ics.grammar.parse import ContentLine
+from icalendar import Calendar, Event
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from pycountry.db import Country
@@ -765,24 +764,22 @@ async def export_absence_report(current_user: Annotated[User, Depends(get_curren
 
 def build_team_calendar(team: Team) -> Calendar:
     cal = Calendar()
-    # Add calendar name so external clients display a meaningful title
-    cal.extra.append(ContentLine(
-        "X-WR-CALNAME",
-        value=f"{team.name} - {team.tenant.name} - Vacal",
-    ))
+    cal.add("prodid", "-//Vacal//Team Calendar//EN")
+    cal.add("version", "2.0")
+    cal.add("X-WR-CALNAME", f"{team.name} - {team.tenant.name} - Vacal")
     for member in sorted(team.members(), key=lambda m: m.name):
         for date_str in sorted(member.days.keys()):
             day_entry = member.days[date_str]
             date = datetime.date.fromisoformat(date_str)
             for day_type in day_entry.day_types:
                 event = Event()
-                event.name = f"{member.name} - {day_type.name}"
-                event.begin = date
-                event.make_all_day()
+                event.add("summary", f"{member.name} - {day_type.name}")
+                event.add("dtstart", date)
+                event.add("dtend", date + datetime.timedelta(days=1))
                 if day_entry.comment:
-                    event.description = day_entry.comment
-                event.uid = f"{team.id}-{member.uid}-{date_str}-{day_type.id}"
-                cal.events.add(event)
+                    event.add("description", day_entry.comment)
+                event.add("uid", f"{team.id}-{member.uid}-{date_str}-{day_type.id}")
+                cal.add_component(event)
     return cal
 
 
@@ -799,7 +796,7 @@ async def get_calendar_feed(team_id: str, user_api_key: str | None = Query(None)
     if team.tenant not in user.tenants:
         raise HTTPException(status_code=404, detail="Calendar not found")
     cal = build_team_calendar(team)
-    return Response(cal.serialize(), media_type="text/calendar")
+    return Response(cal.to_ical().decode("utf-8"), media_type="text/calendar")
 
 
 async def get_report_body_rows(tenant, start_date, end_date, day_type_names, team_ids: List[str] | None = None):

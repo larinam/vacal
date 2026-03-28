@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from icalendar import Calendar
 import uuid
 
 from backend.main import app
@@ -11,7 +12,11 @@ def setup_team():
     tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
     DayType.init_day_types(tenant)
     vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
-    member = TeamMember(name="Alice", country="Sweden", days={"2025-01-01": DayEntry(day_types=[vacation])})
+    member = TeamMember(
+        name="Alice",
+        country="Sweden",
+        days={"2025-01-01": DayEntry(day_types=[vacation], comment="Out of office")},
+    )
     user = User(
         tenants=[tenant],
         name="Subscriber",
@@ -34,8 +39,20 @@ def test_calendar_feed_deterministic():
     assert resp1.status_code == 200
     assert resp1.status_code == resp2.status_code
     assert resp1.text == resp2.text
+    assert "X-WR-CALNAME:Team - " in resp1.text
     assert "BEGIN:VEVENT" in resp1.text
     assert "VALUE=DATE" in resp1.text
+
+    parsed = Calendar.from_ical(resp1.text)
+    events = [component for component in parsed.walk() if component.name == "VEVENT"]
+    assert len(events) == 1
+
+    event = events[0]
+    assert str(parsed["X-WR-CALNAME"]).startswith("Team - ")
+    assert str(event["SUMMARY"]) == "Alice - Vacation"
+    assert str(event["DESCRIPTION"]) == "Out of office"
+    assert str(event["UID"]) == f"{team.id}-{team.team_members[0].uid}-2025-01-01-{team.team_members[0].days['2025-01-01'].day_types[0].id}"
+    assert event.decoded("DTSTART").isoformat() == "2025-01-01"
 
 
 def test_calendar_feed_revoked_after_user_deleted():
