@@ -41,11 +41,8 @@ def test_delete_team_member_stores_last_working_day():
     try:
         response = client.request(
             "DELETE",
-            f"/teams/{team.id}/members/{team_member.uid}",
-            json={
-                "last_working_day": "2024-06-01",
-                "departure_initiated_by": DepartureInitiator.TEAM_MEMBER.value,
-            },
+            f"/teams/{team.id}/members/{team_member.uid}"
+            f"?last_working_day=2024-06-01&departure_initiated_by={DepartureInitiator.TEAM_MEMBER.value}",
             headers={"Tenant-ID": tenant.identifier},
         )
 
@@ -80,11 +77,8 @@ def test_delete_team_member_requires_manager_role():
     try:
         response = client.request(
             "DELETE",
-            f"/teams/{team.id}/members/{team_member.uid}",
-            json={
-                "last_working_day": "2024-06-01",
-                "departure_initiated_by": DepartureInitiator.TEAM_MEMBER.value,
-            },
+            f"/teams/{team.id}/members/{team_member.uid}"
+            f"?last_working_day=2024-06-01&departure_initiated_by={DepartureInitiator.TEAM_MEMBER.value}",
             headers={"Tenant-ID": tenant.identifier},
         )
 
@@ -117,10 +111,7 @@ def test_delete_team_member_allows_missing_departure_initiator():
     try:
         response = client.request(
             "DELETE",
-            f"/teams/{team.id}/members/{team_member.uid}",
-            json={
-                "last_working_day": "2024-06-01",
-            },
+            f"/teams/{team.id}/members/{team_member.uid}?last_working_day=2024-06-01",
             headers={"Tenant-ID": tenant.identifier},
         )
 
@@ -133,6 +124,38 @@ def test_delete_team_member_allows_missing_departure_initiator():
         assert stored_member.is_deleted is True
         assert stored_member.last_working_day == datetime.date(2024, 6, 1)
         assert stored_member.departure_initiated_by is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_delete_team_member_requires_last_working_day():
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    team_member = TeamMember(name="Alice", country="Sweden")
+    team = Team(tenant=tenant, name="Team Alpha", team_members=[team_member]).save()
+    user = User(
+        name="Manager",
+        role="manager",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"manager-{unique_suffix}"),
+    ).save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    try:
+        response = client.request(
+            "DELETE",
+            f"/teams/{team.id}/members/{team_member.uid}",
+            headers={"Tenant-ID": tenant.identifier},
+        )
+
+        assert response.status_code == 422
+
+        team.reload()
+        stored_member = team.get_member(team_member.uid, include_archived=True)
+        assert stored_member is not None
+        assert getattr(stored_member, "is_deleted", False) is False
     finally:
         app.dependency_overrides = {}
 

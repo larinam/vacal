@@ -243,11 +243,6 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
         raise ValueError(f"Invalid country name: {self.country}")
 
 
-class TeamMemberDeleteDTO(BaseModel):
-    last_working_day: datetime.date
-    departure_initiated_by: DepartureInitiator | None = None
-
-
 class TeamWriteDTO(BaseModel):
     name: str
     available_day_types: List[DayTypeReadDTO] = []
@@ -485,9 +480,10 @@ async def delete_team(team_id: str, current_user: Annotated[User, Depends(get_cu
 
 @router.delete("/{team_id}/members/{team_member_id}")
 async def delete_team_member(team_id: str, team_member_id: str,
-                             delete_data: TeamMemberDeleteDTO,
                              current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
-                             tenant: Annotated[Tenant, Depends(get_tenant)]):
+                             tenant: Annotated[Tenant, Depends(get_tenant)],
+                             last_working_day: datetime.date = Query(...),
+                             departure_initiated_by: DepartureInitiator | None = Query(None)):
     if not current_user.is_manager():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -499,10 +495,10 @@ async def delete_team_member(team_id: str, team_member_id: str,
     team_member_to_remove = team.get_member(team_member_id, include_archived=True)
     if not team_member_to_remove:
         raise HTTPException(status_code=404, detail="Team member not found")
-    team_member_to_remove.last_working_day = delete_data.last_working_day
+    team_member_to_remove.last_working_day = last_working_day
     team_member_to_remove.departure_initiated_by = (
-        delete_data.departure_initiated_by.value
-        if delete_data.departure_initiated_by is not None
+        departure_initiated_by.value
+        if departure_initiated_by is not None
         else None
     )
     if not getattr(team_member_to_remove, "is_deleted", False):

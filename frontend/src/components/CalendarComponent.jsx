@@ -558,14 +558,17 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
     const {teamId, member} = memberToDelete;
 
+    const params = new URLSearchParams({
+      last_working_day: lastWorkingDay,
+    });
+
+    if (departureInitiatedBy) {
+      params.set('departure_initiated_by', departureInitiatedBy);
+    }
+
     deleteMemberMutation.mutate(
       {
-        teamId,
-        memberId: member.uid,
-        payload: {
-          last_working_day: lastWorkingDay,
-          ...(departureInitiatedBy ? {departure_initiated_by: departureInitiatedBy} : {}),
-        },
+        endpoint: `/teams/${teamId}/members/${member.uid}?${params.toString()}`,
       },
       {
         onSuccess: () => {

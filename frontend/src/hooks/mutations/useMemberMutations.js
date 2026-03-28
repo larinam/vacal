@@ -26,8 +26,7 @@ const useMemberMutations = () => {
   });
 
   const deleteMemberMutation = useMutation({
-    mutationFn: ({teamId, memberId, payload}) =>
-      apiCall(`/teams/${teamId}/members/${memberId}`, 'DELETE', payload),
+    mutationFn: ({endpoint}) => apiCall(endpoint, 'DELETE'),
     onSuccess: () => {
       invalidateTeams();
     },
