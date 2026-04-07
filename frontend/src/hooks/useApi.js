@@ -42,13 +42,13 @@ export const useApi = () => {
                     console.error('Token refresh failed:', refreshError);
                     handleLogout();
                     navigate('/');
-                    return;
+                    throw new Error('Session expired');
                 }
             } else if (response.status === 401) {
                 // No refresh token available, just logout
                 handleLogout();
                 navigate('/');
-                return;
+                throw new Error('Session expired');
             }
             
             if (!response.ok) {

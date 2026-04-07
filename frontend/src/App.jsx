@@ -29,7 +29,9 @@ function App() {
         <Route path="/create-initial-user" element={<InitialUserCreation/>}/>
         <Route path="/register/:token" element={<UserRegistration/>}/>
         <Route path="/create-additional-workspace" element={<AdditionalWorkspaceCreation/>}/>
-        <Route path="/main/*" element={<MainComponent/>}/>
+        <Route path="/main/*" element={
+          isAuthenticated ? <MainComponent/> : <Navigate to="/login" replace/>
+        }/>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>
       <ToastContainer/>

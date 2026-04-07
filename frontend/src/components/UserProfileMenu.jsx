@@ -33,7 +33,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
       transition={{duration: 0.2, ease: 'easeOut'}}
     >
       <div className="dropdownItem" style={{cursor: 'default', backgroundColor: 'transparent', transition: 'none'}}>
-        <span>{user.name}{user.tenants.length > 1 ? ` (${currentTenant})` : ''}</span>
+        <span>{user?.name}{user?.tenants?.length > 1 ? ` (${currentTenant})` : ''}</span>
       </div>
       <div className="dropdownItem" onClick={() => {
         navigate('/main/settings/usermanagement?profile=true');
@@ -57,7 +57,7 @@ const UserProfileMenu = ({setShowDropdown}) => {
         <span>Invite user</span>
       </div>
       <hr/>
-      {user.tenants.length > 1 &&
+      {user?.tenants?.length > 1 &&
         user.tenants.map((tenant) => (
           <div
             key={tenant.identifier}

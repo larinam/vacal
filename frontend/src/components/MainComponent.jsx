@@ -80,6 +80,11 @@ const MainComponent = () => {
         };
     }, [isBusy]);
 
+    // Redirect to login if user is not available (e.g., after session expiry)
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
     const openReportModal = () => {
         setShowReportModal(true);
     };

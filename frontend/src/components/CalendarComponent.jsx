@@ -626,7 +626,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   };
 
   const handleCopyCalendarLink = (teamId) => {
-    const link = `${API_URL}/teams/calendar/${teamId}?user_api_key=${user.auth_details.api_key}`;
+    const link = `${API_URL}/teams/calendar/${teamId}?user_api_key=${user?.auth_details?.api_key}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success('Calendar link copied');
     }).catch(() => {
@@ -924,7 +924,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           </thead>
           <tbody>
           {filterTeamsAndMembers(teamData).map((team) => {
-            const isSubscribed = team.subscribers?.some(sub => sub._id === user._id);
+            const isSubscribed = team.subscribers?.some(sub => sub._id === user?._id);
             const isTeamCollapsed = collapsedTeams.includes(team._id);
             const collapseIconTitle = isTeamCollapsed ? 'Expand team' : 'Collapse team';
             const isTeamFocused = focusedTeamId === team._id;
