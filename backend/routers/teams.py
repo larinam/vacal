@@ -49,7 +49,10 @@ router = APIRouter(prefix="/teams", tags=["Teams"])
 
 
 def validate_country_name(country_name):
-    countries = pycountry.countries.search_fuzzy(country_name)
+    try:
+        countries = pycountry.countries.search_fuzzy(country_name)
+    except LookupError:
+        return None
     if countries:
         country = countries[0]
         if isinstance(country, Country):
@@ -442,6 +445,8 @@ async def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
     team_member_data = team_member_dto.model_dump()
     team_member = TeamMember(**team_member_data)
     team = Team.objects(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
     team.team_members.append(team_member)
     team.save()
     invalidate_holidays_cache()

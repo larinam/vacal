@@ -254,3 +254,101 @@ def test_team_member_birthday_added_once_per_year():
             assert len(days[birthday_key]["day_types"]) == 1
     finally:
         app.dependency_overrides = {}
+
+
+def test_add_team_member_success():
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    team = Team(tenant=tenant, name="Team Alpha", team_members=[]).save()
+    user = User(
+        name="Manager",
+        role="manager",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"manager-{unique_suffix}"),
+    ).save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    try:
+        response = client.post(
+            f"/teams/{team.id}/members",
+            json={
+                "name": "Bob",
+                "country": "Sweden",
+                "employee_start_date": "2025-01-01",
+                "yearly_vacation_days": 25,
+            },
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        assert response.json() == {"message": "Team member created successfully"}
+
+        team.reload()
+        assert len(team.team_members) == 1
+        assert team.team_members[0].name == "Bob"
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_member_invalid_country_returns_422():
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    team = Team(tenant=tenant, name="Team Alpha", team_members=[]).save()
+    user = User(
+        name="Manager",
+        role="manager",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"manager-{unique_suffix}"),
+    ).save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    try:
+        response = client.post(
+            f"/teams/{team.id}/members",
+            json={
+                "name": "Bob",
+                "country": "taylor",
+                "employee_start_date": "2025-01-01",
+                "yearly_vacation_days": 25,
+            },
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 422
+
+        team.reload()
+        assert len(team.team_members) == 0
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_member_team_not_found():
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    user = User(
+        name="Manager",
+        role="manager",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"manager-{unique_suffix}"),
+    ).save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    try:
+        response = client.post(
+            "/teams/000000000000000000000000/members",
+            json={
+                "name": "Bob",
+                "country": "Sweden",
+                "employee_start_date": "2025-01-01",
+                "yearly_vacation_days": 25,
+            },
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Team not found"}
+    finally:
+        app.dependency_overrides = {}
