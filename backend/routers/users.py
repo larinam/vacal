@@ -262,7 +262,7 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
         user.auth_details.telegram_username = None
     else:
         user.auth_details.telegram_username = user_update.telegram_username.lower()
-    if user_update.disabled is not None:
+    if user_update.disabled is not None and user_update.disabled != user.disabled:
         if not current_user.is_manager():
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="Only managers can disable users.")
