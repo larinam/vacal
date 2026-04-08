@@ -13,7 +13,7 @@ from starlette import status
 from ..dependencies import get_current_active_user, get_tenant, mongo_to_pydantic, get_current_active_user_check_tenant, \
     tenant_var
 from ..email_service import send_email
-from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember, UserInvite, PasswordResetToken
+from ..model import User, AuthDetails, Tenant, DayType, Team, TeamMember, UserInvite, PasswordResetToken, INVITE_EXPIRE_DAYS
 
 log = logging.getLogger(__name__)
 cors_origin = os.getenv("CORS_ORIGIN")  # should contain production domain of the frontend
@@ -426,11 +426,13 @@ def send_invitation_email(email: str, token: str):
 
     subject = "You're invited to join Vacation Calendar!"
     registration_link = f"{cors_origin}/register/{token}"
+    expire_days = INVITE_EXPIRE_DAYS
     body = (
         f"Hi there!\n\n"
         f"You have been invited to join our Vacation Calendar. To complete your registration, "
         f"please click the link below:\n\n"
         f"{registration_link}\n\n"
+        f"This invitation will expire in {expire_days} days.\n\n"
         f"If you did not expect this email, you can safely ignore it.\n\n"
         f"Best regards,\n"
         f"Vacation Calendar"
