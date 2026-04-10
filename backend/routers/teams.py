@@ -69,7 +69,6 @@ class TeamMemberWriteDTO(BaseModel):
     birthday: str | None = Field(None, pattern=r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
     employee_start_date: datetime.date | None = None
     yearly_vacation_days: Decimal | None = None
-    last_working_day: datetime.date | None = None
 
     @field_validator("country")
     @classmethod
@@ -98,6 +97,7 @@ class DayEntryDTO(BaseModel):
 class TeamMemberReadDTO(TeamMemberWriteDTO):
     uid: str
     days: Dict[str, DayEntryDTO] = Field(default_factory=dict)
+    last_working_day: datetime.date | None = None
     is_deleted: bool = False
     deleted_at: datetime.datetime | None = None
     deleted_by: UserWithoutTenantsDTO | None = None
