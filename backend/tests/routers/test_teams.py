@@ -642,3 +642,66 @@ def test_add_team_member_ignores_last_working_day():
         assert team.team_members[0].last_working_day is None
     finally:
         app.dependency_overrides = {}
+
+
+def test_get_archived_members_requires_manager_role():
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    user = User(
+        name="Employee",
+        role="employee",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"employee-{unique_suffix}"),
+    ).save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    try:
+        response = client.get(
+            "/teams/archived-members",
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Only managers can access archived members."}
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_get_archived_members_returns_archived_only():
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    active_member = TeamMember(name="Active Alice", country="Sweden")
+    archived_member = TeamMember(
+        name="Archived Bob",
+        country="Germany",
+        is_deleted=True,
+        last_working_day=datetime.date(2024, 6, 1),
+        separation_type=SeparationType.RESIGNATION.value,
+    )
+    team = Team(tenant=tenant, name="Test Team", team_members=[active_member, archived_member]).save()
+    user = User(
+        name="Manager",
+        role="manager",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"manager-{unique_suffix}"),
+    ).save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    try:
+        response = client.get(
+            "/teams/archived-members",
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["archived_members"]) == 1
+        result = data["archived_members"][0]
+        assert result["name"] == "Archived Bob"
+        assert result["team_name"] == "Test Team"
+        assert result["separation_type"] == "resignation"
+        assert result["last_working_day"] == "2024-06-01"
+    finally:
+        app.dependency_overrides = {}

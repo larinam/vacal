@@ -1,0 +1,124 @@
+.archivedMembersPage {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.archivedMembersPage__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.archivedMembersPage__header h1 {
+    font-size: 1.4em;
+    margin: 0;
+}
+
+.archivedMembersPage__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+    align-items: flex-end;
+}
+
+.archivedMembersPage__filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85em;
+}
+
+.archivedMembersPage__filterGroup label {
+    font-weight: 600;
+    color: #555;
+}
+
+.archivedMembersPage__filterGroup select,
+.archivedMembersPage__filterGroup input[type="date"] {
+    padding: 5px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.archivedMembersPage__summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.archivedMembersPage__summaryItem strong {
+    color: #222;
+}
+
+.archivedMembersPage__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.archivedMembersPage__table th {
+    text-align: left;
+    padding: 8px 10px;
+    background: #f5f5f5;
+    border-bottom: 2px solid #ddd;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.archivedMembersPage__table th:hover {
+    background: #ebebeb;
+}
+
+.archivedMembersPage__table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.archivedMembersPage__table tr:last-child td {
+    border-bottom: none;
+}
+
+.archivedMembersPage__sortIndicator {
+    margin-left: 4px;
+    font-size: 0.75em;
+    color: #888;
+}
+
+.archivedMembersPage__badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.archivedMembersPage__badge--neutral {
+    background: #e8e8e8;
+    color: #555;
+}
+
+.archivedMembersPage__badge--amber {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.archivedMembersPage__badge--teal {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.archivedMembersPage__empty {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}

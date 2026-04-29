@@ -245,6 +245,19 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
         raise ValueError(f"Invalid country name: {self.country}")
 
 
+class ArchivedMemberDTO(BaseModel):
+    uid: str
+    name: str
+    team_id: str
+    team_name: str
+    country: str
+    employee_start_date: datetime.date | None = None
+    last_working_day: datetime.date | None = None
+    separation_type: SeparationType | None = None
+    deleted_at: datetime.datetime | None = None
+    deleted_by: UserWithoutTenantsDTO | None = None
+
+
 class TeamWriteDTO(BaseModel):
     name: str
     available_day_types: List[DayTypeReadDTO] = []
@@ -1043,3 +1056,28 @@ def _get_paginated_audits(
     if date is not None:
         query = query.filter(date=date)
     return query.order_by("-timestamp").skip(skip).limit(limit)
+
+
+@router.get("/archived-members")
+async def get_archived_members(
+    current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+    tenant: Annotated[Tenant, Depends(get_tenant)],
+):
+    if not current_user.is_manager():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can access archived members.")
+    result = []
+    for team in Team.objects_with_deleted(tenant=tenant):
+        for member in team.archived_members:
+            result.append(ArchivedMemberDTO(
+                uid=str(member.uid),
+                name=member.name,
+                team_id=str(team.id),
+                team_name=team.name,
+                country=member.country,
+                employee_start_date=member.employee_start_date,
+                last_working_day=member.last_working_day,
+                separation_type=member.separation_type,
+                deleted_at=member.deleted_at,
+                deleted_by=mongo_to_pydantic(member.deleted_by, UserWithoutTenantsDTO) if member.deleted_by else None,
+            ))
+    return {"archived_members": result}

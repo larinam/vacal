@@ -3,9 +3,10 @@ import {Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import CalendarComponent from './CalendarComponent';
 import SettingsComponent from './settings/SettingsComponent';
 import ReportFormModal from './ReportFormModal';
+import ArchivedMembersPage from './ArchivedMembersPage';
 import './MainComponent.css';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faFileExcel, faUserCircle} from '@fortawesome/free-solid-svg-icons';
+import {faFileExcel, faUserCircle, faUserXmark} from '@fortawesome/free-solid-svg-icons';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import UserProfileMenu from "./UserProfileMenu";
@@ -122,6 +123,17 @@ const MainComponent = () => {
                 {isBusy && <div className="spinner" role="status" aria-label="Loading" />}
             </div>
             <div className="iconContainer">
+                {user?.role === 'manager' && (
+                    <FontAwesomeIconWithTitle
+                        icon={faUserXmark}
+                        title="Archived Members"
+                        wrapperClassName="archivedMembersIcon"
+                        wrapperProps={{
+                            onClick: () => navigate('/main/archived-members'),
+                            role: 'button',
+                        }}
+                    />
+                )}
                 <FontAwesomeIconWithTitle
                     icon={faFileExcel}
                     title="Generate Report"
@@ -151,7 +163,7 @@ const MainComponent = () => {
                         />
                     } />
                     <Route path="settings/*" element={<SettingsComponent onClose={() => {navigate("/main"); refetchTeams();}} />} />
-                    {/* You can add more nested routes here */}
+                    <Route path="archived-members" element={<ArchivedMembersPage user={user} apiCall={apiCall} />} />
                     <Route path="*" element={<Navigate to="/main" replace />} />
                 </Routes>
             </div>

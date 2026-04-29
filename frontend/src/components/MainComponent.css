@@ -29,6 +29,10 @@
     cursor: pointer;
 }
 
+.archivedMembersIcon {
+    cursor: pointer;
+}
+
 .loadingIndicator {
     position: fixed;
     top: 10px;
