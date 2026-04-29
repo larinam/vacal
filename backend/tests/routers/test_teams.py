@@ -16,7 +16,7 @@ from backend.model import (
     TeamMember,
     Tenant,
     User,
-    DepartureInitiator,
+    SeparationType,
 )
 
 
@@ -42,7 +42,7 @@ def test_delete_team_member_stores_last_working_day():
         response = client.request(
             "DELETE",
             f"/teams/{team.id}/members/{team_member.uid}"
-            f"?last_working_day=2024-06-01&departure_initiated_by={DepartureInitiator.TEAM_MEMBER.value}",
+            f"?last_working_day=2024-06-01&separation_type={SeparationType.RESIGNATION.value}",
             headers={"Tenant-ID": tenant.identifier},
         )
 
@@ -54,7 +54,7 @@ def test_delete_team_member_stores_last_working_day():
         assert stored_member is not None
         assert stored_member.is_deleted is True
         assert stored_member.last_working_day == datetime.date(2024, 6, 1)
-        assert stored_member.departure_initiated_by == DepartureInitiator.TEAM_MEMBER.value
+        assert stored_member.separation_type == SeparationType.RESIGNATION.value
     finally:
         app.dependency_overrides = {}
 
@@ -78,7 +78,7 @@ def test_delete_team_member_requires_manager_role():
         response = client.request(
             "DELETE",
             f"/teams/{team.id}/members/{team_member.uid}"
-            f"?last_working_day=2024-06-01&departure_initiated_by={DepartureInitiator.TEAM_MEMBER.value}",
+            f"?last_working_day=2024-06-01&separation_type={SeparationType.RESIGNATION.value}",
             headers={"Tenant-ID": tenant.identifier},
         )
 
@@ -123,7 +123,7 @@ def test_delete_team_member_allows_missing_departure_initiator():
         assert stored_member is not None
         assert stored_member.is_deleted is True
         assert stored_member.last_working_day == datetime.date(2024, 6, 1)
-        assert stored_member.departure_initiated_by is None
+        assert stored_member.separation_type is None
     finally:
         app.dependency_overrides = {}
 

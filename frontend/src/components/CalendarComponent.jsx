@@ -551,7 +551,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     setMemberToDelete(null);
   };
 
-  const handleConfirmDeleteMember = ({lastWorkingDay, departureInitiatedBy}) => {
+  const handleConfirmDeleteMember = ({lastWorkingDay, separationType}) => {
     if (!memberToDelete) {
       return;
     }
@@ -562,8 +562,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       last_working_day: lastWorkingDay,
     });
 
-    if (departureInitiatedBy) {
-      params.set('departure_initiated_by', departureInitiatedBy);
+    if (separationType) {
+      params.set('separation_type', separationType);
     }
 
     deleteMemberMutation.mutate(

@@ -21,7 +21,7 @@ test('submits without requiring a departure initiator', async () => {
 
   expect(onConfirm).toHaveBeenCalledWith({
     lastWorkingDay: '2024-06-01',
-    departureInitiatedBy: null,
+    separationType: null,
   });
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });

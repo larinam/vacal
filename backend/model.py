@@ -467,9 +467,13 @@ class SoftDeleteQuerySet(QuerySet):
         return self.filter(is_deleted=True)
 
 
-class DepartureInitiator(str, Enum):
-    TEAM_MEMBER = "team_member"
-    COMPANY = "company"
+class SeparationType(str, Enum):
+    RESIGNATION      = "resignation"
+    TERMINATION      = "termination"
+    REDUNDANCY       = "redundancy"
+    MUTUAL_AGREEMENT = "mutual_agreement"
+    END_OF_CONTRACT  = "end_of_contract"
+    RETIREMENT       = "retirement"
 
 
 class TeamMember(EmbeddedDocument):
@@ -487,8 +491,8 @@ class TeamMember(EmbeddedDocument):
     is_deleted = BooleanField(default=False)
     deleted_at = DateTimeField(default=None)
     deleted_by = ReferenceField('User', default=None)
-    departure_initiated_by = StringField(
-        choices=[choice.value for choice in DepartureInitiator], default=None
+    separation_type = StringField(
+        choices=[choice.value for choice in SeparationType], default=None
     )
 
 

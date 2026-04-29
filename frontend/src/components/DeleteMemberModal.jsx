@@ -5,14 +5,14 @@ import './DeleteMemberModal.css';
 const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting = false}) => {
   const [confirmationName, setConfirmationName] = useState('');
   const [lastWorkingDay, setLastWorkingDay] = useState('');
-  const [departureInitiatedBy, setDepartureInitiatedBy] = useState('');
+  const [separationType, setSeparationType] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setConfirmationName('');
       setLastWorkingDay('');
-      setDepartureInitiatedBy('');
+      setSeparationType('');
       setError('');
     }
   }, [isOpen]);
@@ -36,7 +36,7 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
     setError('');
     onConfirm({
       lastWorkingDay,
-      departureInitiatedBy: departureInitiatedBy || null,
+      separationType: separationType || null,
     });
   };
 
@@ -69,29 +69,27 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
           />
         </label>
         <fieldset className="deleteMemberModal__choiceGroup" disabled={isSubmitting}>
-          <legend>Who initiated this departure? (optional)</legend>
-          <label className="deleteMemberModal__radio">
-            <input
-              type="radio"
-              name="departureInitiatedBy"
-              value="team_member"
-              checked={departureInitiatedBy === 'team_member'}
-              onChange={(event) => setDepartureInitiatedBy(event.target.value)}
-              disabled={isSubmitting}
-            />
-            <span>The team member (voluntary resignation)</span>
-          </label>
-          <label className="deleteMemberModal__radio">
-            <input
-              type="radio"
-              name="departureInitiatedBy"
-              value="company"
-              checked={departureInitiatedBy === 'company'}
-              onChange={(event) => setDepartureInitiatedBy(event.target.value)}
-              disabled={isSubmitting}
-            />
-            <span>The company (asked to leave)</span>
-          </label>
+          <legend>Separation type (optional)</legend>
+          {[
+            {value: 'resignation',       label: 'Resignation (voluntary)'},
+            {value: 'termination',       label: 'Termination by employer'},
+            {value: 'redundancy',        label: 'Redundancy / position eliminated'},
+            {value: 'mutual_agreement',  label: 'Mutual agreement'},
+            {value: 'end_of_contract',   label: 'End of fixed-term contract'},
+            {value: 'retirement',        label: 'Retirement'},
+          ].map(({value, label}) => (
+            <label key={value} className="deleteMemberModal__radio">
+              <input
+                type="radio"
+                name="separationType"
+                value={value}
+                checked={separationType === value}
+                onChange={(event) => setSeparationType(event.target.value)}
+                disabled={isSubmitting}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
         </fieldset>
         {error && <p className="deleteMemberModal__error" role="alert">{error}</p>}
         <div className="deleteMemberModal__buttons">
