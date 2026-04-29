@@ -11,6 +11,18 @@
     margin-bottom: 20px;
 }
 
+.archivedMembersPage__back {
+    font-size: 0.9em;
+    color: #555;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.archivedMembersPage__back:hover {
+    color: #222;
+    text-decoration: underline;
+}
+
 .archivedMembersPage__header h1 {
     font-size: 1.4em;
     margin: 0;

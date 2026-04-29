@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react';
-import {Navigate} from 'react-router-dom';
+import {Link, Navigate} from 'react-router-dom';
 import {useArchivedMembersQuery} from '../hooks/queries/useArchivedMembersQuery';
 import './ArchivedMembersPage.css';
 
@@ -115,6 +115,7 @@ const ArchivedMembersPage = ({user, apiCall}) => {
     return (
         <div className="archivedMembersPage">
             <div className="archivedMembersPage__header">
+                <Link to="/main" className="archivedMembersPage__back">← Calendar</Link>
                 <h1>Archived Members</h1>
             </div>
 
