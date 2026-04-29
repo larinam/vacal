@@ -1058,11 +1058,10 @@ def _get_paginated_audits(
     return query.order_by("-timestamp").skip(skip).limit(limit)
 
 
-def _safe_deref_user(ref) -> UserWithoutTenantsDTO | None:
-    if not ref:
-        return None
+def _safe_deref_user(member) -> UserWithoutTenantsDTO | None:
     try:
-        return mongo_to_pydantic(ref, UserWithoutTenantsDTO)
+        ref = member.deleted_by
+        return mongo_to_pydantic(ref, UserWithoutTenantsDTO) if ref else None
     except Exception:
         return None
 
@@ -1087,6 +1086,6 @@ async def get_archived_members(
                 last_working_day=member.last_working_day,
                 separation_type=member.separation_type,
                 deleted_at=member.deleted_at,
-                deleted_by=_safe_deref_user(member.deleted_by),
+                deleted_by=_safe_deref_user(member),
             ))
     return {"archived_members": result}
