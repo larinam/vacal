@@ -93,7 +93,7 @@ def test_delete_team_member_requires_manager_role():
         app.dependency_overrides = {}
 
 
-def test_delete_team_member_allows_missing_departure_initiator():
+def test_delete_team_member_requires_separation_type():
     unique_suffix = str(uuid.uuid4())
     tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
     team_member = TeamMember(name="Alice", country="Sweden")
@@ -115,15 +115,7 @@ def test_delete_team_member_allows_missing_departure_initiator():
             headers={"Tenant-ID": tenant.identifier},
         )
 
-        assert response.status_code == 200
-        assert response.json() == {"message": "Team member deleted successfully"}
-
-        team.reload()
-        stored_member = team.get_member(team_member.uid, include_archived=True)
-        assert stored_member is not None
-        assert stored_member.is_deleted is True
-        assert stored_member.last_working_day == datetime.date(2024, 6, 1)
-        assert stored_member.separation_type is None
+        assert response.status_code == 422
     finally:
         app.dependency_overrides = {}
 
@@ -477,7 +469,7 @@ def test_update_team_member_archived_returns_400():
     try:
         delete_resp = client.request(
             "DELETE",
-            f"/teams/{team.id}/members/{member.uid}?last_working_day=2024-06-01",
+            f"/teams/{team.id}/members/{member.uid}?last_working_day=2024-06-01&separation_type={SeparationType.RESIGNATION.value}",
             headers={"Tenant-ID": tenant.identifier},
         )
         assert delete_resp.status_code == 200

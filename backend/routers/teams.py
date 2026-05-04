@@ -500,7 +500,7 @@ async def delete_team_member(team_id: str, team_member_id: str,
                              current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                              tenant: Annotated[Tenant, Depends(get_tenant)],
                              last_working_day: datetime.date = Query(...),
-                             separation_type: SeparationType | None = Query(None)):
+                             separation_type: SeparationType = Query(...)):
     if not current_user.is_manager():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -513,11 +513,7 @@ async def delete_team_member(team_id: str, team_member_id: str,
     if not team_member_to_remove:
         raise HTTPException(status_code=404, detail="Team member not found")
     team_member_to_remove.last_working_day = last_working_day
-    team_member_to_remove.separation_type = (
-        separation_type.value
-        if separation_type is not None
-        else None
-    )
+    team_member_to_remove.separation_type = separation_type.value
     if not getattr(team_member_to_remove, "is_deleted", False):
         team_member_to_remove.is_deleted = True
         team_member_to_remove.deleted_at = datetime.datetime.now(datetime.timezone.utc)
