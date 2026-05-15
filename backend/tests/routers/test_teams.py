@@ -93,7 +93,7 @@ def test_delete_team_member_requires_manager_role():
         app.dependency_overrides = {}
 
 
-def test_delete_team_member_requires_separation_type():
+def test_delete_team_member_allows_missing_separation_type():
     unique_suffix = str(uuid.uuid4())
     tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
     team_member = TeamMember(name="Alice", country="Sweden")
@@ -115,7 +115,15 @@ def test_delete_team_member_requires_separation_type():
             headers={"Tenant-ID": tenant.identifier},
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 200
+        assert response.json() == {"message": "Team member deleted successfully"}
+
+        team.reload()
+        stored_member = team.get_member(team_member.uid, include_archived=True)
+        assert stored_member is not None
+        assert stored_member.is_deleted is True
+        assert stored_member.last_working_day == datetime.date(2024, 6, 1)
+        assert stored_member.separation_type is None
     finally:
         app.dependency_overrides = {}
 

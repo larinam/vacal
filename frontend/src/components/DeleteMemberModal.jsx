@@ -33,11 +33,6 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
       return;
     }
 
-    if (!separationType) {
-      setError('Please select a separation type.');
-      return;
-    }
-
     setError('');
     onConfirm({
       lastWorkingDay,
@@ -74,7 +69,7 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
           />
         </label>
         <fieldset className="deleteMemberModal__choiceGroup" disabled={isSubmitting}>
-          <legend>Separation type</legend>
+          <legend>Separation type (optional)</legend>
           {[
             {value: 'resignation',       label: 'Resignation (voluntary)'},
             {value: 'termination',       label: 'Termination by employer'},
