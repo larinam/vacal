@@ -1,7 +1,8 @@
 import React, {useEffect} from 'react';
 import {useApi} from '../../hooks/useApi';
+import {toast} from 'react-toastify';
 import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
-import {faTrashAlt} from '@fortawesome/free-solid-svg-icons';
+import {faPaperPlane, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useInvitesQuery, INVITES_QUERY_KEY} from '../../hooks/queries/useInvitesQuery';
 
@@ -48,6 +49,27 @@ const InviteManagement = ({refreshTrigger}) => {
     }
   };
 
+  const resendInviteMutation = useMutation({
+    mutationFn: (inviteId) => apiCall(`/users/invite/${inviteId}/resend`, 'POST'),
+    onSuccess: () => {
+      toast.success('Invitation resent successfully');
+      queryClient.invalidateQueries({queryKey: INVITES_QUERY_KEY});
+    },
+    onError: (error) => {
+      console.error('Error resending invite:', error);
+      const detail = error?.data?.detail;
+      toast.error(`Failed to resend invitation: ${detail || 'Unknown error'}`);
+    },
+  });
+
+  const handleResendInvite = (inviteId) => {
+    if (resendInviteMutation.isPending) {
+      return;
+    }
+
+    resendInviteMutation.mutate(inviteId);
+  };
+
   if (isInvitesPending && invites.length === 0) {
     return (
       <div className="inviteManagementContainer">
@@ -81,9 +103,16 @@ const InviteManagement = ({refreshTrigger}) => {
             <td>{new Date(invite.expiration_date).toLocaleDateString()}</td>
             <td>
               <FontAwesomeIconWithTitle
+                icon={faPaperPlane}
+                onClick={() => handleResendInvite(invite._id)}
+                className="firstActionIcon"
+                title="Resend invite"
+                aria-label="Resend invite"
+              />
+              <FontAwesomeIconWithTitle
                 icon={faTrashAlt}
                 onClick={() => handleWithdrawInvite(invite._id, invite.email)}
-                className="firstActionIcon"
+                className="actionIcon"
                 title="Withdraw invite"
                 aria-label="Withdraw invite"
               />

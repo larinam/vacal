@@ -599,3 +599,26 @@ async def withdraw_invite(invite_id: str,
     invite.delete()
 
     return {"message": "Invite withdrawn successfully"}
+
+
+@router.post("/invite/{invite_id}/resend")
+async def resend_invite(invite_id: str,
+                        background_tasks: BackgroundTasks,
+                        current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                        tenant: Annotated[Tenant, Depends(get_tenant)]):
+    invite = UserInvite.objects(id=invite_id, tenant=tenant).first()
+
+    if not invite:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite not found")
+
+    if invite.status == "accepted":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot resend an accepted invite")
+
+    # Generate a fresh token and reset the expiration date. This invalidates any previously
+    # issued registration link for this invite.
+    token = invite.refresh_token()
+
+    # Send the invitation email again in the background
+    background_tasks.add_task(send_invitation_email, invite.email, token)
+
+    return {"message": "Invitation resent successfully"}

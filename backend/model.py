@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import random
@@ -283,6 +284,19 @@ class UserInvite(Document):
     def is_expired(self):
         self.expiration_date = self.expiration_date.replace(tzinfo=timezone.utc)
         return datetime.now(timezone.utc) > self.expiration_date
+
+    def refresh_token(self):
+        """Generate a new invitation token, reset status and expiration, persist and return the raw token.
+
+        The token is stored hashed (SHA-256); the returned raw token is only used to build the
+        registration link in the invitation email and is never persisted.
+        """
+        raw_token = secrets.token_urlsafe(32)
+        self.token = hashlib.sha256(raw_token.encode()).hexdigest()
+        self.status = "pending"
+        self.expiration_date = datetime.now(timezone.utc) + timedelta(days=INVITE_EXPIRE_DAYS)
+        self.save()
+        return raw_token
 
     def mark_as_accepted(self):
         self.status = "accepted"
