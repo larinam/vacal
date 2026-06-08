@@ -7,6 +7,7 @@ import DayTypeCheckbox from './DayTypeCheckbox';
 import DayHistoryModal from './DayHistoryModal';
 import useDayAssignmentsMutation from '../hooks/mutations/useDayAssignmentsMutation';
 import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
+import {getPreferredLocale} from '../utils/locale';
 
 const DayTypeContextMenu = ({
                               contextMenuRef,
@@ -272,7 +273,7 @@ const DayTypeContextMenu = ({
     if (selectedDayInfo.dateRange.length === 1) {
       // If there's only one day in the range
       const date = selectedDayInfo.dateRange[0];
-      displayDate = new Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(date) +
+      displayDate = new Intl.DateTimeFormat(getPreferredLocale(), {weekday: 'long'}).format(date) +
         ', ' + format(date, 'yyyy-MM-dd');
     } else {
       // If there are multiple days, show the range

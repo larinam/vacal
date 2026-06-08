@@ -28,6 +28,7 @@ import DeleteMemberModal from './DeleteMemberModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
+import {getPreferredLocale} from '../utils/locale';
 import {useApi} from '../hooks/useApi';
 import useTeamManagementMutations from '../hooks/mutations/useTeamManagementMutations';
 import useMemberMutations from '../hooks/mutations/useMemberMutations';
@@ -398,7 +399,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     const endDay = getLastSunday(displayMonth);
     const daysInterval = eachDayOfInterval({start: startDay, end: endDay});
 
-    const weekdayFormatter = new Intl.DateTimeFormat(navigator.language, {weekday: 'short'});
+    const weekdayFormatter = new Intl.DateTimeFormat(getPreferredLocale(), {weekday: 'short'});
 
     const newDaysHeader = daysInterval.map(date => ({
       day: date.getDate(),
