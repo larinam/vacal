@@ -19,7 +19,20 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
 
   useEffect(() => {
     if (editingMember) {
-      setNewMemberData(editingMember);
+      // Coerce nullable backend fields to controlled-input defaults so the
+      // inputs never receive `null` (which would make React warn and switch
+      // the field from controlled to uncontrolled).
+      setNewMemberData({
+        ...editingMember,
+        name: editingMember.name ?? '',
+        country: editingMember.country ?? '',
+        email: editingMember.email ?? '',
+        phone: editingMember.phone ?? '',
+        birthday: editingMember.birthday ?? '',
+        employee_start_date: editingMember.employee_start_date ?? '',
+        yearly_vacation_days: editingMember.yearly_vacation_days ?? '',
+        vac_days: editingMember.vac_days ?? [],
+      });
     } else {
       setNewMemberData(INITIAL_MEMBER_STATE);
     }
