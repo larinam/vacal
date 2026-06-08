@@ -10,3 +10,6 @@
 .idea/
 
 .vscode/
+
+# Playwright MCP browser session artifacts
+.playwright-mcp/
