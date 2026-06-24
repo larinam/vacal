@@ -29,6 +29,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
 import {getPreferredLocale} from '../utils/locale';
+import {getReportsUnder} from '../utils/hierarchy';
 import {useApi} from '../hooks/useApi';
 import useTeamManagementMutations from '../hooks/mutations/useTeamManagementMutations';
 import useMemberMutations from '../hooks/mutations/useMemberMutations';
@@ -58,6 +59,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [collapsedTeams, setCollapsedTeams] = useLocalStorage('collapsedTeams', []);
   const [focusedTeamId, setFocusedTeamId] = useLocalStorage('focusedTeamId', null);
   const [filterInput, setFilterInput] = useLocalStorage('vacalFilter', '');
+  const [managerFilterUid, setManagerFilterUid] = useLocalStorage('vacalManagerFilter', '');
+  const [reportScope, setReportScope] = useLocalStorage('vacalReportScope', 'direct');
   const filterInputRef = useRef(null);
   const [editingTeam, setEditingTeam] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
@@ -99,6 +102,38 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     () => (teamData || []).flatMap((team) => (team.team_members || []).filter((m) => !m.is_deleted)),
     [teamData]
   );
+
+  // The team member that corresponds to the logged-in user (matched by email,
+  // since there is no hard link between User and TeamMember). Powers the "Me" shortcut.
+  const currentMemberUid = useMemo(() => {
+    const email = user?.email?.toLowerCase();
+    if (!email) return null;
+    return allMembers.find((m) => m.email?.toLowerCase() === email)?.uid || null;
+  }, [allMembers, user]);
+
+  // Selectable roots for the manager filter: every member who manages at least
+  // one other member (sorted by name), with a "Me (You)" shortcut pinned first.
+  const managerSelectOptions = useMemo(() => {
+    const managedUids = new Set(allMembers.map((m) => m.manager_uid).filter(Boolean));
+    const options = allMembers
+      .filter((m) => managedUids.has(m.uid) && m.uid !== currentMemberUid)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((m) => ({uid: m.uid, label: m.name}));
+    if (currentMemberUid) {
+      options.unshift({uid: currentMemberUid, label: 'Me (You)'});
+    }
+    return options;
+  }, [allMembers, currentMemberUid]);
+
+  // Set of member uids visible under the selected manager, or null when no
+  // manager filter is active.
+  const visibleUids = useMemo(() => {
+    if (!managerFilterUid) return null;
+    return getReportsUnder(managerFilterUid, allMembers, {
+      includeIndirect: reportScope === 'all',
+      includeRoot: true,
+    });
+  }, [managerFilterUid, allMembers, reportScope]);
 
   const haveSameDayTypes = (first = [], second = []) => {
     if (first.length !== second.length) {
@@ -350,7 +385,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   useEffect(() => {
     triggerSaveIcon();
-  }, [collapsedTeams, focusedTeamId, filterInput]);
+  }, [collapsedTeams, focusedTeamId, filterInput, managerFilterUid, reportScope]);
 
   useEffect(() => {
     if (showAddMemberForm && addMemberFormRef.current) {
@@ -439,27 +474,26 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   }
 
 
-  const filterTeamsAndMembers = (data) => {
-    if (!filterInput) return data; // If no filter, return all data
+  // Restrict to members reporting under the selected manager. No-op when the
+  // manager filter is off. Running this before the text filter means the
+  // text filter only ever sees reports, so its team-name shortcut can stay.
+  const filterByManager = (data) => {
+    if (!visibleUids) return data;
+    return data
+      .map(team => ({...team, team_members: team.team_members.filter(m => visibleUids.has(m.uid))}))
+      .filter(team => team.team_members.length > 0);
+  };
 
+  // Restrict to teams/members matching the text filter (team name OR member name).
+  const filterByText = (data) => {
+    if (!filterInput) return data;
+    const filter = filterInput.toLowerCase();
     return data.map(team => {
-      // Check if team name matches the filter
-      if (team.name.toLowerCase().includes(filterInput.toLowerCase())) {
-        return team; // Return the whole team as is
-      }
-
-      // Filter team members who match the filter
-      const filteredMembers = team.team_members.filter(member =>
-        member.name.toLowerCase().includes(filterInput.toLowerCase())
-      );
-
-      if (filteredMembers.length > 0) {
-        // Return the team with only the filtered members
-        return {...team, team_members: filteredMembers};
-      }
-
-      return null; // Exclude teams with no matching members
-    }).filter(team => team !== null); // Remove null entries (teams with no matches)
+      // Team name matches → keep the team (and its members) as is.
+      if (team.name.toLowerCase().includes(filter)) return team;
+      const members = team.team_members.filter(m => m.name.toLowerCase().includes(filter));
+      return members.length > 0 ? {...team, team_members: members} : null;
+    }).filter(Boolean);
   };
 
   const formatDate = (date) => {
@@ -793,6 +827,16 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const subscriptionTeam = subscriptionTeamId ? teamData.find(team => team._id === subscriptionTeamId) : null;
 
+  const visibleTeams = filterByText(filterByManager(teamData));
+
+  let emptyFilterMessage = 'No teams or members match your filter.';
+  if (managerFilterUid) {
+    const rootName = managerFilterUid === currentMemberUid
+      ? 'you'
+      : allMembers.find((m) => m.uid === managerFilterUid)?.name || '';
+    emptyFilterMessage = `No members report to ${rootName}${reportScope === 'direct' ? ' directly' : ''}.`;
+  }
+
 
   return (
     <div>
@@ -874,6 +918,35 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
             onChange={(e) => setFilterInput(e.target.value)}
             placeholder="Filter by team or member name"
           />
+          <select
+            className="manager-filter"
+            value={managerFilterUid}
+            onChange={(e) => setManagerFilterUid(e.target.value)}
+            title="Filter by manager"
+          >
+            <option value="">All members</option>
+            {managerSelectOptions.map((m) => (
+              <option key={m.uid} value={m.uid}>{m.label}</option>
+            ))}
+          </select>
+          {managerFilterUid && (
+            <div className="scope-toggle" role="group" aria-label="Report scope">
+              <button
+                type="button"
+                className={reportScope === 'direct' ? 'active' : ''}
+                onClick={() => setReportScope('direct')}
+              >
+                Direct reports
+              </button>
+              <button
+                type="button"
+                className={reportScope === 'all' ? 'active' : ''}
+                onClick={() => setReportScope('all')}
+              >
+                Entire hierarchy
+              </button>
+            </div>
+          )}
         </div>
         <MonthSelector
           displayMonth={displayMonth}
@@ -930,7 +1003,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           </tr>
           </thead>
           <tbody>
-          {filterTeamsAndMembers(teamData).map((team) => {
+          {visibleTeams.map((team) => {
             const isSubscribed = team.subscribers?.some(sub => sub._id === user?._id);
             const isTeamCollapsed = collapsedTeams.includes(team._id);
             const collapseIconTitle = isTeamCollapsed ? 'Expand team' : 'Collapse team';
@@ -1125,6 +1198,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
             </React.Fragment>
             );
           })}
+          {visibleTeams.length === 0 && (
+            <tr>
+              <td colSpan={daysHeader.length + 1} className="empty-filter-message">
+                {emptyFilterMessage}
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
       </div>

@@ -22,7 +22,8 @@
     border: 1px solid #d0d7de;
     border-radius: 4px;
     font-size: 13px;
-    width: 50%;
+    flex: 1 1 auto;
+    min-width: 140px;
     box-sizing: border-box;
     transition: border-color 0.2s ease-in-out;
 }
@@ -37,10 +38,65 @@
 }
 
 .filter-wrapper {
-    flex: 0 0 40%; /* Allocate space but allow it to shrink or grow as needed */
+    flex: 0 0 58%; /* Allocate space but allow it to shrink or grow as needed */
     display: flex;
     align-items: center;
     justify-content: left;
+    gap: 8px;
+}
+
+/* Manager (reporting-hierarchy) filter — styled to match the search input */
+.stickyHeader .manager-filter {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    font-size: 13px;
+    background-color: white;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.stickyHeader .manager-filter:focus {
+    border-color: #0366d6;
+    outline: none;
+}
+
+/* Segmented Direct / Entire-hierarchy toggle */
+.scope-toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.stickyHeader .scope-toggle button {
+    flex: 0 0 auto;
+    margin: 0; /* override the default .stickyHeader button margin */
+    padding: 5px 10px;
+    border: none;
+    background-color: white;
+    color: #57606a;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.stickyHeader .scope-toggle button + button {
+    border-left: 1px solid #d0d7de;
+}
+
+.stickyHeader .scope-toggle button.active {
+    background-color: #0366d6;
+    color: white;
+}
+
+.empty-filter-message {
+    padding: 16px;
+    text-align: center;
+    color: #8a939d;
+    font-style: italic;
 }
 
 /* Specific style for the Clear button */
