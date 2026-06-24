@@ -3,7 +3,7 @@ import {toast} from "react-toastify";
 import Modal from './Modal';
 import useMemberMutations from '../hooks/mutations/useMemberMutations';
 
-const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMember}) => {
+const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMember, allMembers = []}) => {
   const INITIAL_MEMBER_STATE = {
     name: '',
     country: '',
@@ -12,6 +12,7 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
     birthday: '',
     employee_start_date: '',
     yearly_vacation_days: '',
+    manager_uid: '',
     vac_days: []
   };
   const [newMemberData, setNewMemberData] = useState(INITIAL_MEMBER_STATE);
@@ -31,6 +32,7 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
         birthday: editingMember.birthday ?? '',
         employee_start_date: editingMember.employee_start_date ?? '',
         yearly_vacation_days: editingMember.yearly_vacation_days ?? '',
+        manager_uid: editingMember.manager_uid ?? '',
         vac_days: editingMember.vac_days ?? [],
       });
     } else {
@@ -126,6 +128,20 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
               onChange={(e) => setNewMemberData({...newMemberData, phone: e.target.value})}
               placeholder="Enter member's phone"
             />
+          </label>
+          <label>
+            Manager
+            <select
+              value={newMemberData.manager_uid}
+              onChange={(e) => setNewMemberData({...newMemberData, manager_uid: e.target.value})}
+            >
+              <option value="">None</option>
+              {allMembers
+                .filter((m) => m.uid !== editingMember?.uid)
+                .map((m) => (
+                  <option key={m.uid} value={m.uid}>{m.name}</option>
+                ))}
+            </select>
           </label>
           <label>
             Birthday

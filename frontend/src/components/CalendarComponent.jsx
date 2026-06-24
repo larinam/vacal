@@ -95,6 +95,11 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     return Array.from(countries);
   }, [teamData]);
 
+  const allMembers = useMemo(
+    () => (teamData || []).flatMap((team) => (team.team_members || []).filter((m) => !m.is_deleted)),
+    [teamData]
+  );
+
   const haveSameDayTypes = (first = [], second = []) => {
     if (first.length !== second.length) {
       return false;
@@ -810,6 +815,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         selectedTeamId={selectedTeamId}
         updateTeamData={updateTeamData}
         editingMember={editingMember}
+        allMembers={allMembers}
       />
       <TeamHistoryModal
         isOpen={showTeamHistory}

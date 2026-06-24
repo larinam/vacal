@@ -508,6 +508,7 @@ class TeamMember(EmbeddedDocument):
     separation_type = StringField(
         choices=[choice.value for choice in SeparationType], default=None
     )
+    manager_uid = StringField(default=None)
 
 
 class Team(Document):

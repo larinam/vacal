@@ -69,6 +69,7 @@ class TeamMemberWriteDTO(BaseModel):
     birthday: str | None = Field(None, pattern=r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
     employee_start_date: datetime.date | None = None
     yearly_vacation_days: Decimal | None = None
+    manager_uid: str | None = None
 
     @field_validator("country")
     @classmethod
@@ -86,6 +87,11 @@ class TeamMemberWriteDTO(BaseModel):
     @field_validator('birthday', mode='before')
     @classmethod
     def empty_birthday_to_none(cls, v):
+        return None if v == "" else v
+
+    @field_validator('manager_uid', mode='before')
+    @classmethod
+    def empty_manager_to_none(cls, v):
         return None if v == "" else v
 
 
@@ -451,6 +457,29 @@ async def list_holidays(current_user: Annotated[User, Depends(get_current_active
     return {"holidays": get_holidays(tenant, year)}
 
 
+def would_create_manager_cycle(tenant, member_uid: str, manager_uid: str | None) -> bool:
+    """Return True if assigning manager_uid to member_uid would form a cycle."""
+    if not manager_uid:
+        return False
+    if manager_uid == member_uid:
+        return True
+    # Build uid -> manager_uid map for every member in the tenant.
+    chain = {}
+    for team in Team.objects(tenant=tenant):
+        for m in team.team_members:
+            chain[str(m.uid)] = m.manager_uid
+    seen = set()
+    current = manager_uid
+    while current:
+        if current == member_uid:   # chain loops back to the member
+            return True
+        if current in seen:         # pre-existing cycle, stop
+            break
+        seen.add(current)
+        current = chain.get(current)
+    return False
+
+
 @router.post("/{team_id}/members")
 async def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
                           current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
@@ -559,6 +588,10 @@ async def update_team_member(team_id: str, team_member_id: str, team_member_dto:
     team_member.available_day_types = team_member_dto.available_day_types
     team_member.employee_start_date = team_member_dto.employee_start_date
     team_member.yearly_vacation_days = team_member_dto.yearly_vacation_days
+    if team_member_dto.manager_uid != team_member.manager_uid:
+        if would_create_manager_cycle(tenant, str(team_member.uid), team_member_dto.manager_uid):
+            raise HTTPException(status_code=400, detail="Manager assignment would create a cycle")
+        team_member.manager_uid = team_member_dto.manager_uid
 
     team.save()
     invalidate_holidays_cache()
