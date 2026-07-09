@@ -1,6 +1,5 @@
 import React from 'react';
 import {isToday, isWeekend, isYesterday} from 'date-fns';
-import '../CalendarComponent.css';
 import {
   generateGradientStyle,
   getCellTitle,

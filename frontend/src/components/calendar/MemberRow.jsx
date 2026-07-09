@@ -1,6 +1,5 @@
 import React from 'react';
 import {faEdit, faGripVertical, faInfoCircle, faHistory, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
-import '../CalendarComponent.css';
 import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
 import MemberDayCell from './MemberDayCell';
 import {buildVacationTooltip, formatDate} from '../../utils/calendar';

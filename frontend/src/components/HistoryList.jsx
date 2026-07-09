@@ -2,7 +2,7 @@ import React from 'react';
 import {format} from 'date-fns';
 
 const HistoryList = React.forwardRef(({history, showDate = false, memberLookup, onScroll}, ref) => (
-  <div className="day-history-list" ref={ref} onScroll={onScroll}>
+  <div className="history-list" ref={ref} onScroll={onScroll}>
     {history.length === 0 && <p>No history found.</p>}
     {history.map((entry) => {
       const dayTypesEqual = () => {
@@ -25,7 +25,7 @@ const HistoryList = React.forwardRef(({history, showDate = false, memberLookup, 
       const memberLabel = entry.member_name || (memberLookup ? memberLookup(entry.member_uid) : null);
 
       return (
-        <div key={entry._id || entry.id} className="day-history-entry">
+        <div key={entry._id || entry.id} className="history-entry">
           <div>
             {format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm')}
             {showDate && ` [${entry.date}]`}

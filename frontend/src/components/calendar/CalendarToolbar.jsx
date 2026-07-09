@@ -1,7 +1,6 @@
 import React, {useEffect, useRef} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faSave} from '@fortawesome/free-solid-svg-icons';
-import '../CalendarComponent.css';
 import MonthSelector from '../MonthSelector';
 
 // Sticky header: text filter (autofocused on mount), manager filter with

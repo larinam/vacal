@@ -11,7 +11,6 @@ import {
   faTrashAlt,
 } from '@fortawesome/free-solid-svg-icons';
 import {faBell as faRegularBell} from '@fortawesome/free-regular-svg-icons';
-import '../CalendarComponent.css';
 import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
 import {formatDate} from '../../utils/calendar';
 

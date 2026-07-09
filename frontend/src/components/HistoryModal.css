@@ -1,10 +1,10 @@
-.day-history-entry {
+.history-entry {
   margin-bottom: 10px;
   border-bottom: 1px solid #eee;
   padding-bottom: 5px;
 }
 
-.day-history-list {
+.history-list {
   max-height: 60vh;
   overflow-y: auto;
 }
@@ -73,12 +73,12 @@
   pointer-events: none;
 }
 
-.day-history-modal {
+.history-modal {
   position: relative;
 }
 
 
-.day-history-modal .close-button {
+.history-modal .close-button {
   position: absolute;
   top: -30px;
   right: -10px;

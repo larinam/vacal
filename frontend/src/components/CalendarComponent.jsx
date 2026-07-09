@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {toast} from 'react-toastify';
-import './CalendarComponent.css';
+import './calendar/calendar.css';
 import TeamModal from './TeamModal';
 import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';

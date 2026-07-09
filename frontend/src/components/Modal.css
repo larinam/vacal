@@ -1,5 +1,55 @@
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    width: 400px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.25);
+}
+
 .modal-content input[type="text"], .modal-content input[type="password"], .modal-content input[type="email"], .modal-content input[type="number"], .modal-content input[type="date"], .modal-content input[type="tel"] {
     margin-bottom: 10px;
     width: 100%;
     box-sizing: border-box;
+}
+
+.modal-content form input {
+    padding: 8px;
+    border: 1px solid #ccc;
+}
+
+/* Button container for horizontal layout */
+.modal-content form .button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-content form button {
+    padding: 8px 15px;
+    border: none;
+    cursor: pointer;
+}
+
+.modal-content form button[type="submit"] {
+    background-color: #4DB4D7; /* Blue */
+    color: white;
+}
+
+.modal-content form button[type="button"] {
+    background-color: #ccc; /* Light gray for the close button */
 }

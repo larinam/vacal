@@ -405,53 +405,6 @@
     background-color: #E0E0E0;
 }
 
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-}
-
-.modal-content {
-    background-color: white;
-    padding: 20px;
-    width: 300px; /* Adjust the width as needed */
-    border-radius: 5px;
-}
-
-.modal-content form input {
-    padding: 8px;
-    border: 1px solid #ccc;
-}
-
-/* Button container for horizontal layout */
-.modal-content form .button-container {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.modal-content form button {
-    padding: 8px 15px; /* Adjust padding as needed */
-    border: none;
-    cursor: pointer;
-}
-
-.modal-content form button[type="submit"] {
-    background-color: #4DB4D7; /* Blue */
-    color: white;
-}
-
-.modal-content form button[type="button"] {
-    background-color: #ccc; /* Light gray for the close button */
-}
-
 th.week-number-header {
     font-weight: normal;
     font-size: 0.75em;

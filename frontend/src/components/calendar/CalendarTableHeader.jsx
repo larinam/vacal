@@ -1,6 +1,5 @@
 import React from 'react';
 import {isToday, isWeekend, isYesterday} from 'date-fns';
-import '../CalendarComponent.css';
 import {formatDate} from '../../utils/calendar';
 
 // <colgroup> + <thead> for the calendar table, rendered as a fragment so both

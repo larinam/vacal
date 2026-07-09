@@ -11,7 +11,7 @@ const HistoryModal = ({isOpen, onClose, endpoint, title, showDate = false, membe
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="day-history-modal">
+      <div className="history-modal">
         <div className="close-button" onClick={onClose}>&times;</div>
         <h3>History for {title} ({history.length} {history.length === 1 ? 'item' : 'items'})</h3>
         <HistoryList
