@@ -594,7 +594,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           {visibleTeams.length === 0 && (
             <tr>
               <td colSpan={daysHeader.length + 1} className="empty-filter-message">
-                {emptyFilterMessage}
+                <span role="status">{emptyFilterMessage}</span>
               </td>
             </tr>
           )}

@@ -28,15 +28,16 @@ const renderToolbar = (props = {}) => {
 
 test('autofocuses the filter input on mount and reports typing', () => {
   const handlers = renderToolbar();
-  const input = screen.getByPlaceholderText('Filter by team or member name');
+  // Addressed by its accessible name, not just its placeholder.
+  const input = screen.getByRole('searchbox', {name: 'Filter by team or member name'});
   expect(input).toHaveFocus();
   fireEvent.change(input, {target: {value: 'alp'}});
   expect(handlers.onFilterInputChange).toHaveBeenCalledWith('alp');
 });
 
-test('manager select lists All members plus the options and reports changes', () => {
+test('manager select has an accessible name, lists All members, and reports changes', () => {
   const handlers = renderToolbar();
-  const select = screen.getByTitle('Filter by manager');
+  const select = screen.getByRole('combobox', {name: 'Filter by manager'});
   expect(select).toHaveDisplayValue('All members');
   fireEvent.change(select, {target: {value: 'u2'}});
   expect(handlers.onManagerFilterChange).toHaveBeenCalledWith('u2');
@@ -47,12 +48,22 @@ test('scope toggle appears only with an active manager filter', () => {
   expect(screen.queryByRole('group', {name: 'Report scope'})).not.toBeInTheDocument();
 });
 
-test('scope toggle switches to the entire hierarchy', () => {
-  const handlers = renderToolbar({managerFilterUid: 'u1'});
+test('scope toggle exposes selected state via aria-pressed and switches scope', () => {
+  const handlers = renderToolbar({managerFilterUid: 'u1', reportScope: 'direct'});
   const group = screen.getByRole('group', {name: 'Report scope'});
   expect(group).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', {name: 'Entire hierarchy'}));
+  const direct = screen.getByRole('button', {name: 'Direct reports'});
+  const entire = screen.getByRole('button', {name: 'Entire hierarchy'});
+  expect(direct).toHaveAttribute('aria-pressed', 'true');
+  expect(entire).toHaveAttribute('aria-pressed', 'false');
+  fireEvent.click(entire);
   expect(handlers.onReportScopeChange).toHaveBeenCalledWith('all');
+});
+
+test('aria-pressed follows the active scope', () => {
+  renderToolbar({managerFilterUid: 'u1', reportScope: 'all'});
+  expect(screen.getByRole('button', {name: 'Entire hierarchy'})).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', {name: 'Direct reports'})).toHaveAttribute('aria-pressed', 'false');
 });
 
 test('save icon renders only when preferences were just saved', () => {

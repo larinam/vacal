@@ -31,10 +31,11 @@
 .stickyHeader input[type="search"]:focus {
     border-color: #0366d6;
     outline: none;
+    box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.35);
 }
 
 .stickyHeader input[type="search"]::placeholder {
-    color: #8a939d;
+    color: #656d76; /* >= 4.5:1 on white (WCAG 1.4.3); #8a939d failed */
 }
 
 .filter-wrapper {
@@ -60,6 +61,7 @@
 .stickyHeader .manager-filter:focus {
     border-color: #0366d6;
     outline: none;
+    box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.35);
 }
 
 /* Segmented Direct / Entire-hierarchy toggle */
@@ -92,10 +94,15 @@
     color: white;
 }
 
+.stickyHeader .scope-toggle button:focus-visible {
+    outline: 2px solid #0366d6;
+    outline-offset: -2px;
+}
+
 .empty-filter-message {
     padding: 16px;
     text-align: center;
-    color: #8a939d;
+    color: #656d76; /* >= 4.5:1 on white (WCAG 1.4.3); #8a939d failed */
     font-style: italic;
 }
 

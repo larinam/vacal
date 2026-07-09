@@ -36,12 +36,14 @@ const CalendarToolbar = ({
           value={filterInput}
           onChange={(e) => onFilterInputChange(e.target.value)}
           placeholder="Filter by team or member name"
+          aria-label="Filter by team or member name"
         />
         <select
           className="manager-filter"
           value={managerFilterUid}
           onChange={(e) => onManagerFilterChange(e.target.value)}
           title="Filter by manager"
+          aria-label="Filter by manager"
         >
           <option value="">All members</option>
           {managerSelectOptions.map((m) => (
@@ -53,6 +55,7 @@ const CalendarToolbar = ({
             <button
               type="button"
               className={reportScope === 'direct' ? 'active' : ''}
+              aria-pressed={reportScope === 'direct'}
               onClick={() => onReportScopeChange('direct')}
             >
               Direct reports
@@ -60,6 +63,7 @@ const CalendarToolbar = ({
             <button
               type="button"
               className={reportScope === 'all' ? 'active' : ''}
+              aria-pressed={reportScope === 'all'}
               onClick={() => onReportScopeChange('all')}
             >
               Entire hierarchy
