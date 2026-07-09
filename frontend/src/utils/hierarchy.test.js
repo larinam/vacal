@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {getReportsUnder} from './hierarchy';
+import {buildManagerOptions, getReportsUnder} from './hierarchy';
 
 // A is manager of B and C; B is manager of D. (D is A's indirect report.)
 const members = [
@@ -43,5 +43,29 @@ describe('getReportsUnder', () => {
     ];
     expect(getReportsUnder('x', cyclic, {includeIndirect: true}))
       .toEqual(new Set(['y', 'x']));
+  });
+});
+
+describe('buildManagerOptions', () => {
+  it('returns only members who manage at least one other, sorted by name', () => {
+    // A manages B and C; B manages D. So A and B are managers; C, D, E are not.
+    expect(buildManagerOptions(members)).toEqual([
+      {uid: 'a', label: 'A'},
+      {uid: 'b', label: 'B'},
+    ]);
+  });
+
+  it('excludes the given self uid', () => {
+    expect(buildManagerOptions(members, 'a')).toEqual([{uid: 'b', label: 'B'}]);
+  });
+
+  it('returns an empty array when nobody manages anyone', () => {
+    const flat = [{uid: 'a', name: 'A'}, {uid: 'b', name: 'B'}];
+    expect(buildManagerOptions(flat)).toEqual([]);
+  });
+
+  it('tolerates missing/empty input', () => {
+    expect(buildManagerOptions()).toEqual([]);
+    expect(buildManagerOptions([])).toEqual([]);
   });
 });

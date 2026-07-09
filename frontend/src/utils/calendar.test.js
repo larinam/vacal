@@ -184,6 +184,10 @@ describe('filterTeamsByManager', () => {
     expect(result).toHaveLength(1);
     expect(result[0].team_members.map((m) => m.uid)).toEqual(['a']);
   });
+
+  test('an empty set removes every team', () => {
+    expect(filterTeamsByManager(teams, new Set())).toEqual([]);
+  });
 });
 
 describe('filterTeamsByText', () => {

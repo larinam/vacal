@@ -14,7 +14,7 @@ import MemberRow from './calendar/MemberRow';
 import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
-import {getReportsUnder} from '../utils/hierarchy';
+import {buildManagerOptions, getReportsUnder} from '../utils/hierarchy';
 import {
   filterTeamsByManager,
   filterTeamsByText,
@@ -94,26 +94,33 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   // Selectable roots for the manager filter: every member who manages at least
   // one other member (sorted by name), with a "Me (You)" shortcut pinned first.
   const managerSelectOptions = useMemo(() => {
-    const managedUids = new Set(allMembers.map((m) => m.manager_uid).filter(Boolean));
-    const options = allMembers
-      .filter((m) => managedUids.has(m.uid) && m.uid !== currentMemberUid)
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((m) => ({uid: m.uid, label: m.name}));
+    const options = buildManagerOptions(allMembers, currentMemberUid);
     if (currentMemberUid) {
       options.unshift({uid: currentMemberUid, label: 'Me (You)'});
     }
     return options;
   }, [allMembers, currentMemberUid]);
 
+  // A persisted manager filter can outlive the member it points at (the manager
+  // was deleted, or lost their last report and dropped out of the options).
+  // Collapse to '' in that case so the <select>, the scope toggle and the
+  // filtering all agree instead of silently showing a truncated list under an
+  // "All members" label. It self-heals: if data is still loading (no options
+  // yet) the persisted uid re-activates once a matching option reappears.
+  const effectiveManagerUid = useMemo(
+    () => (managerSelectOptions.some((o) => o.uid === managerFilterUid) ? managerFilterUid : ''),
+    [managerSelectOptions, managerFilterUid]
+  );
+
   // Set of member uids visible under the selected manager, or null when no
   // manager filter is active.
   const visibleUids = useMemo(() => {
-    if (!managerFilterUid) return null;
-    return getReportsUnder(managerFilterUid, allMembers, {
+    if (!effectiveManagerUid) return null;
+    return getReportsUnder(effectiveManagerUid, allMembers, {
       includeIndirect: reportScope === 'all',
       includeRoot: true,
     });
-  }, [managerFilterUid, allMembers, reportScope]);
+  }, [effectiveManagerUid, allMembers, reportScope]);
 
   const {daysHeader, weekSpans, displayedYears} = useCalendarGrid(displayMonth);
   const {holidayData} = useHolidayData({holidays, teamCountries, displayedYears});
@@ -416,14 +423,29 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const subscriptionTeam = subscriptionTeamId ? teamData.find(team => team._id === subscriptionTeamId) : null;
 
-  const visibleTeams = filterTeamsByText(filterTeamsByManager(teamData, visibleUids), filterInput);
+  // Filter in two memoized stages so the empty-state message can tell which
+  // stage produced the empty result. Manager filtering runs first (see
+  // calendar.js), so the text filter only ever narrows the manager's reports.
+  const managerFilteredTeams = useMemo(
+    () => filterTeamsByManager(teamData, visibleUids),
+    [teamData, visibleUids]
+  );
+  const visibleTeams = useMemo(
+    () => filterTeamsByText(managerFilteredTeams, filterInput),
+    [managerFilteredTeams, filterInput]
+  );
 
   let emptyFilterMessage = 'No teams or members match your filter.';
-  if (managerFilterUid) {
-    const rootName = managerFilterUid === currentMemberUid
+  if (effectiveManagerUid && managerFilteredTeams.length === 0) {
+    // Only blame the manager filter when it is the stage that emptied the list;
+    // otherwise the text filter is responsible and the generic message applies.
+    // effectiveManagerUid is always a valid option, so the name lookup succeeds.
+    const rootName = effectiveManagerUid === currentMemberUid
       ? 'you'
-      : allMembers.find((m) => m.uid === managerFilterUid)?.name || '';
-    emptyFilterMessage = `No members report to ${rootName}${reportScope === 'direct' ? ' directly' : ''}.`;
+      : allMembers.find((m) => m.uid === effectiveManagerUid)?.name;
+    if (rootName) {
+      emptyFilterMessage = `No members report to ${rootName}${reportScope === 'direct' ? ' directly' : ''}.`;
+    }
   }
 
 
@@ -500,7 +522,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       <CalendarToolbar
         filterInput={filterInput}
         onFilterInputChange={setFilterInput}
-        managerFilterUid={managerFilterUid}
+        managerFilterUid={effectiveManagerUid}
         onManagerFilterChange={setManagerFilterUid}
         managerSelectOptions={managerSelectOptions}
         reportScope={reportScope}

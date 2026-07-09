@@ -56,3 +56,21 @@ export const getReportsUnder = (
   }
   return result;
 };
+
+/**
+ * Return the selectable manager roots for the manager filter: every member who
+ * manages at least one other member, sorted by name and excluding `selfUid`
+ * (the caller pins a "Me" shortcut separately). Pure so it can be unit-tested
+ * and reused to validate a persisted selection.
+ *
+ * @param {Array<{uid: string, name?: string, manager_uid?: string}>} members
+ * @param {string|null} [selfUid] - uid to exclude (the logged-in member).
+ * @returns {Array<{uid: string, label: string}>}
+ */
+export const buildManagerOptions = (members, selfUid = null) => {
+  const managedUids = new Set((members || []).map((m) => m.manager_uid).filter(Boolean));
+  return (members || [])
+    .filter((m) => managedUids.has(m.uid) && m.uid !== selfUid)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((m) => ({uid: m.uid, label: m.name}));
+};
