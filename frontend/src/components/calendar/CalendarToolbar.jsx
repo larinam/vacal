@@ -50,26 +50,35 @@ const CalendarToolbar = ({
             <option key={m.uid} value={m.uid}>{m.label}</option>
           ))}
         </select>
-        {managerFilterUid && (
-          <div className="scope-toggle" role="group" aria-label="Report scope">
-            <button
-              type="button"
-              className={reportScope === 'direct' ? 'active' : ''}
-              aria-pressed={reportScope === 'direct'}
-              onClick={() => onReportScopeChange('direct')}
-            >
-              Direct reports
-            </button>
-            <button
-              type="button"
-              className={reportScope === 'all' ? 'active' : ''}
-              aria-pressed={reportScope === 'all'}
-              onClick={() => onReportScopeChange('all')}
-            >
-              Entire hierarchy
-            </button>
-          </div>
-        )}
+        {/* Always rendered so its width is reserved in the layout even when
+            hidden — revealing it on manager select must not shift the centred
+            month control. Hidden (not removed) via .scope-toggle--reserved. */}
+        <div
+          className={`scope-toggle${managerFilterUid ? '' : ' scope-toggle--reserved'}`}
+          role="group"
+          aria-label="Report scope"
+          aria-hidden={managerFilterUid ? undefined : true}
+          title="Report scope"
+        >
+          <button
+            type="button"
+            className={reportScope === 'direct' ? 'active' : ''}
+            aria-pressed={reportScope === 'direct'}
+            disabled={!managerFilterUid}
+            onClick={() => onReportScopeChange('direct')}
+          >
+            Direct
+          </button>
+          <button
+            type="button"
+            className={reportScope === 'all' ? 'active' : ''}
+            aria-pressed={reportScope === 'all'}
+            disabled={!managerFilterUid}
+            onClick={() => onReportScopeChange('all')}
+          >
+            All levels
+          </button>
+        </div>
       </div>
       <MonthSelector
         displayMonth={displayMonth}

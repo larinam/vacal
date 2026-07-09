@@ -52,8 +52,8 @@ test('scope toggle exposes selected state via aria-pressed and switches scope', 
   const handlers = renderToolbar({managerFilterUid: 'u1', reportScope: 'direct'});
   const group = screen.getByRole('group', {name: 'Report scope'});
   expect(group).toBeInTheDocument();
-  const direct = screen.getByRole('button', {name: 'Direct reports'});
-  const entire = screen.getByRole('button', {name: 'Entire hierarchy'});
+  const direct = screen.getByRole('button', {name: 'Direct'});
+  const entire = screen.getByRole('button', {name: 'All levels'});
   expect(direct).toHaveAttribute('aria-pressed', 'true');
   expect(entire).toHaveAttribute('aria-pressed', 'false');
   fireEvent.click(entire);
@@ -62,8 +62,8 @@ test('scope toggle exposes selected state via aria-pressed and switches scope', 
 
 test('aria-pressed follows the active scope', () => {
   renderToolbar({managerFilterUid: 'u1', reportScope: 'all'});
-  expect(screen.getByRole('button', {name: 'Entire hierarchy'})).toHaveAttribute('aria-pressed', 'true');
-  expect(screen.getByRole('button', {name: 'Direct reports'})).toHaveAttribute('aria-pressed', 'false');
+  expect(screen.getByRole('button', {name: 'All levels'})).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', {name: 'Direct'})).toHaveAttribute('aria-pressed', 'false');
 });
 
 test('save icon renders only when preferences were just saved', () => {
