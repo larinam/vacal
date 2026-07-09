@@ -4,10 +4,13 @@ import {format, isWeekend} from 'date-fns';
 import {toast} from 'react-toastify';
 import {faHistory} from '@fortawesome/free-solid-svg-icons';
 import DayTypeCheckbox from './DayTypeCheckbox';
-import DayHistoryModal from './DayHistoryModal';
+import {DayHistoryModal} from './HistoryModal';
 import useDayAssignmentsMutation from '../hooks/mutations/useDayAssignmentsMutation';
 import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
 import {getPreferredLocale} from '../utils/locale';
+import useDismiss from '../hooks/useDismiss';
+
+const DISMISS_EVENTS = ['pointerdown'];
 
 const DayTypeContextMenu = ({
                               contextMenuRef,
@@ -218,46 +221,23 @@ const DayTypeContextMenu = ({
     onClose();
   }, [comment, initialComment, onClose, selectedDayTypes, updateDayData]);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') handleClose();
-    };
-
-    if (isOpen) document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleClose, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined;
+  // Clicks inside the history modal keep the menu open; clicks on the calendar
+  // table start a new selection that repositions the menu instead of closing it.
+  const handleOutsidePointerDown = useCallback((event) => {
+    const target = event.target;
+    if (target?.closest?.('.modal') || target?.closest?.('.calendar-table')) {
+      return;
     }
+    handleClose();
+  }, [handleClose]);
 
-    const handlePointerDown = (event) => {
-      const menuElement = contextMenuRef?.current;
-      if (!menuElement) {
-        return;
-      }
-
-      const target = event.target;
-      if (target?.closest?.('.modal')) {
-        return;
-      }
-      if (menuElement.contains(target)) {
-        return;
-      }
-
-      if (target?.closest?.('.calendar-table')) {
-        return;
-      }
-
-      handleClose();
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-    };
-  }, [contextMenuRef, handleClose, isOpen]);
+  // Escape bypasses the outside-target filtering so it also closes the menu
+  // while the history modal is open.
+  useDismiss(contextMenuRef, handleOutsidePointerDown, {
+    enabled: isOpen,
+    eventTypes: DISMISS_EVENTS,
+    onEscape: handleClose,
+  });
 
   if (!isOpen) return null;
 

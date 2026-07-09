@@ -1,54 +1,43 @@
-import {eachDayOfInterval, endOfWeek, format, getISOWeek, isToday, isWeekend, isYesterday, startOfWeek} from 'date-fns';
-import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {
-  faBell as faSolidBell,
-  faChevronDown,
-  faChevronRight,
-  faEdit,
-  faEye,
-  faGripVertical,
-  faInfoCircle,
-  faHistory,
-  faLink,
-  faSave,
-  faTrashAlt
-} from '@fortawesome/free-solid-svg-icons';
-import {faBell as faRegularBell} from '@fortawesome/free-regular-svg-icons';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {toast} from 'react-toastify';
 import './CalendarComponent.css';
-import MonthSelector from './MonthSelector';
 import TeamModal from './TeamModal';
 import MemberModal from './MemberModal';
 import DayTypeContextMenu from './DayTypeContextMenu';
 import TeamSubscriptionContextMenu from './TeamSubscriptionContextMenu';
-import MemberHistoryModal from './MemberHistoryModal';
-import TeamHistoryModal from './TeamHistoryModal';
+import {MemberHistoryModal, TeamHistoryModal} from './HistoryModal';
 import DeleteMemberModal from './DeleteMemberModal';
+import CalendarToolbar from './calendar/CalendarToolbar';
+import CalendarTableHeader from './calendar/CalendarTableHeader';
+import TeamRow from './calendar/TeamRow';
+import MemberRow from './calendar/MemberRow';
 import {useAuth} from '../contexts/AuthContext';
 import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
-import {getPreferredLocale} from '../utils/locale';
 import {getReportsUnder} from '../utils/hierarchy';
-import {useApi} from '../hooks/useApi';
+import {
+  filterTeamsByManager,
+  filterTeamsByText,
+  getMemberDayComment,
+  getMemberDayEntry,
+} from '../utils/calendar';
 import useTeamManagementMutations from '../hooks/mutations/useTeamManagementMutations';
 import useMemberMutations from '../hooks/mutations/useMemberMutations';
-import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
-import {useQueries} from '@tanstack/react-query';
-import {HOLIDAYS_QUERY_KEY} from '../hooks/queries/useHolidaysQuery';
+import useAnchoredMenu from '../hooks/useAnchoredMenu';
+import useCalendarGrid from '../hooks/useCalendarGrid';
+import useHolidayData from '../hooks/useHolidayData';
+import useDaySelection from '../hooks/useDaySelection';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
   const {deleteMemberMutation} = useMemberMutations();
   const {user} = useAuth();
-  const {apiCall} = useApi();
   const canManageMembers = user?.role === 'manager';
   const today = new Date();
   const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
   const todayYear = today.getFullYear();
 
   const [teamData, setTeamData] = useState(serverTeamData);
-  const [holidayData, setHolidayData] = useState(holidays || {});
   const [displayMonth, setDisplayMonth] = useState(new Date());
   const [showSaveIcon, setShowSaveIcon] = useState(false);
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
@@ -61,7 +50,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [filterInput, setFilterInput] = useLocalStorage('vacalFilter', '');
   const [managerFilterUid, setManagerFilterUid] = useLocalStorage('vacalManagerFilter', '');
   const [reportScope, setReportScope] = useLocalStorage('vacalReportScope', 'direct');
-  const filterInputRef = useRef(null);
   const [editingTeam, setEditingTeam] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
   const [selectedDayInfo, setSelectedDayInfo] = useState(null);
@@ -71,20 +59,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const [memberHistoryInfo, setMemberHistoryInfo] = useState({teamId: null, memberId: null, memberName: ''});
   const [showDeleteMemberModal, setShowDeleteMemberModal] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState(null);
-  const contextMenuRef = useRef(null);
-  const [contextMenuPosition, setContextMenuPosition] = useState({x: 0, y: 0});
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const subscriptionMenuRef = useRef(null);
-  const [subscriptionMenuPosition, setSubscriptionMenuPosition] = useState({x: 0, y: 0});
-  const [showSubscriptionMenu, setShowSubscriptionMenu] = useState(false);
+  const dayMenu = useAnchoredMenu();
+  const subscriptionMenu = useAnchoredMenu();
   const [subscriptionTeamId, setSubscriptionTeamId] = useState(null);
   const [draggedMember, setDraggedMember] = useState({memberId: null, originTeamId: null, memberName: ''});
   const [draggingMemberId, setDraggingMemberId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
-  const [daysHeader, setDaysHeader] = useState([]);
-  const [selectionStart, setSelectionStart] = useState(null);
-  const [selectedCells, setSelectedCells] = useState([]);
-  const [selectionDayTypes, setSelectionDayTypes] = useState([]);
 
   const teamCountries = useMemo(() => {
     const countries = new Set();
@@ -135,33 +115,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     });
   }, [managerFilterUid, allMembers, reportScope]);
 
-  const haveSameDayTypes = (first = [], second = []) => {
-    if (first.length !== second.length) {
-      return false;
-    }
-    const sortedFirst = [...first].sort();
-    const sortedSecond = [...second].sort();
-    return sortedFirst.every((value, index) => value === sortedSecond[index]);
-  };
+  const {daysHeader, weekSpans, displayedYears} = useCalendarGrid(displayMonth);
+  const {holidayData} = useHolidayData({holidays, teamCountries, displayedYears});
 
-  const isSelectableDay = (member, date, baseTypes = []) => {
-    const dayEntry = getMemberDayEntry(member, date);
-    const dayTypeIds = (dayEntry?.day_types || []).map(dt => dt._id);
-
-    if (baseTypes.length > 0) {
-      return haveSameDayTypes(baseTypes, dayTypeIds);
-    }
-
-    const hasExistingDayTypes = dayTypeIds.length > 0;
-
-    return (
-      !isWeekend(date) &&
-      !isHoliday(member.country, date) &&
-      !hasExistingDayTypes
-    );
-  };
-
-  const showDayContextMenu = (teamId, memberId, dates, event, isHolidayDay = false) => {
+  const showDayContextMenu = (teamId, memberId, dates, event, isHolidayDay = false, selectionDayTypes = []) => {
     const team = teamData.find((team) => team._id === teamId);
     const member = team.team_members.find((m) => m.uid === memberId);
     const memberName = member.name;
@@ -197,57 +154,15 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       isHolidayDay
     });
 
-    const xPosition = event.clientX + window.scrollX;
-    const yPosition = event.clientY + window.scrollY;
-    setContextMenuPosition({x: xPosition, y: yPosition});
-    setShowContextMenu(true);
+    dayMenu.openAt(event);
   };
 
-  const handleMouseDown = (teamId, memberId, date, isSelectable) => {
-    const team = teamData.find(t => t._id === teamId);
-    const member = team.team_members.find(m => m.uid === memberId);
-    const dayEntry = getMemberDayEntry(member, date);
-    const dayTypeIds = (dayEntry.day_types || []).map(dt => dt._id);
-
-    if (!isSelectable && dayTypeIds.length === 0) return;
-
-    setSelectionDayTypes(dayTypeIds);
-    setSelectionStart({teamId, memberId, date});
-    setSelectedCells([{teamId, memberId, date}]);
-  };
-
-  const handleMouseOver = (teamId, memberId, date, member) => {
-    if (!selectionStart || selectionStart.memberId !== memberId) return;
-
-    const startDate = selectionStart.date;
-    const endDate = date;
-
-    const datesInterval = eachDayOfInterval({
-      start: startDate < endDate ? startDate : endDate,
-      end: startDate < endDate ? endDate : startDate,
-    });
-
-    const newSelection = [];
-    for (let d of datesInterval) {
-      if (!isSelectableDay(member, d, selectionDayTypes)) {
-        continue;
-      }
-      newSelection.push({teamId, memberId, date: d});
-    }
-
-    setSelectedCells(newSelection);
-  };
-
-  const handleMouseUp = (event) => {
-    if (selectedCells.length > 0) {
-      const {teamId, memberId} = selectedCells[0];
-      const dates = selectedCells.map((cell) => cell.date);
-      showDayContextMenu(teamId, memberId, dates, event);
-    }
-
-    setSelectionStart(null);
-    setSelectionDayTypes([]);
-  };
+  const {selectedCells, handleMouseDown, handleMouseOver, handleMouseUp, clearSelection} = useDaySelection({
+    teamData,
+    holidayData,
+    onSelectionComplete: ({teamId, memberId, dates, event, selectionDayTypes}) =>
+      showDayContextMenu(teamId, memberId, dates, event, false, selectionDayTypes),
+  });
 
   const openTeamHistory = (team) => {
     setTeamHistoryInfo({teamId: team._id, teamName: team.name});
@@ -270,120 +185,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   }, [serverTeamData]);
 
   useEffect(() => {
-    setHolidayData(holidays || {});
-  }, [holidays]);
-
-  const loadedHolidayYears = useMemo(() => {
-    const years = new Set();
-    Object.values(holidayData || {}).forEach(countryHolidays => {
-      Object.keys(countryHolidays || {}).forEach(dateStr => {
-        const [year] = dateStr.split('-');
-        const parsedYear = Number(year);
-        if (!Number.isNaN(parsedYear)) {
-          years.add(parsedYear);
-        }
-      });
-    });
-    return years;
-  }, [holidayData]);
-
-  const selectedYear = displayMonth.getFullYear();
-  const displayedYears = useMemo(() => {
-    const years = new Set();
-    daysHeader.forEach(({date}) => years.add(date.getFullYear()));
-
-    if (years.size === 0) {
-      years.add(selectedYear);
-    }
-
-    return Array.from(years).sort();
-  }, [daysHeader, selectedYear]);
-
-  const yearsNeedingHolidays = useMemo(() => {
-    return displayedYears.filter((year) => {
-      if (!loadedHolidayYears.has(year)) {
-        return true;
-      }
-
-      return teamCountries.some((country) => {
-        const countryHolidays = holidayData?.[country];
-        if (!countryHolidays) {
-          return true;
-        }
-        const prefix = `${year}-`;
-        return !Object.keys(countryHolidays).some((dateStr) => dateStr.startsWith(prefix));
-      });
-    });
-  }, [displayedYears, holidayData, loadedHolidayYears, teamCountries]);
-
-  const holidayQueries = useQueries({
-    queries: yearsNeedingHolidays.map((year) => ({
-      queryKey: [...HOLIDAYS_QUERY_KEY, year],
-      queryFn: ({signal}) => apiCall(`/teams/holidays?year=${year}`, 'GET', null, false, signal),
-      enabled: true,
-    })),
-  });
-
-  useEffect(() => {
-    const responses = holidayQueries
-      .map((query) => query.data)
-      .filter((response) => response?.holidays);
-
-    if (responses.length === 0) {
-      return;
-    }
-
-    setHolidayData((prevHolidays) => {
-      let nextHolidays = prevHolidays;
-      let changed = false;
-
-      responses.forEach((current) => {
-        Object.entries(current.holidays).forEach(([country, countryHolidays]) => {
-          const existingCountry = (nextHolidays === prevHolidays
-            ? prevHolidays[country]
-            : nextHolidays[country]) || {};
-          let updatedCountry = existingCountry;
-          let countryChanged = false;
-
-          Object.entries(countryHolidays || {}).forEach(([dateStr, holidayName]) => {
-            if (existingCountry[dateStr] !== holidayName) {
-              if (updatedCountry === existingCountry) {
-                updatedCountry = {...existingCountry};
-              }
-              updatedCountry[dateStr] = holidayName;
-              countryChanged = true;
-            }
-          });
-
-          if (countryChanged) {
-            if (nextHolidays === prevHolidays) {
-              nextHolidays = {...prevHolidays};
-            }
-            nextHolidays[country] = updatedCountry;
-            changed = true;
-          }
-        });
-      });
-
-      return changed ? nextHolidays : prevHolidays;
-    });
-  }, [holidayQueries]);
-
-  useEffect(() => {
-    holidayQueries.forEach((query, index) => {
-      if (query.error) {
-        console.error('Failed to fetch holidays for year', yearsNeedingHolidays[index], query.error);
-      }
-    });
-  }, [holidayQueries, yearsNeedingHolidays]);
-
-  useEffect(() => {
-    if (filterInputRef.current) {
-      filterInputRef.current.focus();
-    }
-  }, []);
-
-  useEffect(() => {
     triggerSaveIcon();
   }, [collapsedTeams, focusedTeamId, filterInput, managerFilterUid, reportScope]);
 
@@ -393,158 +194,6 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       window.scrollTo({top: formPosition, behavior: 'smooth'});
     }
   }, [showAddMemberForm]);
-
-  useLayoutEffect(() => {
-    if (showContextMenu && contextMenuRef.current) {
-      const menuWidth = contextMenuRef.current.offsetWidth;
-      let adjustedX = contextMenuPosition.x;
-
-      if (adjustedX + menuWidth > window.innerWidth) {
-        adjustedX = Math.max(0, adjustedX - menuWidth);
-      }
-
-      if (adjustedX !== contextMenuPosition.x) {
-        setContextMenuPosition({x: adjustedX, y: contextMenuPosition.y});
-      }
-    }
-  }, [showContextMenu, contextMenuPosition]);
-
-  useLayoutEffect(() => {
-    if (showSubscriptionMenu && subscriptionMenuRef.current) {
-      const menuWidth = subscriptionMenuRef.current.offsetWidth;
-      let adjustedX = subscriptionMenuPosition.x;
-
-      if (adjustedX + menuWidth > window.innerWidth) {
-        adjustedX = Math.max(0, adjustedX - menuWidth);
-      }
-
-      if (adjustedX !== subscriptionMenuPosition.x) {
-        setSubscriptionMenuPosition({x: adjustedX, y: subscriptionMenuPosition.y});
-      }
-    }
-  }, [showSubscriptionMenu, subscriptionMenuPosition]);
-
-  const getFirstMonday = (date) => {
-    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    return startOfWeek(firstDayOfMonth, {weekStartsOn: 1}); // 1 for Monday
-  };
-
-  const getLastSunday = (date) => {
-    const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0); // Last day of the month
-    return endOfWeek(lastDayOfMonth, {weekStartsOn: 1});
-  };
-
-  useEffect(() => {
-    const startDay = getFirstMonday(displayMonth);
-    const endDay = getLastSunday(displayMonth);
-    const daysInterval = eachDayOfInterval({start: startDay, end: endDay});
-
-    const weekdayFormatter = new Intl.DateTimeFormat(getPreferredLocale(), {weekday: 'short'});
-
-    const newDaysHeader = daysInterval.map(date => ({
-      day: date.getDate(),
-      week: getISOWeek(date),
-      weekday: weekdayFormatter.format(date),
-      date
-    }));
-
-    setDaysHeader(newDaysHeader); // Ensure you have a useState or similar to hold this value
-  }, [displayMonth]);
-
-  let weekSpans = daysHeader.reduce((acc, curr) => {
-    acc.set(curr.week, (acc.get(curr.week) || 0) + 1);
-    return acc;
-  }, new Map());
-
-  const isWeek1InDecember = daysHeader.some(day => day.week === 1 && displayMonth.getMonth() === 11);
-
-  if (isWeek1InDecember) {
-    const sortedWeeks = Array.from(weekSpans.keys()).sort((a, b) => {
-      if (a === 1) return 1;  // Push week 1 to the end if it's part of the list
-      if (b === 1) return -1; // Push week 1 to the end
-      return a - b;
-    });
-
-    // Rebuild the weekSpans based on sorted weeks using a new Map
-    const sortedWeekSpans = new Map();
-    sortedWeeks.forEach(week => {
-      sortedWeekSpans.set(week, weekSpans.get(week));
-    });
-    weekSpans = sortedWeekSpans;
-  }
-
-
-  // Restrict to members reporting under the selected manager. No-op when the
-  // manager filter is off. Running this before the text filter means the
-  // text filter only ever sees reports, so its team-name shortcut can stay.
-  const filterByManager = (data) => {
-    if (!visibleUids) return data;
-    return data
-      .map(team => ({...team, team_members: team.team_members.filter(m => visibleUids.has(m.uid))}))
-      .filter(team => team.team_members.length > 0);
-  };
-
-  // Restrict to teams/members matching the text filter (team name OR member name).
-  const filterByText = (data) => {
-    if (!filterInput) return data;
-    const filter = filterInput.toLowerCase();
-    return data.map(team => {
-      // Team name matches → keep the team (and its members) as is.
-      if (team.name.toLowerCase().includes(filter)) return team;
-      const members = team.team_members.filter(m => m.name.toLowerCase().includes(filter));
-      return members.length > 0 ? {...team, team_members: members} : null;
-    }).filter(Boolean);
-  };
-
-  const formatDate = (date) => {
-    return format(date, 'yyyy-MM-dd');
-  };
-
-  const getMemberDayEntry = (member, date) => {
-    const dateStr = formatDate(date);
-    return member?.days?.[dateStr] || {};
-  };
-
-  const getMemberDayComment = (member, date) => {
-    const entry = getMemberDayEntry(member, date);
-    return entry?.comment || '';
-  };
-
-  const isHoliday = (country, date) => {
-    const dateStr = formatDate(date);
-    return holidayData[country] && holidayData[country][dateStr];
-  };
-
-  const getHolidayName = (country, date) => {
-    const dateStr = formatDate(date);
-    return holidayData[country] && holidayData[country][dateStr] ? holidayData[country][dateStr] : '';
-  };
-
-  const getCellTitle = (member, date) => {
-    const dayEntry = getMemberDayEntry(member, date);
-    const dayTypes = dayEntry?.day_types || [];
-    const comment = (dayEntry?.comment || '').trim();
-
-    if (dayTypes && dayTypes.length > 0) {
-      const dayTypesText = dayTypes.map(dt => dt.name).join(', '); // Join multiple day types with a comma
-      return comment ? `${dayTypesText}: ${comment}` : dayTypesText;
-    }
-
-    if (comment) {
-      return comment;
-    }
-
-    const holidayName = getHolidayName(member.country, date);
-    if (holidayName) {
-      return holidayName;
-    }
-
-    if (isWeekend(date)) {
-      return 'Weekend';
-    }
-
-    return ''; // No special title for regular days
-  };
 
   const handleDayClick = (teamId, memberId, date, isHolidayDay, event) => {
     event.preventDefault();
@@ -676,74 +325,14 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const openSubscriptionMenu = (event, teamId) => {
     event.stopPropagation();
-    const xPosition = event.clientX + window.scrollX;
-    const yPosition = event.clientY + window.scrollY;
-    setSubscriptionMenuPosition({x: xPosition, y: yPosition});
     setSubscriptionTeamId(teamId);
-    setShowSubscriptionMenu(true);
+    subscriptionMenu.openAt(event);
   };
 
   const closeSubscriptionMenu = () => {
-    setShowSubscriptionMenu(false);
+    subscriptionMenu.close();
     setSubscriptionTeamId(null);
   };
-
-  const renderVacationDaysTooltip = (member) => {
-    const selectedYear = displayMonth.getFullYear();
-    const currentYear = new Date().getFullYear();
-    const usedDays = member.vacation_used_days_by_year?.[selectedYear] || 0;
-    const plannedDays = member.vacation_planned_days_by_year?.[selectedYear] || 0;
-    const yearlyVacationDays = member.yearly_vacation_days;
-    const availableVacationDays = member.vacation_available_days;
-    const usedText = usedDays
-      ? `${usedDays} vacation days used in ${selectedYear}`
-      : `No vacation days used in ${selectedYear}`;
-    const plannedText = plannedDays
-      ? `${plannedDays} vacation days planned in ${selectedYear}`
-      : `No vacation days planned in ${selectedYear}`;
-    const yearlyVacationDaysText = yearlyVacationDays
-      ? `${yearlyVacationDays} vacation days available per year`
-      : 'No yearly vacation days defined';
-    const availableVacationDaysText = (availableVacationDays || availableVacationDays === 0)
-      ? `${availableVacationDays} vacation days available in ${currentYear}`
-      : 'Vacation days availability unknown';
-    let lines = [];
-    if (selectedYear < currentYear) {
-      lines.push(usedText);
-    } else if (selectedYear > currentYear) {
-      lines.push(plannedText);
-    } else {
-      lines.push(usedText, plannedText);
-    }
-    lines.push(yearlyVacationDaysText, availableVacationDaysText);
-    return lines.join('\n');
-  };
-
-  function generateGradientStyle(dateDayTypes) {
-    const style = {};
-
-    if (dateDayTypes.length > 0) {
-      // Clone to avoid mutating the original array assigned to calendar state
-      const typesForGradient = [...dateDayTypes];
-      // Move the "Vacation" day type to the front if it exists
-      const vacationIndex = typesForGradient.findIndex(dayType => dayType.name === "Vacation");
-      if (vacationIndex > -1) {
-        const [vacationDayType] = typesForGradient.splice(vacationIndex, 1);
-        typesForGradient.unshift(vacationDayType);
-      }
-
-      const percentagePerType = 100 / typesForGradient.length;
-      const gradientParts = typesForGradient.map((dayType, index) => {
-        const start = percentagePerType * index;
-        const end = percentagePerType * (index + 1);
-        return `${dayType.color} ${start}% ${end}%`;
-      });
-
-      style.background = `linear-gradient(to right, ${gradientParts.join(', ')})`;
-    }
-
-    return style;
-  }
 
   const handleDragStart = (e, originTeamId, memberId, memberName) => {
     setDraggedMember({memberId, memberName, originTeamId});
@@ -827,7 +416,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const subscriptionTeam = subscriptionTeamId ? teamData.find(team => team._id === subscriptionTeamId) : null;
 
-  const visibleTeams = filterByText(filterByManager(teamData));
+  const visibleTeams = filterTeamsByText(filterTeamsByManager(teamData, visibleUids), filterInput);
 
   let emptyFilterMessage = 'No teams or members match your filter.';
   if (managerFilterUid) {
@@ -883,13 +472,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         isSubmitting={deleteMemberMutation.isPending}
       />
       <DayTypeContextMenu
-        contextMenuRef={contextMenuRef}
-        isOpen={showContextMenu}
-        position={contextMenuPosition}
+        contextMenuRef={dayMenu.ref}
+        isOpen={dayMenu.isOpen}
+        position={dayMenu.position}
         onClose={() => {
-          setShowContextMenu(false);
-          setSelectedCells([]);
-          setSelectionStart(null);
+          dayMenu.close();
+          clearSelection();
         }}
         dayTypes={dayTypes}
         selectedDayInfo={selectedDayInfo}
@@ -898,9 +486,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         updateLocalTeamData={updateLocalTeamData}
       />
       <TeamSubscriptionContextMenu
-        contextMenuRef={subscriptionMenuRef}
-        isOpen={showSubscriptionMenu}
-        position={subscriptionMenuPosition}
+        contextMenuRef={subscriptionMenu.ref}
+        isOpen={subscriptionMenu.isOpen}
+        position={subscriptionMenu.position}
         onClose={closeSubscriptionMenu}
         teamId={subscriptionTeamId}
         teamName={subscriptionTeam?.name || ''}
@@ -909,295 +497,78 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         onPreferencesUpdated={updateTeamData}
       />
 
-      <div className="stickyHeader">
-        <div className="filter-wrapper">
-          <input
-            type="search"
-            ref={filterInputRef}
-            value={filterInput}
-            onChange={(e) => setFilterInput(e.target.value)}
-            placeholder="Filter by team or member name"
-          />
-          <select
-            className="manager-filter"
-            value={managerFilterUid}
-            onChange={(e) => setManagerFilterUid(e.target.value)}
-            title="Filter by manager"
-          >
-            <option value="">All members</option>
-            {managerSelectOptions.map((m) => (
-              <option key={m.uid} value={m.uid}>{m.label}</option>
-            ))}
-          </select>
-          {managerFilterUid && (
-            <div className="scope-toggle" role="group" aria-label="Report scope">
-              <button
-                type="button"
-                className={reportScope === 'direct' ? 'active' : ''}
-                onClick={() => setReportScope('direct')}
-              >
-                Direct reports
-              </button>
-              <button
-                type="button"
-                className={reportScope === 'all' ? 'active' : ''}
-                onClick={() => setReportScope('all')}
-              >
-                Entire hierarchy
-              </button>
-            </div>
-          )}
-        </div>
-        <MonthSelector
-          displayMonth={displayMonth}
-          setDisplayMonth={setDisplayMonth}
-          todayYear={todayYear}
-          todayMonth={todayMonth}
-        />
-        {showSaveIcon && <FontAwesomeIcon icon={faSave} className="save-icon"/>}
-      </div>
+      <CalendarToolbar
+        filterInput={filterInput}
+        onFilterInputChange={setFilterInput}
+        managerFilterUid={managerFilterUid}
+        onManagerFilterChange={setManagerFilterUid}
+        managerSelectOptions={managerSelectOptions}
+        reportScope={reportScope}
+        onReportScopeChange={setReportScope}
+        displayMonth={displayMonth}
+        setDisplayMonth={setDisplayMonth}
+        todayYear={todayYear}
+        todayMonth={todayMonth}
+        showSaveIcon={showSaveIcon}
+      />
       <div className="contentBelowStickyHeader">
         <table className="calendar-table">
-          <colgroup>
-            <col className="name-col"/>
-            {/* This col is for the non-date column */}
-            {daysHeader.map(({date}) => (
-              <col key={formatDate(date)} className={isWeekend(date) ? 'weekend-column' : ''}/>
-            ))}
-          </colgroup>
-          <thead>
-          <tr>
-            <th></th>
-            {Array.from(weekSpans).map(([week, span]) => (
-              <th key={week} colSpan={span} className="week-number-header">
-                {span < 2 ? week : `Week ${week}`}
-              </th>
-            ))}
-          </tr>
-          <tr>
-            <th>
-              Team<span className="add-icon" onClick={handleAddTeamIconClick} title="Add team">➕ </span>
-              / Member
-            </th>
-            {daysHeader.map(({day, weekday, date}) => {
-              const isOutOfMonth = date.getMonth() !== displayMonth.getMonth();
-              const isWeekendDay = isWeekend(date);
-              return (
-                <th
-                  key={formatDate(date)}
-                  className={`${
-                    isToday(date)
-                      ? 'current-day-number'
-                      : isOutOfMonth
-                        ? 'out-of-month-day-number' // Assign a different class for out-of-month days
-                        : 'day-number-header'
-                  } ${isWeekendDay ? 'weekend-day-header' : ''} ${isYesterday(date) ? 'yesterday' : ''}`}
-                >
-                  <div className="day-header">
-                    <span className="day-header-name">{weekday}</span>
-                    <span className="day-header-number">{day}</span>
-                  </div>
-                </th>
-              );
-            })}
-          </tr>
-          </thead>
+          <CalendarTableHeader
+            daysHeader={daysHeader}
+            weekSpans={weekSpans}
+            displayMonth={displayMonth}
+            onAddTeamClick={handleAddTeamIconClick}
+          />
           <tbody>
-          {visibleTeams.map((team) => {
-            const isSubscribed = team.subscribers?.some(sub => sub._id === user?._id);
-            const isTeamCollapsed = collapsedTeams.includes(team._id);
-            const collapseIconTitle = isTeamCollapsed ? 'Expand team' : 'Collapse team';
-            const isTeamFocused = focusedTeamId === team._id;
-            const focusIconTitle = isTeamFocused ? 'Show all teams' : 'Focus on team';
-            const teamKey = team._id;
-            return (
-            <React.Fragment key={teamKey}>
+          {visibleTeams.map((team) => (
+            <React.Fragment key={team._id}>
               {(!focusedTeamId || focusedTeamId === team._id) && (
                 <>
-                  <tr
-                    className={`team-row ${dropTargetId === team._id ? 'drop-target' : ''}`}
-                    onDragOver={(e) => handleDragOver(e, team._id)}
-                    onDragLeave={(e) => handleDragLeave(e)}
-                    onDrop={(e) => handleDrop(e, team._id)}
-                  >
-                    <td className="team-name-cell">
-                      <FontAwesomeIconWithTitle
-                        icon={isTeamCollapsed ? faChevronRight : faChevronDown}
-                        title={collapseIconTitle}
-                        wrapperClassName="collapse-icon"
-                        wrapperProps={{
-                          onClick: () => toggleTeamCollapse(team._id),
-                          role: 'button',
-                        }}
-                      />
-                      <FontAwesomeIconWithTitle
-                        icon={faEye}
-                        title={focusIconTitle}
-                        wrapperClassName={`eye-icon ${isTeamFocused ? 'eye-icon-active' : ''}`}
-                        wrapperProps={{
-                          onClick: () => handleFocusTeam(team._id),
-                          role: 'button',
-                        }}
-                      />
-                      <span className="team-name-block">
-                        <span className="team-name-text" title={team.name}>{team.name}</span>
-                        <span className="team-member-count">({team.team_members.length})</span>
-                      </span>
-                      <span className="add-icon" onClick={() => handleAddMemberIconClick(team._id)}
-                            title="Add team member">➕</span>
-                      <FontAwesomeIconWithTitle
-                        icon={isSubscribed ? faSolidBell : faRegularBell}
-                        title="Manage team subscription"
-                        wrapperClassName={`watch-icon ${isSubscribed ? 'watch-icon-active' : ''}`}
-                        wrapperProps={{
-                          onClick: (event) => openSubscriptionMenu(event, team._id),
-                          role: 'button',
-                        }}
-                      />
-                      <FontAwesomeIconWithTitle
-                        icon={faHistory}
-                        title="View team history"
-                        wrapperClassName="history-icon"
-                        wrapperProps={{
-                          onClick: () => openTeamHistory(team),
-                          role: 'button',
-                        }}
-                      />
-                      <FontAwesomeIconWithTitle
-                        icon={faEdit}
-                        title="Edit team"
-                        wrapperClassName="edit-icon"
-                        wrapperProps={{
-                          onClick: () => handleEditTeamClick(team._id),
-                          role: 'button',
-                        }}
-                      />
-                      <FontAwesomeIconWithTitle
-                        icon={faLink}
-                        title="Copy calendar feed link"
-                        wrapperClassName="calendar-link-icon"
-                        wrapperProps={{
-                          onClick: () => handleCopyCalendarLink(team._id),
-                          role: 'button',
-                        }}
-                      />
-                      {team.team_members.length === 0 && (
-                        <FontAwesomeIconWithTitle
-                          icon={faTrashAlt}
-                          title="Delete team"
-                          wrapperClassName="delete-icon"
-                          wrapperProps={{
-                            onClick: () => deleteTeam(team._id),
-                            role: 'button',
-                          }}
-                        />
-                      )}
-                    </td>
-                    {daysHeader.map(({date}) => {
-                      return (<td
-                        key={`${teamKey}-${formatDate(date)}`}
-                        className={`${isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : '')}`}
-                      >
-
-
-                      </td>)
-                    })}
-                  </tr>
-                  {!collapsedTeams.includes(team._id) && team.team_members.map((member) => {
-                    const memberKey = member.uid;
-                    return (
-                    <tr key={memberKey} className={draggingMemberId === member.uid ? 'dragging' : ''}>
-                      <td className="member-name-cell">
-                        <span className="member-name-text" title={member.name}>
-                          {member.name}
-                        </span>
-                        <span className="member-flag" title={member.country}>{member.country_flag}</span>
-                        <FontAwesomeIconWithTitle
-                          icon={faInfoCircle}
-                          title={renderVacationDaysTooltip(member)}
-                          wrapperClassName="info-icon"
-                        />
-                        <FontAwesomeIconWithTitle
-                          icon={faHistory}
-                          title="View history"
-                          wrapperClassName="history-icon"
-                          wrapperProps={{
-                            onClick: () => openMemberHistory(team._id, member),
-                            role: 'button',
-                          }}
-                        />
-                        <FontAwesomeIconWithTitle
-                          icon={faGripVertical}
-                          title="Move to another team"
-                          wrapperClassName="drag-icon"
-                          wrapperProps={{
-                            draggable: true,
-                            onDragStart: (e) => handleDragStart(e, team._id, member.uid, member.name),
-                            onDragEnd: handleDragEnd,
-                          }}
-                        />
-                        <FontAwesomeIconWithTitle
-                          icon={faEdit}
-                          title="Edit member"
-                          wrapperClassName="edit-icon"
-                          wrapperProps={{
-                            onClick: () => handleEditMemberClick(team._id, member.uid),
-                            role: 'button',
-                          }}
-                        />
-                        {canManageMembers && (
-                          <FontAwesomeIconWithTitle
-                            icon={faTrashAlt}
-                            title="Delete member"
-                            wrapperClassName="delete-icon"
-                            wrapperProps={{
-                              onClick: () => openDeleteMemberModal(team._id, member.uid),
-                              role: 'button',
-                            }}
-                          />
-                        )}
-                      </td>
-                      {daysHeader.map(({date}) => {
-                        const dayEntry = getMemberDayEntry(member, date);
-                        const dateDayTypes = dayEntry?.day_types || [];
-                        const isHolidayDay = isHoliday(member.country, date);
-                        const hasComment = dayEntry?.comment && dayEntry.comment.trim().length > 0;
-
-                        const cellClassNames = [
-                          'clickable-cell',
-                          isHolidayDay ? 'holiday-cell' : '',
-                          isWeekend(date) ? 'weekend-cell' : '',
-                          isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : ''),
-                          selectedCells.some((cell) => cell.date.getTime() === date.getTime() && cell.memberId === member.uid)
-                            ? 'selected-range'
-                            : '',
-                        ].filter(Boolean).join(' ');
-
-                        return (
-                          <td
-                            key={`${memberKey}-${formatDate(date)}`}
-                            onMouseDown={() => handleMouseDown(team._id, member.uid, date, isSelectableDay(member, date))}
-                            onMouseOver={() => handleMouseOver(team._id, member.uid, date, member)}
-                            onMouseUp={handleMouseUp}
-                            onClick={(e) => handleDayClick(team._id, member.uid, date, isHolidayDay, e)}
-                            title={getCellTitle(member, date)}
-                            className={cellClassNames}
-                            style={generateGradientStyle(dateDayTypes)}
-                          >
-                            <div className="day-cell-content">
-                              {hasComment && <span className="comment-icon">*</span>}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    );
-                  })}
+                  <TeamRow
+                    team={team}
+                    daysHeader={daysHeader}
+                    isCollapsed={collapsedTeams.includes(team._id)}
+                    isFocused={focusedTeamId === team._id}
+                    isSubscribed={team.subscribers?.some(sub => sub._id === user?._id)}
+                    isDropTarget={dropTargetId === team._id}
+                    onToggleCollapse={toggleTeamCollapse}
+                    onFocusTeam={handleFocusTeam}
+                    onAddMember={handleAddMemberIconClick}
+                    onOpenSubscriptionMenu={openSubscriptionMenu}
+                    onOpenHistory={openTeamHistory}
+                    onEditTeam={handleEditTeamClick}
+                    onCopyCalendarLink={handleCopyCalendarLink}
+                    onDeleteTeam={deleteTeam}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  />
+                  {!collapsedTeams.includes(team._id) && team.team_members.map((member) => (
+                    <MemberRow
+                      key={member.uid}
+                      team={team}
+                      member={member}
+                      daysHeader={daysHeader}
+                      holidayData={holidayData}
+                      selectedCells={selectedCells}
+                      isDragging={draggingMemberId === member.uid}
+                      canManageMembers={canManageMembers}
+                      displayYear={displayMonth.getFullYear()}
+                      onOpenHistory={openMemberHistory}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                      onEditMember={handleEditMemberClick}
+                      onDeleteMember={openDeleteMemberModal}
+                      onDayMouseDown={handleMouseDown}
+                      onDayMouseOver={handleMouseOver}
+                      onDayMouseUp={handleMouseUp}
+                      onDayClick={handleDayClick}
+                    />
+                  ))}
                 </>
               )}
             </React.Fragment>
-            );
-          })}
+          ))}
           {visibleTeams.length === 0 && (
             <tr>
               <td colSpan={daysHeader.length + 1} className="empty-filter-message">

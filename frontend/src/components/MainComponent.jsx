@@ -163,7 +163,7 @@ const MainComponent = () => {
                         />
                     } />
                     <Route path="settings/*" element={<SettingsComponent onClose={() => {navigate("/main"); refetchTeams();}} />} />
-                    <Route path="archived-members" element={<ArchivedMembersPage user={user} apiCall={apiCall} />} />
+                    <Route path="archived-members" element={<ArchivedMembersPage />} />
                     <Route path="*" element={<Navigate to="/main" replace />} />
                 </Routes>
             </div>

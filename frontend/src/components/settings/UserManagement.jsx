@@ -2,8 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {useApi} from '../../hooks/useApi';
 import UserModal from './UserModal';
 import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
-import {faEdit, faKey, faTrashAlt, faSyncAlt, faLock, faUnlink} from '@fortawesome/free-solid-svg-icons';
-import {faGoogle, faTelegram} from '@fortawesome/free-brands-svg-icons';
+import {faEdit, faKey, faTrashAlt, faSyncAlt, faLock} from '@fortawesome/free-solid-svg-icons';
 import {useAuth} from '../../contexts/AuthContext';
 import {useConfig} from '../../contexts/ConfigContext';
 import {toast} from 'react-toastify';
@@ -12,18 +11,20 @@ import ApiKeyModal from './ApiKeyModal';
 import InviteUserModal from './InviteUserModal';
 import InviteManagement from './InviteManagement';
 import {useLocation, useNavigate} from 'react-router-dom';
-import useGoogleAuth from '../../hooks/useGoogleAuth';
 import {extractGoogleIdToken} from '../../utils/google';
-import TelegramLogin from '../auth/TelegramLogin';
-import Modal from '../Modal';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {useUsersQuery, USERS_QUERY_KEY} from '../../hooks/queries/useUsersQuery';
+import {
+  GoogleConnectButton,
+  GoogleDisconnectButton,
+  TelegramConnectButton,
+  TelegramDisconnectButton,
+} from './UserIntegrationButtons';
+import useUserAccountMutations from '../../hooks/mutations/useUserAccountMutations';
+import {useUsersQuery} from '../../hooks/queries/useUsersQuery';
 
 const UserManagement = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const {apiCall} = useApi();
-  const queryClient = useQueryClient();
   const {user} = useAuth();
   const {googleClientId, isTelegramEnabled, telegramBotUsername} = useConfig();
   const [showUserModal, setShowUserModal] = useState(false);
@@ -44,6 +45,15 @@ const UserManagement = () => {
     error: usersError,
   } = useUsersQuery(apiCall);
 
+  const {
+    deleteUserMutation,
+    googleConnectMutation,
+    googleDisconnectMutation,
+    telegramConnectMutation,
+    telegramDisconnectMutation,
+    resetMfaMutation,
+  } = useUserAccountMutations();
+
   useEffect(() => {
     if (inviteUser) {
       handleInviteUserClick();
@@ -59,107 +69,6 @@ const UserManagement = () => {
       toast.error('Failed to load users');
     }
   }, [usersError]);
-
-  const invalidateUsers = () => queryClient.invalidateQueries({queryKey: USERS_QUERY_KEY});
-
-  const deleteUserMutation = useMutation({
-    mutationFn: ({userId}) => apiCall(`/users/${userId}`, 'DELETE'),
-    onSuccess: (_, variables) => {
-      invalidateUsers();
-      if (variables.userName) {
-        toast.success(`User '${variables.userName}' deleted`);
-      }
-    },
-    onError: (error) => {
-      console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
-    },
-  });
-
-  const googleConnectMutation = useMutation({
-    mutationFn: (idToken) => apiCall('/google-connect', 'POST', {token: idToken}),
-    onSuccess: () => {
-      toast.success('Google account connected');
-      invalidateUsers();
-    },
-    onError: (error) => {
-      console.error('Error connecting Google account:', error);
-      if (error.data && error.data.detail) {
-        toast.error(error.data.detail);
-      } else {
-        toast.error('Error connecting Google account');
-      }
-    },
-  });
-
-  const googleDisconnectMutation = useMutation({
-    mutationFn: () => apiCall('/google-connect', 'DELETE'),
-    onSuccess: () => {
-      toast.success('Google account disconnected');
-      invalidateUsers();
-    },
-    onError: (error) => {
-      console.error('Error disconnecting Google account:', error);
-      if (error.data && error.data.detail) {
-        toast.error(error.data.detail);
-      } else {
-        toast.error('Error disconnecting Google account');
-      }
-    },
-  });
-
-  const telegramConnectMutation = useMutation({
-    mutationFn: (telegramUser) => apiCall('/telegram-connect', 'POST', telegramUser),
-    onSuccess: () => {
-      toast.success('Telegram account connected');
-      setShowTelegramModal(false);
-      invalidateUsers();
-    },
-    onError: (error) => {
-      console.error('Error connecting Telegram account:', error);
-      if (error.data && error.data.detail) {
-        toast.error(error.data.detail);
-      } else {
-        toast.error('Error connecting Telegram account');
-      }
-    },
-  });
-
-  const telegramDisconnectMutation = useMutation({
-    mutationFn: () => apiCall('/telegram-connect', 'DELETE'),
-    onSuccess: () => {
-      toast.success('Telegram account disconnected');
-      invalidateUsers();
-    },
-    onError: (error) => {
-      console.error('Error disconnecting Telegram account:', error);
-      if (error.data && error.data.detail) {
-        toast.error(error.data.detail);
-      } else {
-        toast.error('Error disconnecting Telegram account');
-      }
-    },
-  });
-
-  const resetMfaMutation = useMutation({
-    mutationFn: ({userId}) => apiCall(`/users/${userId}/reset-mfa`, 'POST'),
-    onSuccess: (data) => {
-      if (data?.message) {
-        toast.success(data.message);
-      } else {
-        toast.success('MFA reset successfully');
-      }
-      invalidateUsers();
-    },
-    onError: (error) => {
-      console.error('Error resetting MFA:', error);
-      if (error.data && error.data.detail) {
-        toast.error(error.data.detail);
-      } else {
-        toast.error('Error resetting MFA');
-      }
-    },
-  });
 
   const handleInviteUserClick = () => {
     setShowInviteModal(true);
@@ -230,7 +139,9 @@ const UserManagement = () => {
 
   const handleTelegramConnect = (telegramUser) => {
     if (!telegramConnectMutation.isPending) {
-      telegramConnectMutation.mutate(telegramUser);
+      telegramConnectMutation.mutate(telegramUser, {
+        onSuccess: () => setShowTelegramModal(false),
+      });
     }
   };
 
@@ -239,58 +150,6 @@ const UserManagement = () => {
       telegramDisconnectMutation.mutate();
     }
   };
-
-  const GoogleConnectButton = () => {
-    const googleConnect = useGoogleAuth(handleGoogleConnect);
-    return (
-      <FontAwesomeIconWithTitle
-        icon={faGoogle}
-        onClick={() => !googleConnectMutation.isPending && googleConnect()}
-        className="actionIcon"
-        title="Connect Google account"
-        aria-label="Connect Google account"
-      />
-    );
-  };
-
-  const GoogleDisconnectButton = () => (
-    <FontAwesomeIconWithTitle
-      icon={faUnlink}
-      onClick={handleGoogleDisconnect}
-      className="actionIcon"
-      title="Disconnect Google account"
-      aria-label="Disconnect Google account"
-    />
-  );
-
-  const TelegramConnectButton = () => (
-    <>
-      <FontAwesomeIconWithTitle
-        icon={faTelegram}
-        onClick={() => setShowTelegramModal(true)}
-        className="actionIcon"
-        title="Connect Telegram account"
-        aria-label="Connect Telegram account"
-      />
-      <Modal isOpen={showTelegramModal} onClose={() => setShowTelegramModal(false)}>
-        <TelegramLogin
-          telegramBotUsername={telegramBotUsername}
-          onAuth={handleTelegramConnect}
-          title="Connect your Telegram account"
-        />
-      </Modal>
-    </>
-  );
-
-  const TelegramDisconnectButton = () => (
-    <FontAwesomeIconWithTitle
-      icon={faUnlink}
-      onClick={handleTelegramDisconnect}
-      className="actionIcon"
-      title="Disconnect Telegram account"
-      aria-label="Disconnect Telegram account"
-    />
-  );
 
   const handleResetMfa = (userId, userName) => {
     if (resetMfaMutation.isPending) {
@@ -391,16 +250,25 @@ const UserManagement = () => {
                           aria-label={showApiKeyLabel}
                         />
                         {googleClientId && !u.auth_details?.google_id && (
-                          <GoogleConnectButton/>
+                          <GoogleConnectButton
+                            onConnect={handleGoogleConnect}
+                            disabled={googleConnectMutation.isPending}
+                          />
                         )}
                         {googleClientId && u.auth_details?.google_id && (
-                          <GoogleDisconnectButton/>
+                          <GoogleDisconnectButton onDisconnect={handleGoogleDisconnect}/>
                         )}
                         {isTelegramEnabled && !u.auth_details?.telegram_id && (
-                          <TelegramConnectButton/>
+                          <TelegramConnectButton
+                            telegramBotUsername={telegramBotUsername}
+                            isModalOpen={showTelegramModal}
+                            onOpenModal={() => setShowTelegramModal(true)}
+                            onCloseModal={() => setShowTelegramModal(false)}
+                            onAuth={handleTelegramConnect}
+                          />
                         )}
                         {isTelegramEnabled && u.auth_details?.telegram_id && (
-                          <TelegramDisconnectButton/>
+                          <TelegramDisconnectButton onDisconnect={handleTelegramDisconnect}/>
                         )}
                       </>
                     )}

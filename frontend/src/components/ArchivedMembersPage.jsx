@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import {Link, Navigate} from 'react-router-dom';
 import {useArchivedMembersQuery} from '../hooks/queries/useArchivedMembersQuery';
+import {useApi} from '../hooks/useApi';
+import {useAuth} from '../contexts/AuthContext';
 import './ArchivedMembersPage.css';
 
 const SEPARATION_LABELS = {
@@ -60,7 +62,9 @@ const COLUMNS = [
     {key: 'deleted_at',         label: 'Archived date'},
 ];
 
-const ArchivedMembersPage = ({user, apiCall}) => {
+const ArchivedMembersPage = () => {
+    const {user} = useAuth();
+    const {apiCall} = useApi();
     if (user?.role !== 'manager') return <Navigate to="/main" replace />;
 
     const {data, isLoading, error} = useArchivedMembersQuery(apiCall);
