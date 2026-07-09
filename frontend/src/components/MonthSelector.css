@@ -1,13 +1,80 @@
 .monthSelector {
-    margin: 0px 10px;
-    justify-content: left;
     display: inline-flex;
     align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+/* Segmented month navigator. The label has a fixed width and the arrows are
+   fixed-size cells, so the click targets never shift as the month name changes
+   length — you can click Next/Prev repeatedly without chasing the button. */
+.monthNav {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    box-sizing: border-box; /* keep total height at 32px to match the other controls */
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: white;
+}
+
+.monthNav-arrow {
+    margin: 0;
+    width: 32px;
+    height: 100%;
+    display: inline-grid;
+    place-items: center;
+    border: none;
+    background: none;
+    color: #57606a;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.monthNav-arrow:hover {
+    background-color: #eef1f4;
 }
 
 .monthDisplay {
-    display: inline-block; /* Allows setting a fixed width */
-    width: 130px; /* Adjust this width as needed to fit the longest month name */
+    display: inline-block;
+    min-width: 132px; /* fits the longest "September 2026" — keeps arrows stationary */
+    padding: 0 12px;
     text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    border-left: 1px solid #d0d7de;
+    border-right: 1px solid #d0d7de;
+    color: #1f2328;
     cursor: default;
+}
+
+.today-btn {
+    margin: 0;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background-color: white;
+    color: #1f2328;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.today-btn:hover:not(:disabled) {
+    background-color: #eef1f4;
+}
+
+.today-btn:disabled {
+    color: #8a939d;
+    cursor: default;
+}
+
+.monthNav-arrow:focus-visible,
+.today-btn:focus-visible {
+    outline: 2px solid #0366d6;
+    outline-offset: -2px;
 }

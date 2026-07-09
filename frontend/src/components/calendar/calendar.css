@@ -1,29 +1,32 @@
 .stickyHeader {
-    display: flex;
+    /* Three zones: filters (content-sized, left) | month (flexible centre) |
+       reserved space for the fixed action icons (right). The filters column is
+       `auto`, so it always fits its content and can never be overlapped by the
+       centred month; the month pill has a constant width, so switching months
+       moves nothing. */
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    justify-content: space-between; /* This line will space out the header items */
+    column-gap: 8px;
     position: fixed;
     top: 0;
     width: 100%;
+    box-sizing: border-box; /* keep the fixed bar from overflowing the viewport */
     background-color: white;
     z-index: 1000;
-    padding: 7px;
-}
-
-/* Additional styles to ensure other elements (like buttons or icons) are properly aligned */
-.stickyHeader > * {
-    flex: 1; /* Gives an equal opportunity for each element to expand */
-    display: flex;
-    justify-content: center; /* Centers content of each flex item */
+    padding: 7px 12px;
 }
 
 .stickyHeader input[type="search"] {
+    height: 32px; /* shared control height so the toolbar row is level */
     padding: 5px 12px;
     border: 1px solid #d0d7de;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 13px;
-    flex: 1 1 auto;
-    min-width: 140px;
+    flex: 0 0 auto;
+    width: 240px; /* fixed, so selecting a manager (which reveals the scope
+                     toggle) no longer shrinks the search field */
+    max-width: 34vw;
     box-sizing: border-box;
     transition: border-color 0.2s ease-in-out;
 }
@@ -39,19 +42,26 @@
 }
 
 .filter-wrapper {
-    flex: 0 0 58%; /* Allocate space but allow it to shrink or grow as needed */
+    /* Left grid zone. Left-aligned, sized to its content; fixed-width children
+       mean nothing here reflows when the scope toggle is shown/hidden. */
+    grid-column: 1;
+    justify-self: start;
     display: flex;
     align-items: center;
-    justify-content: left;
+    justify-content: flex-start;
     gap: 8px;
+    min-width: 0;
 }
 
 /* Manager (reporting-hierarchy) filter — styled to match the search input */
 .stickyHeader .manager-filter {
+    height: 32px; /* match the search input / toggle / month pill */
     flex: 0 0 auto;
+    min-width: 148px; /* stable width so switching option (e.g. All members ->
+                         a long name) doesn't resize and shove the toggle */
     padding: 5px 8px;
     border: 1px solid #d0d7de;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 13px;
     background-color: white;
     box-sizing: border-box;
@@ -66,10 +76,12 @@
 
 /* Segmented Direct / Entire-hierarchy toggle */
 .scope-toggle {
+    height: 32px; /* match the other toolbar controls */
+    box-sizing: border-box;
     flex: 0 0 auto;
     display: inline-flex;
     border: 1px solid #d0d7de;
-    border-radius: 4px;
+    border-radius: 6px;
     overflow: hidden;
 }
 
@@ -106,10 +118,19 @@
     font-style: italic;
 }
 
-/* Specific style for the Clear button */
+.stickyHeader .monthSelector {
+    grid-column: 2;
+    justify-self: center;
+}
+
+/* Reserves the right zone for the app's fixed action icons (archived members,
+   report, avatar) so the centred month never drifts under them. */
+.stickyHeader .header-actions-reserve {
+    grid-column: 3;
+    width: 120px;
+}
+
 .stickyHeader button {
-    flex: 0 0 auto; /* Do not grow, do not shrink, and 'auto' basis for content-based sizing */
-    margin: 0 10px;
     white-space: nowrap; /* Ensure the button text does not wrap */
 }
 

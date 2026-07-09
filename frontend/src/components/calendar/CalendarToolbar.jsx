@@ -77,6 +77,8 @@ const CalendarToolbar = ({
         todayYear={todayYear}
         todayMonth={todayMonth}
       />
+      {/* Reserves space for MainComponent's fixed action icons on the right. */}
+      <div className="header-actions-reserve" aria-hidden="true"/>
       {showSaveIcon && <FontAwesomeIcon icon={faSave} className="save-icon"/>}
     </div>
   );

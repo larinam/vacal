@@ -33,18 +33,43 @@
     cursor: pointer;
 }
 
-.loadingIndicator {
+/* Background-activity indicator: a thin indeterminate bar riding the top edge
+   of the header. Unlike the old corner spinner (fixed at right:100px, which
+   overlapped the action icons at the same z-index) it occupies no control
+   space and cannot collide with anything. */
+.topProgress {
     position: fixed;
-    top: 10px;
-    right: 100px;
-    cursor: default;
-    z-index: 1001;
-    transition: opacity 0.5s ease-in-out;
-    opacity: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 1100; /* above the sticky header (1000) and icon container (1001) */
+    overflow: hidden;
+    pointer-events: none;
 }
 
-.loadingIndicator:not(:empty) {
-    opacity: 1;
+.topProgress::before {
+    content: "";
+    position: absolute;
+    height: 100%;
+    width: 38%;
+    left: -38%;
+    background: linear-gradient(90deg, transparent, #0366d6, transparent);
+    animation: topProgressSlide 1.25s ease-in-out infinite;
+}
+
+@keyframes topProgressSlide {
+    from { left: -38%; }
+    to { left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .topProgress::before {
+        animation: none;
+        left: 0;
+        width: 100%;
+        opacity: 0.6;
+    }
 }
 
 .spinner {

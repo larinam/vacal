@@ -119,9 +119,7 @@ const MainComponent = () => {
 
     return (
         <div className="mainContainer">
-            <div className="loadingIndicator">
-                {isBusy && <div className="spinner" role="status" aria-label="Loading" />}
-            </div>
+            {isBusy && <div className="topProgress" role="status" aria-label="Loading" />}
             <div className="iconContainer">
                 {user?.role === 'manager' && (
                     <FontAwesomeIconWithTitle

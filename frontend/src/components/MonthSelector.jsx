@@ -7,6 +7,10 @@ const MonthSelector = ({ displayMonth, setDisplayMonth, todayYear, todayMonth })
         setDisplayMonth(newMonth);
     };
 
+    const goToToday = () => setDisplayMonth(new Date(todayYear, todayMonth));
+    const isCurrentMonth =
+        displayMonth.getFullYear() === todayYear && displayMonth.getMonth() === todayMonth;
+
     useEffect(() => {
         const handleKeyDown = (event) => {
             const focusWithinInteractive = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
@@ -31,13 +35,22 @@ const MonthSelector = ({ displayMonth, setDisplayMonth, todayYear, todayMonth })
 
     return (
         <div className="monthSelector">
-            <button onClick={() => changeMonth(-1)}>&lt; Prev</button>
-            <span
-                className="monthDisplay"
-                onClick={() => setDisplayMonth(new Date(todayYear, todayMonth))}>
-                {displayMonth.toLocaleString('default', { month: 'long' })} {displayMonth.getFullYear()}
-            </span>
-            <button onClick={() => changeMonth(1)}>Next &gt;</button>
+            {/* Grouped nav with a fixed-width label so the arrows stay put across
+                clicks — rapid month switching never makes the buttons move. */}
+            <div className="monthNav" role="group" aria-label="Change month">
+                <button type="button" className="monthNav-arrow" onClick={() => changeMonth(-1)} aria-label="Previous month">
+                    <span aria-hidden="true">&lsaquo;</span>
+                </button>
+                <span className="monthDisplay">
+                    {displayMonth.toLocaleString('default', { month: 'long' })} {displayMonth.getFullYear()}
+                </span>
+                <button type="button" className="monthNav-arrow" onClick={() => changeMonth(1)} aria-label="Next month">
+                    <span aria-hidden="true">&rsaquo;</span>
+                </button>
+            </div>
+            <button type="button" className="today-btn" onClick={goToToday} disabled={isCurrentMonth}>
+                Today
+            </button>
         </div>
     );
 };
