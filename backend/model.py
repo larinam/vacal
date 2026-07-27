@@ -517,6 +517,7 @@ class Team(Document):
     team_members = EmbeddedDocumentListField(TeamMember)
     available_day_types = ListField(ReferenceField(DayType))
     notification_preferences = MapField(ListField(StringField()), default=dict)
+    parent_team_id = StringField(default=None)
     is_deleted = BooleanField(default=False)
     deleted_at = DateTimeField(default=None)
     deleted_by = ReferenceField('User', reverse_delete_rule=mongoengine.NULLIFY, default=None)

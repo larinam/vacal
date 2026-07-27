@@ -7,6 +7,7 @@ import {buildVacationTooltip, formatDate} from '../../utils/calendar';
 const MemberRow = ({
                      team,
                      member,
+                     depth = 0,
                      daysHeader,
                      holidayData,
                      selectedCells,
@@ -23,7 +24,7 @@ const MemberRow = ({
                      onDayMouseUp,
                      onDayClick,
                    }) => (
-  <tr className={isDragging ? 'dragging' : ''}>
+  <tr className={isDragging ? 'dragging' : ''} data-depth={depth} style={{'--team-depth': depth}}>
     <td className="member-name-cell">
       <span className="member-name-text" title={member.name}>
         {member.name}

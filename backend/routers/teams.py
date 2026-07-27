@@ -267,6 +267,12 @@ class ArchivedMemberDTO(BaseModel):
 class TeamWriteDTO(BaseModel):
     name: str
     available_day_types: List[DayTypeReadDTO] = []
+    parent_team_id: str | None = None
+
+    @field_validator('parent_team_id', mode='before')
+    @classmethod
+    def empty_parent_to_none(cls, v):
+        return None if v == "" else v
 
 
 class TeamReadDTO(TeamWriteDTO):
@@ -424,6 +430,7 @@ def team_to_read_dto(team: Team, include_archived_members: bool = False) -> Team
             for day_type in team.available_day_types
         ],
         "team_members": member_dtos,
+        "parent_team_id": team.parent_team_id,
         "subscribers": [
             mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
             for subscriber in team.list_subscribers()
@@ -480,6 +487,65 @@ def would_create_manager_cycle(tenant, member_uid: str, manager_uid: str | None)
     return False
 
 
+def would_create_team_cycle(tenant, team_id: str, parent_team_id: str | None) -> bool:
+    """Return True if making parent_team_id the parent of team_id would form a cycle."""
+    if not parent_team_id:
+        return False
+    if parent_team_id == team_id:
+        return True
+    # Build team id -> parent id map for every team in the tenant. Archived teams are
+    # included: one sitting in the middle of a chain must not truncate the walk.
+    chain = {str(team.id): team.parent_team_id for team in Team.objects_with_deleted(tenant=tenant)}
+    seen = set()
+    current = parent_team_id
+    while current:
+        if current == team_id:      # chain loops back to the team
+            return True
+        if current in seen:         # pre-existing cycle, stop
+            break
+        seen.add(current)
+        current = chain.get(current)
+    return False
+
+
+def check_can_change_team_hierarchy(current_user: User) -> None:
+    if not current_user.is_manager():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only managers can change the team hierarchy."
+        )
+
+
+def resolve_parent_team_id(tenant, team_id: str | None, parent_team_id: str | None) -> str | None:
+    """Validate a proposed parent team and return the value to store.
+
+    ``team_id`` is None while creating a team: a team without an id yet cannot close a
+    loop, so only the parent's existence is checked.
+    """
+    if not parent_team_id:
+        return None
+    if not ObjectId.is_valid(parent_team_id):
+        raise HTTPException(status_code=400, detail="Invalid parent team id")
+    # Team.objects is the alive-only manager, so an archived team is not a selectable parent.
+    # Scoping by tenant keeps a team from being attached to another tenant's hierarchy.
+    if not Team.objects(tenant=tenant, id=parent_team_id).first():
+        raise HTTPException(status_code=404, detail="Parent team not found")
+    if team_id and would_create_team_cycle(tenant, team_id, parent_team_id):
+        raise HTTPException(status_code=400, detail="Parent team assignment would create a cycle")
+    return parent_team_id
+
+
+def reparent_children(tenant, team: Team) -> None:
+    """Move a deleted team's children up to its own parent so the tree stays connected."""
+    children = Team.objects_with_deleted(tenant=tenant, parent_team_id=str(team.id))
+    if team.parent_team_id:
+        children.update(set__parent_team_id=team.parent_team_id)
+    else:
+        # MongoEngine omits None fields, so unsetting leaves a reparented root
+        # indistinguishable from a team that never had a parent.
+        children.update(unset__parent_team_id=1)
+
+
 @router.post("/{team_id}/members")
 async def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
                           current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
@@ -500,6 +566,9 @@ async def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
 async def add_team(team_dto: TeamWriteDTO, current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
                    tenant: Annotated[Tenant, Depends(get_tenant)]):
     team_data = team_dto.model_dump()
+    if team_dto.parent_team_id:
+        check_can_change_team_hierarchy(current_user)
+    team_data["parent_team_id"] = resolve_parent_team_id(tenant, None, team_dto.parent_team_id)
     team_data.update({"tenant": tenant})
     Team(**team_data).save()
     return {"message": "Team created successfully"}
@@ -511,6 +580,7 @@ async def delete_team(team_id: str, current_user: Annotated[User, Depends(get_cu
     team = Team.objects_with_deleted(tenant=tenant, id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
+    reparent_children(tenant, team)
     if not team.team_members:
         team.delete()
         return {"message": "Team deleted successfully"}
@@ -560,6 +630,11 @@ async def update_team(team_id: str, team_dto: TeamWriteDTO,
     if team:
         team.name = team_dto.name
         team.available_day_types = team_dto.available_day_types
+        # TeamWriteDTO is shared by POST and PUT, so an omitted parent must keep the stored
+        # value rather than silently detaching the team from its parent.
+        if "parent_team_id" in team_dto.model_fields_set and team_dto.parent_team_id != team.parent_team_id:
+            check_can_change_team_hierarchy(current_user)
+            team.parent_team_id = resolve_parent_team_id(tenant, str(team.id), team_dto.parent_team_id)
         team.save()
         return {"message": "Team modified successfully"}
     else:

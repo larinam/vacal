@@ -10,6 +10,16 @@ const useTeamManagementMutations = () => {
     queryClient.invalidateQueries({queryKey: TEAMS_QUERY_KEY});
   };
 
+  const createTeamMutation = useMutation({
+    mutationFn: ({payload}) => apiCall('/teams', 'POST', payload),
+    onSuccess: invalidateTeams,
+  });
+
+  const updateTeamMutation = useMutation({
+    mutationFn: ({teamId, payload}) => apiCall(`/teams/${teamId}`, 'PUT', payload),
+    onSuccess: invalidateTeams,
+  });
+
   const deleteTeamMutation = useMutation({
     mutationFn: ({teamId}) => apiCall(`/teams/${teamId}`, 'DELETE'),
     onSuccess: invalidateTeams,
@@ -24,7 +34,7 @@ const useTeamManagementMutations = () => {
     onSuccess: invalidateTeams,
   });
 
-  return {deleteTeamMutation, moveMemberMutation};
+  return {createTeamMutation, updateTeamMutation, deleteTeamMutation, moveMemberMutation};
 };
 
 export default useTeamManagementMutations;

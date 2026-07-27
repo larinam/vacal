@@ -178,6 +178,8 @@
     --weekend-column-bottom-alpha: 0.024;
     --weekend-text-color: #a65a5a;
     --weekend-muted-text-color: #a98c8c;
+    --team-depth-step: 16px;
+    --team-depth-max: 6;
 }
 
 .calendar-table thead {
@@ -198,6 +200,17 @@
 .calendar-table th:first-child, .calendar-table td:first-child {
     text-align: left;
     cursor: default;
+}
+
+/* Team-hierarchy indent. Applied as padding on the flex container so the chevron,
+   eye icon and name shift together and the 6px gap between them is untouched.
+   --team-depth is set per row by TeamRow/MemberRow and inherits into the cell.
+   The selector needs `.calendar-table td` to outrank the `padding: 8px` shorthand
+   above. The step count is capped so a deep branch cannot eat the whole name
+   column; the data itself is unlimited in depth. */
+.calendar-table td.team-name-cell,
+.calendar-table td.member-name-cell {
+    padding-left: calc(8px + min(var(--team-depth, 0), var(--team-depth-max)) * var(--team-depth-step));
 }
 
 /* Keep first column borders as light as the grid to avoid a heavy divider */
@@ -301,6 +314,18 @@
 
 .team-row td {
     cursor: default;
+}
+
+/* An ancestor kept only to preserve the tree shape when the active filter pruned
+   it: none of its own members are shown and it offers no actions. */
+.team-row--structural {
+    background-color: #f7f7f7;
+    font-weight: normal;
+}
+
+.team-row--structural .team-name-text {
+    color: #656d76; /* >= 4.5:1 on the row background (WCAG 1.4.3) */
+    font-style: italic;
 }
 
 

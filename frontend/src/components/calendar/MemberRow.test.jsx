@@ -93,3 +93,10 @@ test('dragging state applies the dragging class to the row', () => {
   renderRow({isDragging: true});
   expect(screen.getByRole('row')).toHaveClass('dragging');
 });
+
+test('indents the member row to match its team depth', () => {
+  renderRow({depth: 2});
+  const row = screen.getByRole('row');
+  expect(row).toHaveAttribute('data-depth', '2');
+  expect(row.style.getPropertyValue('--team-depth')).toBe('2');
+});

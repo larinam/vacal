@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {toast} from "react-toastify";
 import Modal from './Modal';
 import useMemberMutations from '../hooks/mutations/useMemberMutations';
+import {getApiErrorMessage} from '../utils/apiErrors';
 
 const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMember, allMembers = []}) => {
   const INITIAL_MEMBER_STATE = {
@@ -42,20 +43,7 @@ const MemberModal = ({isOpen, onClose, selectedTeamId, updateTeamData, editingMe
 
   const handleMemberErrorToast = (error) => {
     console.error('Error adding/modifying team member:', error);
-    const detail = error?.data?.detail;
-    if (Array.isArray(detail) && detail[0]?.msg) {
-      toast.error(detail[0].msg);
-      return;
-    }
-    if (detail?.msg) {
-      toast.error(detail.msg);
-      return;
-    }
-    if (detail) {
-      toast.error(detail);
-      return;
-    }
-    toast.error('An error occurred. Please try again.');
+    toast.error(getApiErrorMessage(error));
   };
 
   const handleAddMemberFormSubmit = (e) => {

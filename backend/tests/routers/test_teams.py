@@ -5,6 +5,7 @@ import uuid
 os.environ.setdefault("MONGO_MOCK", "1")
 os.environ.setdefault("AUTHENTICATION_SECRET_KEY", "test_secret")
 
+from bson import ObjectId
 from fastapi.testclient import TestClient
 
 from backend.dependencies import get_current_active_user_check_tenant, get_tenant
@@ -703,5 +704,364 @@ def test_get_archived_members_returns_archived_only():
         assert result["team_name"] == "Test Team"
         assert result["separation_type"] == "resignation"
         assert result["last_working_day"] == "2024-06-01"
+    finally:
+        app.dependency_overrides = {}
+
+
+# --- team parent hierarchy (parent_team_id) tests ---
+
+
+def _setup_team_tree(role="manager"):
+    """Helper: tenant with Engineering > Backend > Payments, plus an authenticated user."""
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    engineering = Team(tenant=tenant, name=f"Engineering-{unique_suffix}").save()
+    backend = Team(tenant=tenant, name=f"Backend-{unique_suffix}",
+                   parent_team_id=str(engineering.id)).save()
+    payments = Team(tenant=tenant, name=f"Payments-{unique_suffix}",
+                    parent_team_id=str(backend.id)).save()
+    user = User(
+        name=role.capitalize(),
+        role=role,
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"{role}-{unique_suffix}"),
+    ).save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    return tenant, engineering, backend, payments, user
+
+
+def test_add_team_with_parent_team_id():
+    tenant, engineering, _, _, _ = _setup_team_tree()
+    try:
+        response = client.post(
+            "/teams",
+            json={"name": f"Frontend-{uuid.uuid4()}", "parent_team_id": str(engineering.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        created = Team.objects(tenant=tenant, parent_team_id=str(engineering.id),
+                               name__startswith="Frontend-").first()
+        assert created is not None
+        assert created.parent_team_id == str(engineering.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_without_parent_stores_none():
+    tenant, _, _, _, _ = _setup_team_tree()
+    try:
+        name = f"Standalone-{uuid.uuid4()}"
+        response = client.post(
+            "/teams",
+            json={"name": name},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        assert Team.objects(tenant=tenant, name=name).first().parent_team_id is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_empty_parent_string_stores_none():
+    tenant, _, _, _, _ = _setup_team_tree()
+    try:
+        name = f"Standalone-{uuid.uuid4()}"
+        response = client.post(
+            "/teams",
+            json={"name": name, "parent_team_id": ""},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        assert Team.objects(tenant=tenant, name=name).first().parent_team_id is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_unknown_parent_returns_404():
+    tenant, _, _, _, _ = _setup_team_tree()
+    try:
+        response = client.post(
+            "/teams",
+            json={"name": f"Orphan-{uuid.uuid4()}", "parent_team_id": str(ObjectId())},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Parent team not found"}
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_malformed_parent_id_returns_400():
+    tenant, _, _, _, _ = _setup_team_tree()
+    try:
+        response = client.post(
+            "/teams",
+            json={"name": f"Orphan-{uuid.uuid4()}", "parent_team_id": "not-an-object-id"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Invalid parent team id"}
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_parent_from_another_tenant_returns_404():
+    tenant, _, _, _, _ = _setup_team_tree()
+    other_suffix = str(uuid.uuid4())
+    other_tenant = Tenant(name=f"Tenant-{other_suffix}", identifier=f"tenant-{other_suffix}").save()
+    foreign_team = Team(tenant=other_tenant, name=f"Foreign-{other_suffix}").save()
+    try:
+        response = client.post(
+            "/teams",
+            json={"name": f"Sneaky-{uuid.uuid4()}", "parent_team_id": str(foreign_team.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Parent team not found"}
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_parent_requires_manager_role():
+    tenant, engineering, _, _, _ = _setup_team_tree(role="employee")
+    try:
+        name = f"Frontend-{uuid.uuid4()}"
+        response = client.post(
+            "/teams",
+            json={"name": name, "parent_team_id": str(engineering.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Only managers can change the team hierarchy."}
+        assert Team.objects(tenant=tenant, name=name).first() is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_without_parent_is_allowed_for_employee():
+    tenant, _, _, _, _ = _setup_team_tree(role="employee")
+    try:
+        name = f"Standalone-{uuid.uuid4()}"
+        response = client.post(
+            "/teams",
+            json={"name": name},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        assert Team.objects(tenant=tenant, name=name).first() is not None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_sets_parent_team_id():
+    tenant, engineering, _, _, _ = _setup_team_tree()
+    standalone = Team(tenant=tenant, name=f"Sales-{uuid.uuid4()}").save()
+    try:
+        response = client.put(
+            f"/teams/{standalone.id}",
+            json={"name": standalone.name, "parent_team_id": str(engineering.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        standalone.reload()
+        assert standalone.parent_team_id == str(engineering.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_clears_parent_with_explicit_null():
+    tenant, _, backend, _, _ = _setup_team_tree()
+    try:
+        response = client.put(
+            f"/teams/{backend.id}",
+            json={"name": backend.name, "parent_team_id": None},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        backend.reload()
+        assert backend.parent_team_id is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_omitting_parent_preserves_existing_parent():
+    # TeamWriteDTO is shared by POST and PUT: a rename must not detach the team.
+    tenant, engineering, backend, _, _ = _setup_team_tree()
+    try:
+        response = client.put(
+            f"/teams/{backend.id}",
+            json={"name": f"Renamed-{uuid.uuid4()}"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        backend.reload()
+        assert backend.parent_team_id == str(engineering.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_self_parent_returns_400():
+    tenant, _, backend, _, _ = _setup_team_tree()
+    try:
+        response = client.put(
+            f"/teams/{backend.id}",
+            json={"name": backend.name, "parent_team_id": str(backend.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Parent team assignment would create a cycle"}
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_descendant_parent_returns_400():
+    tenant, engineering, _, payments, _ = _setup_team_tree()
+    try:
+        response = client.put(
+            f"/teams/{engineering.id}",
+            json={"name": engineering.name, "parent_team_id": str(payments.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Parent team assignment would create a cycle"}
+        engineering.reload()
+        assert engineering.parent_team_id is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_with_archived_parent_returns_404():
+    tenant, _, _, _, _ = _setup_team_tree()
+    archived = Team(tenant=tenant, name=f"Archived-{uuid.uuid4()}", is_deleted=True).save()
+    standalone = Team(tenant=tenant, name=f"Sales-{uuid.uuid4()}").save()
+    try:
+        response = client.put(
+            f"/teams/{standalone.id}",
+            json={"name": standalone.name, "parent_team_id": str(archived.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Parent team not found"}
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_resending_unchanged_parent_skips_validation():
+    # A no-op PUT must not fail even if the stored parent would no longer validate.
+    tenant, _, _, _, _ = _setup_team_tree()
+    archived = Team(tenant=tenant, name=f"Archived-{uuid.uuid4()}").save()
+    child = Team(tenant=tenant, name=f"Child-{uuid.uuid4()}", parent_team_id=str(archived.id)).save()
+    archived.is_deleted = True
+    archived.save()
+    try:
+        response = client.put(
+            f"/teams/{child.id}",
+            json={"name": child.name, "parent_team_id": str(archived.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        child.reload()
+        assert child.parent_team_id == str(archived.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_parent_requires_manager_role():
+    tenant, engineering, _, _, _ = _setup_team_tree(role="employee")
+    standalone = Team(tenant=tenant, name=f"Sales-{uuid.uuid4()}").save()
+    try:
+        response = client.put(
+            f"/teams/{standalone.id}",
+            json={"name": standalone.name, "parent_team_id": str(engineering.id)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Only managers can change the team hierarchy."}
+        standalone.reload()
+        assert standalone.parent_team_id is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_rename_without_parent_is_allowed_for_employee():
+    tenant, engineering, backend, _, _ = _setup_team_tree(role="employee")
+    try:
+        new_name = f"Renamed-{uuid.uuid4()}"
+        response = client.put(
+            f"/teams/{backend.id}",
+            json={"name": new_name},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        backend.reload()
+        assert backend.name == new_name
+        assert backend.parent_team_id == str(engineering.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_list_teams_exposes_parent_team_id():
+    tenant, engineering, backend, _, _ = _setup_team_tree()
+    try:
+        response = client.get("/teams", headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        by_id = {team["_id"]: team for team in response.json()["teams"]}
+        assert by_id[str(engineering.id)]["parent_team_id"] is None
+        assert by_id[str(backend.id)]["parent_team_id"] == str(engineering.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_delete_team_reparents_children_to_grandparent():
+    # Backend has no members, so it is hard-deleted; Payments must move under Engineering.
+    tenant, engineering, backend, payments, _ = _setup_team_tree()
+    try:
+        response = client.delete(f"/teams/{backend.id}", headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        assert Team.objects_with_deleted(id=backend.id).first() is None
+        payments.reload()
+        assert payments.parent_team_id == str(engineering.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_soft_delete_team_reparents_children_to_grandparent():
+    tenant, engineering, backend, payments, _ = _setup_team_tree()
+    backend.team_members = [TeamMember(name="Alice", country="Sweden")]
+    backend.save()
+    try:
+        response = client.delete(f"/teams/{backend.id}", headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        backend.reload()
+        assert backend.is_deleted is True
+        payments.reload()
+        assert payments.parent_team_id == str(engineering.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_delete_root_team_makes_children_roots():
+    tenant, engineering, backend, _, _ = _setup_team_tree()
+    try:
+        response = client.delete(f"/teams/{engineering.id}", headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        backend.reload()
+        assert backend.parent_team_id is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_delete_team_reparents_archived_children():
+    tenant, engineering, backend, payments, _ = _setup_team_tree()
+    payments.is_deleted = True
+    payments.save()
+    try:
+        response = client.delete(f"/teams/{backend.id}", headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        payments.reload()
+        assert payments.parent_team_id == str(engineering.id)
     finally:
         app.dependency_overrides = {}

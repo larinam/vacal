@@ -16,6 +16,13 @@ import {useLocalStorage} from '../hooks/useLocalStorage';
 import {API_URL} from '../utils/apiConfig';
 import {buildManagerOptions, getReportsUnder} from '../utils/hierarchy';
 import {
+  addStructuralAncestors,
+  filterCollapsedSubtrees,
+  flattenTeamTree,
+  selectTeamSubtree,
+} from '../utils/teamHierarchy';
+import {getApiErrorMessage} from '../utils/apiErrors';
+import {
   filterTeamsByManager,
   filterTeamsByText,
   getMemberDayComment,
@@ -32,7 +39,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
   const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
   const {deleteMemberMutation} = useMemberMutations();
   const {user} = useAuth();
-  const canManageMembers = user?.role === 'manager';
+  const isManager = user?.role === 'manager';
+  const canManageMembers = isManager;
   const today = new Date();
   const todayMonth = today.getMonth(); // Note: getMonth() returns 0 for January, 1 for February, etc.
   const todayYear = today.getFullYear();
@@ -209,7 +217,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
 
   const deleteTeam = (teamId) => {
     const teamName = teamData.find(team => team._id === teamId).name;
-    if (window.confirm(`Are you sure you want to delete the team '${teamName}'?`)) {
+    // The backend moves sub-teams up to the deleted team's own parent; say so
+    // rather than letting the branch appear to move on its own.
+    const hasSubTeams = teamData.some(team => team.parent_team_id === teamId);
+    const subTeamNote = hasSubTeams
+      ? ' Its sub-teams will move up one level.'
+      : '';
+    if (window.confirm(`Are you sure you want to delete the team '${teamName}'?${subTeamNote}`)) {
       deleteTeamMutation.mutate(
         {teamId},
         {
@@ -222,7 +236,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           },
           onError: (error) => {
             console.error('Error deleting team:', error);
-            toast.error('Error deleting team');
+            toast.error(getApiErrorMessage(error, 'Error deleting team'));
           },
         },
       );
@@ -435,6 +449,34 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     [managerFilteredTeams, filterInput]
   );
 
+  const collapsedSet = useMemo(() => new Set(collapsedTeams), [collapsedTeams]);
+
+  // A persisted focus can outlive its team (deleted here or in another tab), which
+  // would leave the calendar permanently blank. Reconcile it the way
+  // effectiveManagerUid does, against the unfiltered data so a team that is merely
+  // filtered away keeps the focus and produces a message instead.
+  const effectiveFocusedTeamId = useMemo(
+    () => ((teamData || []).some((team) => team._id === focusedTeamId) ? focusedTeamId : null),
+    [teamData, focusedTeamId]
+  );
+
+  // Filtering can prune an intermediate team while keeping its sub-teams; re-add
+  // those ancestors as structural rows so the nesting still reads correctly.
+  // Runs after both filters so placeholders are never themselves filtered out.
+  const structuredTeams = useMemo(
+    () => addStructuralAncestors(visibleTeams, teamData),
+    [visibleTeams, teamData]
+  );
+  const teamNodes = useMemo(() => flattenTeamTree(structuredTeams), [structuredTeams]);
+  const focusedNodes = useMemo(
+    () => selectTeamSubtree(teamNodes, effectiveFocusedTeamId),
+    [teamNodes, effectiveFocusedTeamId]
+  );
+  const visibleNodes = useMemo(
+    () => filterCollapsedSubtrees(focusedNodes, collapsedSet),
+    [focusedNodes, collapsedSet]
+  );
+
   let emptyFilterMessage = 'No teams or members match your filter.';
   if (effectiveManagerUid && managerFilteredTeams.length === 0) {
     // Only blame the manager filter when it is the stage that emptied the list;
@@ -446,6 +488,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     if (rootName) {
       emptyFilterMessage = `No members report to ${rootName}${reportScope === 'direct' ? ' directly' : ''}.`;
     }
+  } else if (visibleTeams.length > 0 && visibleNodes.length === 0) {
+    // The filters matched something, but none of it is inside the focused subtree.
+    emptyFilterMessage = 'The focused team does not match the current filter.';
   }
 
 
@@ -459,6 +504,8 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
           updateTeamData();
         }}
         editingTeam={editingTeam}
+        teams={teamData}
+        canEditHierarchy={isManager}
       />
 
       <MemberModal
@@ -542,56 +589,55 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
             onAddTeamClick={handleAddTeamIconClick}
           />
           <tbody>
-          {visibleTeams.map((team) => (
+          {visibleNodes.map(({team, depth, hasChildren}) => (
             <React.Fragment key={team._id}>
-              {(!focusedTeamId || focusedTeamId === team._id) && (
-                <>
-                  <TeamRow
-                    team={team}
-                    daysHeader={daysHeader}
-                    isCollapsed={collapsedTeams.includes(team._id)}
-                    isFocused={focusedTeamId === team._id}
-                    isSubscribed={team.subscribers?.some(sub => sub._id === user?._id)}
-                    isDropTarget={dropTargetId === team._id}
-                    onToggleCollapse={toggleTeamCollapse}
-                    onFocusTeam={handleFocusTeam}
-                    onAddMember={handleAddMemberIconClick}
-                    onOpenSubscriptionMenu={openSubscriptionMenu}
-                    onOpenHistory={openTeamHistory}
-                    onEditTeam={handleEditTeamClick}
-                    onCopyCalendarLink={handleCopyCalendarLink}
-                    onDeleteTeam={deleteTeam}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  />
-                  {!collapsedTeams.includes(team._id) && team.team_members.map((member) => (
-                    <MemberRow
-                      key={member.uid}
-                      team={team}
-                      member={member}
-                      daysHeader={daysHeader}
-                      holidayData={holidayData}
-                      selectedCells={selectedCells}
-                      isDragging={draggingMemberId === member.uid}
-                      canManageMembers={canManageMembers}
-                      displayYear={displayMonth.getFullYear()}
-                      onOpenHistory={openMemberHistory}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleDragEnd}
-                      onEditMember={handleEditMemberClick}
-                      onDeleteMember={openDeleteMemberModal}
-                      onDayMouseDown={handleMouseDown}
-                      onDayMouseOver={handleMouseOver}
-                      onDayMouseUp={handleMouseUp}
-                      onDayClick={handleDayClick}
-                    />
-                  ))}
-                </>
-              )}
+              <TeamRow
+                team={team}
+                depth={depth}
+                hasChildren={hasChildren}
+                daysHeader={daysHeader}
+                isCollapsed={collapsedSet.has(team._id)}
+                isFocused={effectiveFocusedTeamId === team._id}
+                isSubscribed={team.subscribers?.some(sub => sub._id === user?._id)}
+                isDropTarget={dropTargetId === team._id}
+                onToggleCollapse={toggleTeamCollapse}
+                onFocusTeam={handleFocusTeam}
+                onAddMember={handleAddMemberIconClick}
+                onOpenSubscriptionMenu={openSubscriptionMenu}
+                onOpenHistory={openTeamHistory}
+                onEditTeam={handleEditTeamClick}
+                onCopyCalendarLink={handleCopyCalendarLink}
+                onDeleteTeam={deleteTeam}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              />
+              {!collapsedSet.has(team._id) && team.team_members.map((member) => (
+                <MemberRow
+                  key={member.uid}
+                  team={team}
+                  member={member}
+                  depth={depth}
+                  daysHeader={daysHeader}
+                  holidayData={holidayData}
+                  selectedCells={selectedCells}
+                  isDragging={draggingMemberId === member.uid}
+                  canManageMembers={canManageMembers}
+                  displayYear={displayMonth.getFullYear()}
+                  onOpenHistory={openMemberHistory}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onEditMember={handleEditMemberClick}
+                  onDeleteMember={openDeleteMemberModal}
+                  onDayMouseDown={handleMouseDown}
+                  onDayMouseOver={handleMouseOver}
+                  onDayMouseUp={handleMouseUp}
+                  onDayClick={handleDayClick}
+                />
+              ))}
             </React.Fragment>
           ))}
-          {visibleTeams.length === 0 && (
+          {visibleNodes.length === 0 && (
             <tr>
               <td colSpan={daysHeader.length + 1} className="empty-filter-message">
                 <span role="status">{emptyFilterMessage}</span>

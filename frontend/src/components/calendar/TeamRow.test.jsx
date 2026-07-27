@@ -88,3 +88,38 @@ test('subscribed team shows the active bell', () => {
   const bell = screen.getByRole('button', {name: 'Manage team subscription'});
   expect(bell).toHaveClass('watch-icon-active');
 });
+
+test('indents the row by its nesting depth', () => {
+  renderRow({depth: 2});
+  const row = screen.getByRole('row');
+  // jsdom reports custom properties reliably only via getPropertyValue; data-depth
+  // is the belt-and-braces assertion.
+  expect(row).toHaveAttribute('data-depth', '2');
+  expect(row.style.getPropertyValue('--team-depth')).toBe('2');
+});
+
+test('a team with sub-teams says the collapse also hides them', () => {
+  renderRow({hasChildren: true});
+  expect(screen.getByRole('button', {name: 'Collapse team and sub-teams'})).toBeInTheDocument();
+});
+
+test('a structural placeholder row is dimmed, keeps its chevron and exposes no actions', () => {
+  const placeholder = {_id: 't1', name: 'Alpha', team_members: [], isStructuralPlaceholder: true};
+  const handlers = renderRow({team: placeholder, hasChildren: true, isDropTarget: true});
+
+  const row = screen.getByRole('row');
+  expect(row).toHaveClass('team-row--structural');
+  expect(screen.getByText('Alpha')).toBeInTheDocument();
+  // The chevron must survive, or the subtree becomes impossible to hide.
+  expect(screen.getByRole('button', {name: 'Collapse team and sub-teams'})).toBeInTheDocument();
+
+  expect(screen.queryByRole('button', {name: 'Focus on team'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: 'Edit team'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: 'Delete team'})).not.toBeInTheDocument();
+  expect(screen.queryByTitle('Add team member')).not.toBeInTheDocument();
+  // A member count of (0) on a pruned ancestor would be a lie.
+  expect(screen.queryByText('(0)')).not.toBeInTheDocument();
+
+  fireEvent.drop(row);
+  expect(handlers.onDrop).not.toHaveBeenCalled();
+});
