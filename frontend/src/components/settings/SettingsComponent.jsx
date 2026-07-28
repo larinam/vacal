@@ -7,33 +7,36 @@ import './SettingsComponent.css';
 import {useConfig} from "../../contexts/ConfigContext";
 
 const SETTINGS_BASE_PATH = '/main/settings';
+const USERS_PATH = `${SETTINGS_BASE_PATH}/usermanagement`;
+const DAY_TYPES_PATH = `${SETTINGS_BASE_PATH}/daytypes`;
+const SUBSCRIPTION_PATH = `${SETTINGS_BASE_PATH}/subscription`;
 
 const SettingsComponent = ({onClose}) => {
   const {isMultitenancyEnabled} = useConfig();
   const navItemClass = ({isActive}) => `navItem${isActive ? ' active' : ''}`;
-  const defaultTabPath = `${SETTINGS_BASE_PATH}/daytypes`;
+  const defaultTabPath = USERS_PATH;
 
   return (
     <div className="settingsContainer">
       <div className="settingsNavigation">
         <button onClick={onClose} className="closeButton">Close</button>
         <NavLink
-          to={defaultTabPath}
-          end
-          className={navItemClass}
-        >
-          Day Types
-        </NavLink>
-        <NavLink
-          to={`${SETTINGS_BASE_PATH}/usermanagement`}
+          to={USERS_PATH}
           end
           className={navItemClass}
         >
           Users
         </NavLink>
+        <NavLink
+          to={DAY_TYPES_PATH}
+          end
+          className={navItemClass}
+        >
+          Day Types
+        </NavLink>
         {isMultitenancyEnabled && (
           <NavLink
-            to={`${SETTINGS_BASE_PATH}/subscription`}
+            to={SUBSCRIPTION_PATH}
             end
             className={navItemClass}
           >
@@ -44,8 +47,8 @@ const SettingsComponent = ({onClose}) => {
       <div className="settingsContent">
         <Routes>
           <Route index element={<Navigate to={defaultTabPath} replace />} />
-          <Route path="daytypes" element={<DayTypes/>}/>
           <Route path="usermanagement" element={<UserManagement/>}/>
+          <Route path="daytypes" element={<DayTypes/>}/>
           {isMultitenancyEnabled && (
             <Route path="subscription" element={<SubscriptionManagement/>}/>
           )}
