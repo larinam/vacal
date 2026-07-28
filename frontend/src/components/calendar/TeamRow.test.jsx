@@ -53,6 +53,40 @@ test('renders the team name with member count', () => {
   expect(screen.getByText('(1)')).toBeInTheDocument();
 });
 
+// The calendar rolls the whole subtree up and passes the total in, so a team that
+// only groups sub-teams reports its branch instead of a misleading (0).
+test('shows the rolled-up count the calendar passes in', () => {
+  renderRow({team: team([]), hasChildren: true, memberCount: 25});
+  expect(screen.getByText('(25)')).toBeInTheDocument();
+  expect(screen.queryByText('(0)')).not.toBeInTheDocument();
+});
+
+test('a parent explains in a tooltip that the count spans its sub-teams', () => {
+  renderRow({team: team([]), hasChildren: true, memberCount: 25});
+  expect(screen.getByText('(25)'))
+    .toHaveAttribute('title', '25 people in this team and its sub-teams');
+});
+
+test('a leaf count carries no tooltip - there are no sub-teams to explain', () => {
+  renderRow({memberCount: 1});
+  expect(screen.getByText('(1)')).not.toHaveAttribute('title');
+});
+
+test('a single person is not described as "1 people"', () => {
+  renderRow({team: team([]), hasChildren: true, memberCount: 1});
+  expect(screen.getByText('(1)'))
+    .toHaveAttribute('title', '1 person in this team and its sub-teams');
+});
+
+// The delete gate stays on the team's own roster while the badge shows the subtree:
+// the backend reparents sub-teams and hard-deletes only an empty roster, so a
+// staffed branch below must not hide the icon.
+test('an empty team still offers delete even when its subtree is staffed', () => {
+  const handlers = renderRow({team: team([]), hasChildren: true, memberCount: 25});
+  clickIcon('Delete team');
+  expect(handlers.onDeleteTeam).toHaveBeenCalledWith('t1');
+});
+
 test('collapse icon title reflects the collapsed state and calls back', () => {
   const handlers = renderRow();
   clickIcon('Collapse team');
@@ -122,6 +156,14 @@ test('a structural placeholder row is dimmed, keeps its chevron and exposes no a
 
   fireEvent.drop(row);
   expect(handlers.onDrop).not.toHaveBeenCalled();
+});
+
+test('a structural placeholder shows no count even when one is passed', () => {
+  const placeholder = {_id: 't1', name: 'Alpha', team_members: [], isStructuralPlaceholder: true};
+  renderRow({team: placeholder, hasChildren: true, memberCount: 25});
+  // Placeholders stay pure context: a number here would compete with the real rows
+  // the filter actually matched.
+  expect(screen.queryByText('(25)')).not.toBeInTheDocument();
 });
 
 test('shows the team leader when one is resolved', () => {

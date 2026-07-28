@@ -5,6 +5,7 @@ import {
   buildTeamLeaderOptions,
   filterCollapsedSubtrees,
   flattenTeamTree,
+  getSubtreeMemberCounts,
   getTeamDescendantIds,
   selectTeamSubtree,
 } from './teamHierarchy';
@@ -94,6 +95,90 @@ describe('getTeamDescendantIds', () => {
       {_id: 'b', parent_team_id: 'a'},
     ];
     expect(getTeamDescendantIds('a', cyclic)).toEqual(new Set(['b', 'a']));
+  });
+});
+
+describe('getSubtreeMemberCounts', () => {
+  // Fed through the real flattenTeamTree, so pre-order and parentId resolution are
+  // exercised rather than hand-faked.
+  const counts = (list) => getSubtreeMemberCounts(flattenTeamTree(list));
+  const staffed = (id, howMany, parentId) => ({
+    _id: id,
+    name: id,
+    parent_team_id: parentId,
+    team_members: Array.from({length: howMany}, (_, i) => ({uid: `${id}-${i}`})),
+  });
+
+  it('sums the children of a team that has no members of its own', () => {
+    // The reported bug: this parent used to render (0).
+    const result = counts([
+      staffed('core', 0),
+      staffed('baldr', 6, 'core'),
+      staffed('data', 2, 'core'),
+    ]);
+    expect(result.get('core')).toBe(8);
+    expect(result.get('baldr')).toBe(6);
+  });
+
+  it('counts a team and its descendants together', () => {
+    const result = counts([staffed('core', 2), staffed('baldr', 6, 'core')]);
+    expect(result.get('core')).toBe(8);
+  });
+
+  it('carries grandchildren all the way to the root', () => {
+    const result = counts([
+      staffed('eng', 1),
+      staffed('be', 2, 'eng'),
+      staffed('pay', 4, 'be'),
+    ]);
+    expect(result.get('eng')).toBe(7);
+    expect(result.get('be')).toBe(6);
+    expect(result.get('pay')).toBe(4);
+  });
+
+  it('leaves a leaf team at its own roster size', () => {
+    expect(counts([staffed('sales', 3)]).get('sales')).toBe(3);
+  });
+
+  it('treats a team as a root when its parent is not in the list', () => {
+    // The parent was pruned by a filter: the orphan keeps its own count and cannot
+    // leak it into whatever else happens to be rendered.
+    const result = counts([staffed('be', 2, 'missing'), staffed('sales', 3)]);
+    expect(result.get('be')).toBe(2);
+    expect(result.get('sales')).toBe(3);
+    expect(result.has('missing')).toBe(false);
+  });
+
+  it('ignores a parentId that is not among the nodes', () => {
+    // flattenTeamTree nulls an unresolvable parent, so only a hand-built node list
+    // reaches the `totals.has` guard. Covered directly because the helper is
+    // exported and nothing stops a caller assembling nodes itself.
+    const result = getSubtreeMemberCounts([
+      {team: staffed('be', 2), parentId: 'ghost', depth: 1, hasChildren: false},
+    ]);
+    expect(result.get('be')).toBe(2);
+    expect(result.has('ghost')).toBe(false);
+  });
+
+  it('counts each team once when the stored data contains a cycle', () => {
+    // a <-> b: flattenTeamTree roots whichever it reaches first and keeps the other
+    // as its child, so the pair reads as a two-team branch rather than double
+    // counting. Pinned per team, not just as a total, so a duplicated non-root
+    // cannot hide inside a correct-looking sum.
+    const nodes = flattenTeamTree([staffed('a', 2, 'b'), staffed('b', 3, 'a')]);
+    expect(nodes.map((node) => [node.team._id, node.parentId]))
+      .toEqual([['a', null], ['b', 'a']]);
+
+    const result = getSubtreeMemberCounts(nodes);
+    expect(result.get('a')).toBe(5); // 2 of its own + b's 3
+    expect(result.get('b')).toBe(3); // its own only; the edge back to a is dropped
+  });
+
+  it('tolerates missing input', () => {
+    expect(getSubtreeMemberCounts(undefined)).toEqual(new Map());
+    expect(getSubtreeMemberCounts([])).toEqual(new Map());
+    // A team object without a team_members array at all.
+    expect(getSubtreeMemberCounts(flattenTeamTree([{_id: 'x', name: 'x'}])).get('x')).toBe(0);
   });
 });
 

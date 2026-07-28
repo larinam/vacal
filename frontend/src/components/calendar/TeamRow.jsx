@@ -19,6 +19,7 @@ const TeamRow = ({
                    team,
                    depth = 0,
                    hasChildren = false,
+                   memberCount,
                    daysHeader,
                    isCollapsed,
                    isFocused,
@@ -43,6 +44,11 @@ const TeamRow = ({
   // An ancestor the active filter pruned, kept only so the nesting still reads
   // correctly. It is context, not a result: no members, no actions, no drops.
   const isStructural = Boolean(team.isStructuralPlaceholder);
+  // Everyone at or below this team. A team that only groups sub-teams would
+  // otherwise read as (0) while its branch is full of people. Falls back to the
+  // team's own roster so the row still renders standalone, without the count the
+  // calendar rolls up for it.
+  const shownCount = memberCount ?? team.team_members.length;
 
   return (
     <tr
@@ -80,7 +86,14 @@ const TeamRow = ({
             />
             <span className="team-name-block">
               <span className="team-name-text" title={team.name}>{team.name}</span>
-              <span className="team-member-count">({team.team_members.length})</span>
+              {/* Spelled out for a parent: the number counts the sub-teams too, and a
+                  collapsed row gives no other clue where its people are. */}
+              <span
+                className="team-member-count"
+                title={hasChildren
+                  ? `${shownCount} ${shownCount === 1 ? 'person' : 'people'} in this team and its sub-teams`
+                  : undefined}
+              >({shownCount})</span>
               {/* The same icon marks the leader's own row, so no "Leader:" prefix is
                   needed — and the name column has no room to spare for one. */}
               {leaderName && (
@@ -135,6 +148,9 @@ const TeamRow = ({
                 role: 'button',
               }}
             />
+            {/* Direct members, deliberately not the rolled-up count above: the backend
+                reparents the sub-teams and then hard-deletes only when the team's own
+                roster is empty, so a staffed branch below must not hide this. */}
             {team.team_members.length === 0 && (
               <FontAwesomeIconWithTitle
                 icon={faTrashAlt}

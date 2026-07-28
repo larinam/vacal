@@ -19,6 +19,7 @@ import {
   addStructuralAncestors,
   filterCollapsedSubtrees,
   flattenTeamTree,
+  getSubtreeMemberCounts,
   selectTeamSubtree,
 } from '../utils/teamHierarchy';
 import {getApiErrorMessage} from '../utils/apiErrors';
@@ -475,6 +476,10 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     [visibleTeams, teamData]
   );
   const teamNodes = useMemo(() => flattenTeamTree(structuredTeams), [structuredTeams]);
+  // Row badges count everyone at or below a team. Taken from teamNodes, the last list
+  // that still holds the whole filtered tree: focusing or collapsing a branch must not
+  // change the number written on it, and visibleNodes has collapsed descendants gone.
+  const subtreeMemberCounts = useMemo(() => getSubtreeMemberCounts(teamNodes), [teamNodes]);
   const focusedNodes = useMemo(
     () => selectTeamSubtree(teamNodes, effectiveFocusedTeamId),
     [teamNodes, effectiveFocusedTeamId]
@@ -602,6 +607,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                 team={team}
                 depth={depth}
                 hasChildren={hasChildren}
+                memberCount={subtreeMemberCounts.get(team._id)}
                 daysHeader={daysHeader}
                 isCollapsed={collapsedSet.has(team._id)}
                 isFocused={effectiveFocusedTeamId === team._id}

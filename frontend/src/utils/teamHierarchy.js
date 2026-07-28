@@ -107,6 +107,38 @@ export const getTeamDescendantIds = (rootId, teams, {includeRoot = false} = {}) 
   return result;
 };
 
+/**
+ * Total members at or below each team, keyed by team id.
+ *
+ * `flattenTeamTree` emits depth-first pre-order, so every descendant sits after its
+ * ancestor. Folding from the end therefore finishes a node's own subtotal before
+ * that subtotal is handed to its parent — one pass, no per-team walk. It also
+ * inherits that helper's safety: each team is visited exactly once, so a cycle in
+ * the stored data can neither hang this nor count anyone twice.
+ *
+ * Counts come from the nodes handed in, so they inherit whatever pruning produced
+ * them. Pass the list from *before* collapse filtering: collapsing a row must not
+ * change the number written on it.
+ *
+ * @param {TeamTreeNode[]} nodes
+ * @returns {Map<string, number>} team id -> members at or below that team.
+ */
+export const getSubtreeMemberCounts = (nodes) => {
+  const list = nodes || [];
+  const totals = new Map();
+  for (const {team} of list) totals.set(team._id, (team.team_members || []).length);
+
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const {team, parentId} = list[i];
+    // A parent outside this list — pruned by a filter, or the node is a cycle root —
+    // keeps its child's count local instead of leaking it somewhere arbitrary.
+    if (!parentId || !totals.has(parentId)) continue;
+    totals.set(parentId, totals.get(parentId) + totals.get(team._id));
+  }
+
+  return totals;
+};
+
 /** Non-breaking spaces: `<option>` padding is not stylable across browsers. */
 const OPTION_INDENT = '  ';
 
