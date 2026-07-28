@@ -135,6 +135,33 @@ export const buildParentTeamOptions = (teams, selfId = null) => {
 };
 
 /**
+ * Return the selectable team leaders: every active member of the workspace,
+ * labelled with the team they belong to.
+ *
+ * A leader does not have to belong to the team they lead — a sub-team is often led
+ * from its parent — so the list spans all teams, and the team name is part of the
+ * label because two people can share a first name. Archived teams and members are
+ * left out, matching what the backend accepts.
+ *
+ * @param {Array<{name?: string, is_deleted?: boolean, isStructuralPlaceholder?: boolean,
+ *   team_members?: Array<{uid: string, name?: string, is_deleted?: boolean}>}>} teams
+ * @returns {Array<{uid: string, label: string}>} sorted by member name, then team name.
+ */
+export const buildTeamLeaderOptions = (teams) => {
+  const candidates = [];
+  for (const team of teams || []) {
+    if (team.isStructuralPlaceholder || team.is_deleted) continue;
+    for (const member of team.team_members || []) {
+      if (member.is_deleted) continue;
+      candidates.push({uid: member.uid, name: member.name || '', teamName: team.name || ''});
+    }
+  }
+  return candidates
+    .sort((a, b) => a.name.localeCompare(b.name) || a.teamName.localeCompare(b.teamName))
+    .map(({uid, name, teamName}) => ({uid, label: `${name} (${teamName})`}));
+};
+
+/**
  * Drop the nodes nested under a collapsed team.
  *
  * `flattenTeamTree` emits depth-first pre-order, so a subtree is exactly the

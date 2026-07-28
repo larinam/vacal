@@ -7,6 +7,9 @@ Despite the name, it supports tracking all kinds of absences, not just vacations
 * Organize teams into a hierarchy — give a team a parent team and the calendar nests it under that
   parent. Collapsing or focusing a team applies to its whole branch. Only managers can change the
   hierarchy; deleting a team moves its sub-teams up one level.
+* Give a team a leader — any member of the workspace, including someone from another team. The
+  leader is shown on the team row, and flagged in the member list when they belong to the team they
+  lead. Only managers can change it.
 * Organize and track vacations and other absences.
 * Keep a history of all day modifications. Timestamps are shown in your local timezone.
 * Visualize absences (vacations, sick leave, etc.), weekends, and public holidays in an intuitive interface.

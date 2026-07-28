@@ -711,15 +711,8 @@ def test_get_archived_members_returns_archived_only():
 # --- team parent hierarchy (parent_team_id) tests ---
 
 
-def _setup_team_tree(role="manager"):
-    """Helper: tenant with Engineering > Backend > Payments, plus an authenticated user."""
-    unique_suffix = str(uuid.uuid4())
-    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
-    engineering = Team(tenant=tenant, name=f"Engineering-{unique_suffix}").save()
-    backend = Team(tenant=tenant, name=f"Backend-{unique_suffix}",
-                   parent_team_id=str(engineering.id)).save()
-    payments = Team(tenant=tenant, name=f"Payments-{unique_suffix}",
-                    parent_team_id=str(backend.id)).save()
+def _authenticate_as(tenant, role, unique_suffix):
+    """Create a user of the given role and route the auth dependencies to them."""
     user = User(
         name=role.capitalize(),
         role=role,
@@ -729,6 +722,20 @@ def _setup_team_tree(role="manager"):
 
     app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
     app.dependency_overrides[get_tenant] = lambda: tenant
+
+    return user
+
+
+def _setup_team_tree(role="manager"):
+    """Helper: tenant with Engineering > Backend > Payments, plus an authenticated user."""
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    engineering = Team(tenant=tenant, name=f"Engineering-{unique_suffix}").save()
+    backend = Team(tenant=tenant, name=f"Backend-{unique_suffix}",
+                   parent_team_id=str(engineering.id)).save()
+    payments = Team(tenant=tenant, name=f"Payments-{unique_suffix}",
+                    parent_team_id=str(backend.id)).save()
+    user = _authenticate_as(tenant, role, unique_suffix)
 
     return tenant, engineering, backend, payments, user
 
@@ -1063,5 +1070,389 @@ def test_delete_team_reparents_archived_children():
         assert response.status_code == 200
         payments.reload()
         assert payments.parent_team_id == str(engineering.id)
+    finally:
+        app.dependency_overrides = {}
+
+
+# --- team leader (leader_uid) tests ---
+
+
+def _setup_teams_with_members(role="manager"):
+    """Helper: two teams with members, plus an authenticated user of the given role."""
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    # GET /teams computes vacation days per member, which needs the seeded day types.
+    DayType.init_day_types(tenant)
+    ada = TeamMember(name="Ada", country="Sweden")
+    bob = TeamMember(name="Bob", country="Finland")
+    engineering = Team(tenant=tenant, name=f"Engineering-{unique_suffix}",
+                       team_members=[ada, bob]).save()
+    cleo = TeamMember(name="Cleo", country="Norway")
+    payments = Team(tenant=tenant, name=f"Payments-{unique_suffix}", team_members=[cleo]).save()
+    user = _authenticate_as(tenant, role, unique_suffix)
+
+    return tenant, engineering, payments, user
+
+
+def test_add_team_with_leader_from_another_team():
+    tenant, engineering, _, _ = _setup_teams_with_members()
+    leader_uid = str(engineering.team_members[0].uid)
+    try:
+        name = f"Frontend-{uuid.uuid4()}"
+        response = client.post(
+            "/teams",
+            json={"name": name, "leader_uid": leader_uid},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        created = Team.objects(tenant=tenant, name=name).first()
+        assert created.leader_uid == leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_without_leader_stores_none():
+    tenant, _, _, _ = _setup_teams_with_members()
+    try:
+        name = f"Leaderless-{uuid.uuid4()}"
+        response = client.post("/teams", json={"name": name},
+                               headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        assert Team.objects(tenant=tenant, name=name).first().leader_uid is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_empty_leader_string_stores_none():
+    tenant, _, _, _ = _setup_teams_with_members()
+    try:
+        name = f"Leaderless-{uuid.uuid4()}"
+        response = client.post("/teams", json={"name": name, "leader_uid": ""},
+                               headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        assert Team.objects(tenant=tenant, name=name).first().leader_uid is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_unknown_leader_returns_404():
+    tenant, _, _, _ = _setup_teams_with_members()
+    try:
+        response = client.post(
+            "/teams",
+            json={"name": f"Ghost-{uuid.uuid4()}", "leader_uid": str(uuid.uuid4())},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Team leader not found"
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_malformed_leader_returns_400():
+    tenant, _, _, _ = _setup_teams_with_members()
+    try:
+        response = client.post(
+            "/teams",
+            json={"name": f"Broken-{uuid.uuid4()}", "leader_uid": "not-a-uuid"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid team leader id"
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_leader_from_other_tenant_returns_404():
+    tenant, _, _, _ = _setup_teams_with_members()
+    other_suffix = str(uuid.uuid4())
+    other_tenant = Tenant(name=f"Other-{other_suffix}", identifier=f"other-{other_suffix}").save()
+    outsider = TeamMember(name="Outsider", country="Denmark")
+    Team(tenant=other_tenant, name=f"Outside-{other_suffix}", team_members=[outsider]).save()
+    try:
+        response = client.post(
+            "/teams",
+            json={"name": f"Poach-{uuid.uuid4()}", "leader_uid": str(outsider.uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_with_leader_is_rejected_for_employee():
+    tenant, engineering, _, _ = _setup_teams_with_members(role="employee")
+    name = f"Frontend-{uuid.uuid4()}"
+    try:
+        response = client.post(
+            "/teams",
+            json={"name": name, "leader_uid": str(engineering.team_members[0].uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Only managers can change the team leader."
+        assert Team.objects(tenant=tenant, name=name).first() is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_add_team_without_leader_is_allowed_for_employee():
+    tenant, _, _, _ = _setup_teams_with_members(role="employee")
+    try:
+        name = f"Standalone-{uuid.uuid4()}"
+        response = client.post("/teams", json={"name": name},
+                               headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        assert Team.objects(tenant=tenant, name=name).first().leader_uid is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_sets_leader():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader_uid = str(engineering.team_members[1].uid)
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": payments.name, "leader_uid": leader_uid},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        payments.reload()
+        assert payments.leader_uid == leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_with_own_member_as_leader():
+    tenant, engineering, _, _ = _setup_teams_with_members()
+    leader_uid = str(engineering.team_members[0].uid)
+    try:
+        response = client.put(
+            f"/teams/{engineering.id}",
+            json={"name": engineering.name, "leader_uid": leader_uid},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        engineering.reload()
+        assert engineering.leader_uid == leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_clears_leader_with_explicit_null():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    payments.leader_uid = str(engineering.team_members[0].uid)
+    payments.save()
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": payments.name, "leader_uid": None},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        payments.reload()
+        assert payments.leader_uid is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_without_leader_key_keeps_stored_leader():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader_uid = str(engineering.team_members[0].uid)
+    payments.leader_uid = leader_uid
+    payments.save()
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": f"Renamed-{uuid.uuid4()}"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        payments.reload()
+        assert payments.leader_uid == leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_rename_without_leader_key_is_allowed_for_employee():
+    tenant, engineering, payments, _ = _setup_teams_with_members(role="employee")
+    leader_uid = str(engineering.team_members[0].uid)
+    payments.leader_uid = leader_uid
+    payments.save()
+    new_name = f"Renamed-{uuid.uuid4()}"
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": new_name},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        payments.reload()
+        assert payments.name == new_name
+        assert payments.leader_uid == leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_resending_unchanged_leader_skips_validation():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader = engineering.team_members[0]
+    payments.leader_uid = str(leader.uid)
+    payments.save()
+    # The stored leader is archived, so re-validating would now reject them.
+    leader.is_deleted = True
+    engineering.save()
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": payments.name, "leader_uid": str(leader.uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        payments.reload()
+        assert payments.leader_uid == str(leader.uid)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_leader_is_rejected_for_employee():
+    tenant, engineering, payments, _ = _setup_teams_with_members(role="employee")
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": payments.name, "leader_uid": str(engineering.team_members[0].uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 403
+        payments.reload()
+        assert payments.leader_uid is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_with_archived_member_as_leader_returns_404():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    archived = engineering.team_members[0]
+    archived.is_deleted = True
+    engineering.save()
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": payments.name, "leader_uid": str(archived.uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_with_member_of_archived_team_as_leader_returns_404():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    engineering.is_deleted = True
+    engineering.save()
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": payments.name, "leader_uid": str(engineering.team_members[0].uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_update_team_normalises_uppercase_leader_uid():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader_uid = str(engineering.team_members[0].uid)
+    try:
+        response = client.put(
+            f"/teams/{payments.id}",
+            json={"name": payments.name, "leader_uid": leader_uid.upper()},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        payments.reload()
+        assert payments.leader_uid == leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_one_member_can_lead_several_teams():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader_uid = str(engineering.team_members[0].uid)
+    try:
+        for team in (engineering, payments):
+            response = client.put(
+                f"/teams/{team.id}",
+                json={"name": team.name, "leader_uid": leader_uid},
+                headers={"Tenant-ID": tenant.identifier},
+            )
+            assert response.status_code == 200
+            team.reload()
+            assert team.leader_uid == leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_list_teams_exposes_leader_uid():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader_uid = str(engineering.team_members[0].uid)
+    payments.leader_uid = leader_uid
+    payments.save()
+    try:
+        response = client.get("/teams", headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        by_name = {team["name"]: team for team in response.json()["teams"]}
+        assert by_name[payments.name]["leader_uid"] == leader_uid
+        assert by_name[engineering.name]["leader_uid"] is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_delete_team_member_clears_leader_references():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader = engineering.team_members[0]
+    other_leader_uid = str(engineering.team_members[1].uid)
+    engineering.leader_uid = str(leader.uid)
+    engineering.save()
+    payments.leader_uid = str(leader.uid)
+    payments.save()
+    bystander = Team(tenant=tenant, name=f"Bystander-{uuid.uuid4()}",
+                     leader_uid=other_leader_uid).save()
+    try:
+        response = client.delete(
+            f"/teams/{engineering.id}/members/{leader.uid}",
+            params={"last_working_day": "2026-07-31"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        engineering.reload()
+        payments.reload()
+        bystander.reload()
+        assert engineering.leader_uid is None
+        assert payments.leader_uid is None
+        # A team led by somebody else must be left alone.
+        assert bystander.leader_uid == other_leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_delete_team_clears_other_teams_leader_references():
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader_uid = str(engineering.team_members[0].uid)
+    engineering.leader_uid = leader_uid
+    engineering.save()
+    payments.leader_uid = leader_uid
+    payments.save()
+    try:
+        response = client.delete(f"/teams/{engineering.id}",
+                                 headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        payments.reload()
+        assert payments.leader_uid is None
+        # The archived team keeps its own pointer so a revival stays self-consistent.
+        engineering.reload()
+        assert engineering.leader_uid == leader_uid
     finally:
         app.dependency_overrides = {}

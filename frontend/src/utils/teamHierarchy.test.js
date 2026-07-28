@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {
   addStructuralAncestors,
   buildParentTeamOptions,
+  buildTeamLeaderOptions,
   filterCollapsedSubtrees,
   flattenTeamTree,
   getTeamDescendantIds,
@@ -202,5 +203,75 @@ describe('addStructuralAncestors', () => {
     ];
     const result = addStructuralAncestors([cyclic[0]], cyclic);
     expect(result.map((t) => t._id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('buildTeamLeaderOptions', () => {
+  // Ada and Bob are in Engineering, Cleo in Payments; a second Ada tests the tie-break.
+  const staffedTeams = [
+    {
+      _id: 'eng',
+      name: 'Engineering',
+      team_members: [
+        {uid: 'u-bob', name: 'Bob'},
+        {uid: 'u-ada', name: 'Ada'},
+      ],
+    },
+    {_id: 'pay', name: 'Payments', team_members: [{uid: 'u-cleo', name: 'Cleo'}]},
+  ];
+
+  it('labels every member with their team', () => {
+    expect(buildTeamLeaderOptions(staffedTeams)).toEqual([
+      {uid: 'u-ada', label: 'Ada (Engineering)'},
+      {uid: 'u-bob', label: 'Bob (Engineering)'},
+      {uid: 'u-cleo', label: 'Cleo (Payments)'},
+    ]);
+  });
+
+  it('sorts by member name across teams rather than grouping by team', () => {
+    const labels = buildTeamLeaderOptions(staffedTeams).map((o) => o.label);
+    expect(labels).toEqual(['Ada (Engineering)', 'Bob (Engineering)', 'Cleo (Payments)']);
+  });
+
+  it('breaks ties between identically named members on team name', () => {
+    const withDuplicate = [
+      {_id: 'pay', name: 'Payments', team_members: [{uid: 'u-ada2', name: 'Ada'}]},
+      {_id: 'eng', name: 'Engineering', team_members: [{uid: 'u-ada', name: 'Ada'}]},
+    ];
+    expect(buildTeamLeaderOptions(withDuplicate).map((o) => o.uid)).toEqual(['u-ada', 'u-ada2']);
+  });
+
+  it('leaves out archived members', () => {
+    const withArchived = [
+      {_id: 'eng', name: 'Engineering', team_members: [
+        {uid: 'u-ada', name: 'Ada'},
+        {uid: 'u-gone', name: 'Gone', is_deleted: true},
+      ]},
+    ];
+    expect(buildTeamLeaderOptions(withArchived).map((o) => o.uid)).toEqual(['u-ada']);
+  });
+
+  it('leaves out archived teams', () => {
+    const withArchivedTeam = [
+      ...staffedTeams,
+      {_id: 'old', name: 'Old', is_deleted: true, team_members: [{uid: 'u-old', name: 'Aaron'}]},
+    ];
+    expect(buildTeamLeaderOptions(withArchivedTeam).map((o) => o.uid)).not.toContain('u-old');
+  });
+
+  it('leaves out structural placeholder teams', () => {
+    // Placeholders are filter artefacts whose members are not in the rendered list.
+    const withPlaceholder = [
+      ...staffedTeams,
+      {_id: 'ghost', name: 'Ghost', isStructuralPlaceholder: true,
+       team_members: [{uid: 'u-ghost', name: 'Aaron'}]},
+    ];
+    expect(buildTeamLeaderOptions(withPlaceholder).map((o) => o.uid)).not.toContain('u-ghost');
+  });
+
+  it('tolerates teams without members and empty input', () => {
+    expect(buildTeamLeaderOptions(teams)).toEqual([]);
+    expect(buildTeamLeaderOptions([])).toEqual([]);
+    expect(buildTeamLeaderOptions(undefined)).toEqual([]);
   });
 });

@@ -10,6 +10,7 @@ import {
   faLink,
   faTrashAlt,
 } from '@fortawesome/free-solid-svg-icons';
+import {faUserTie} from '@fortawesome/free-solid-svg-icons';
 import {faBell as faRegularBell} from '@fortawesome/free-regular-svg-icons';
 import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
 import {formatDate} from '../../utils/calendar';
@@ -23,6 +24,7 @@ const TeamRow = ({
                    isFocused,
                    isSubscribed,
                    isDropTarget,
+                   leaderName,
                    onToggleCollapse,
                    onFocusTeam,
                    onAddMember,
@@ -79,9 +81,22 @@ const TeamRow = ({
             <span className="team-name-block">
               <span className="team-name-text" title={team.name}>{team.name}</span>
               <span className="team-member-count">({team.team_members.length})</span>
+              {/* The same icon marks the leader's own row, so no "Leader:" prefix is
+                  needed — and the name column has no room to spare for one. */}
+              {leaderName && (
+                <span className="team-leader" title={`Team leader: ${leaderName}`}>
+                  {/* Titleless, so the wrapper span owns the tooltip for icon and name together. */}
+                  <FontAwesomeIconWithTitle icon={faUserTie} aria-hidden="true"/>
+                  {/* First name only: the action icons reserve their width even while
+                      hidden, and a full name here costs the team name characters.
+                      The tooltip carries it in full. */}
+                  <span className="team-leader-name">{leaderName.split(' ')[0]}</span>
+                </span>
+              )}
             </span>
-            <span className="add-icon" onClick={() => onAddMember(team._id)}
-                  title="Add team member">➕</span>
+            {/* The bell comes first: an active subscription keeps it visible while the
+                other icons hide, so it belongs next to the name rather than adrift
+                behind the hidden plus. */}
             <FontAwesomeIconWithTitle
               icon={isSubscribed ? faSolidBell : faRegularBell}
               title="Manage team subscription"
@@ -91,6 +106,8 @@ const TeamRow = ({
                 role: 'button',
               }}
             />
+            <span className="add-icon" onClick={() => onAddMember(team._id)}
+                  title="Add team member">➕</span>
             <FontAwesomeIconWithTitle
               icon={faHistory}
               title="View team history"

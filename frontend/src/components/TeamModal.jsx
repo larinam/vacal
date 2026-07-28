@@ -3,11 +3,12 @@ import {toast} from 'react-toastify';
 import Modal from './Modal';
 import useTeamManagementMutations from '../hooks/mutations/useTeamManagementMutations';
 import {getApiErrorMessage} from '../utils/apiErrors';
-import {buildParentTeamOptions} from '../utils/teamHierarchy';
+import {buildParentTeamOptions, buildTeamLeaderOptions} from '../utils/teamHierarchy';
 
 const TeamModal = ({isOpen, onClose, editingTeam, teams = [], canEditHierarchy = false}) => {
   const [teamName, setTeamName] = useState('');
   const [parentTeamId, setParentTeamId] = useState('');
+  const [leaderUid, setLeaderUid] = useState('');
   const {createTeamMutation, updateTeamMutation} = useTeamManagementMutations();
 
   // The picker offers every team, cycle-safe: the edited team and its whole
@@ -17,14 +18,30 @@ const TeamModal = ({isOpen, onClose, editingTeam, teams = [], canEditHierarchy =
     [teams, editingTeam]
   );
 
+  // Any member of the workspace can lead any team, so candidates come from the
+  // unfiltered team list rather than the team being edited.
+  const leaderOptions = useMemo(() => buildTeamLeaderOptions(teams), [teams]);
+
+  // A stored leader can fall out of that list — their team was archived, or the
+  // data predates the cleanup. Keep it selectable so saving a rename cannot
+  // silently unassign them.
+  const leaderOptionsWithCurrent = useMemo(() => {
+    if (!leaderUid || leaderOptions.some((option) => option.uid === leaderUid)) {
+      return leaderOptions;
+    }
+    return [...leaderOptions, {uid: leaderUid, label: 'Current leader (unavailable)'}];
+  }, [leaderOptions, leaderUid]);
+
   useEffect(() => {
     if (editingTeam) {
       setTeamName(editingTeam.name);
-      // Coerce the nullable backend field so the select stays controlled.
+      // Coerce the nullable backend fields so the selects stay controlled.
       setParentTeamId(editingTeam.parent_team_id ?? '');
+      setLeaderUid(editingTeam.leader_uid ?? '');
     } else {
       setTeamName('');
       setParentTeamId('');
+      setLeaderUid('');
     }
   }, [editingTeam]);
 
@@ -32,10 +49,11 @@ const TeamModal = ({isOpen, onClose, editingTeam, teams = [], canEditHierarchy =
     e.preventDefault();
 
     const payload = {name: teamName};
-    // Omitted for non-managers so the backend keeps the stored parent instead of
-    // rejecting a rename they are otherwise allowed to make.
+    // Omitted for non-managers so the backend keeps the stored parent and leader
+    // instead of rejecting a rename they are otherwise allowed to make.
     if (canEditHierarchy) {
       payload.parent_team_id = parentTeamId || null;
+      payload.leader_uid = leaderUid || null;
     }
 
     const mutation = editingTeam ? updateTeamMutation : createTeamMutation;
@@ -46,6 +64,7 @@ const TeamModal = ({isOpen, onClose, editingTeam, teams = [], canEditHierarchy =
         toast.success(editingTeam ? 'Team updated successfully' : 'Team added successfully');
         setTeamName('');
         setParentTeamId('');
+        setLeaderUid('');
         onClose();
       },
       onError: (error) => {
@@ -83,6 +102,20 @@ const TeamModal = ({isOpen, onClose, editingTeam, teams = [], canEditHierarchy =
               <option value="">None</option>
               {parentOptions.map((option) => (
                 <option key={option.id} value={option.id}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Team leader
+            <select
+              value={leaderUid}
+              onChange={(e) => setLeaderUid(e.target.value)}
+              disabled={!canEditHierarchy}
+              title={canEditHierarchy ? undefined : 'Only managers can change the team leader'}
+            >
+              <option value="">None</option>
+              {leaderOptionsWithCurrent.map((option) => (
+                <option key={option.uid} value={option.uid}>{option.label}</option>
               ))}
             </select>
           </label>

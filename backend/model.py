@@ -518,6 +518,10 @@ class Team(Document):
     available_day_types = ListField(ReferenceField(DayType))
     notification_preferences = MapField(ListField(StringField()), default=dict)
     parent_team_id = StringField(default=None)
+    # Holds a TeamMember uid, kept as a plain string like the other soft FKs. The
+    # leader does not have to be a member of this team: a sub-team is often led
+    # from its parent.
+    leader_uid = StringField(default=None)
     is_deleted = BooleanField(default=False)
     deleted_at = DateTimeField(default=None)
     deleted_by = ReferenceField('User', reverse_delete_rule=mongoengine.NULLIFY, default=None)
@@ -680,6 +684,22 @@ def get_team_id_and_member_uid_by_email(tenant, email):
         if member.email == email:
             return str(team.id), str(member.uid)
     return None, None
+
+
+def find_active_member_by_uid(tenant, member_uid: str) -> tuple[Team, TeamMember] | None:
+    """Locate an active member by uid anywhere in the tenant's live teams.
+
+    ``team_members.uid`` carries a unique sparse index and UUIDField(binary=False)
+    stores the uid as a canonical string, so this is an indexed lookup and a uid can
+    occur in at most one team. Team.objects is the alive-only manager and get_member
+    skips archived members, so neither an archived team nor an archived member
+    resolves here.
+    """
+    team = Team.objects(tenant=tenant, team_members__uid=member_uid).first()
+    if not team:
+        return None
+    member = team.get_member(member_uid)
+    return (team, member) if member else None
 
 
 def calculate_team_members_number_in_tenant(tenant):

@@ -227,7 +227,10 @@
 }
 
 .calendar-table col.name-col {
-    width: clamp(260px, 22vw, 360px);
+    /* Widened when the team leader moved into this column: the action icons reserve
+       their width even while hidden - which is what keeps them from shifting on
+       hover - so the leader needs the column to grow instead. */
+    width: clamp(280px, 26vw, 430px);
     min-width: 220px;
 }
 
@@ -248,10 +251,13 @@
 }
 
 .team-name-text,
-.member-name-text {
+.member-name-text,
+.team-leader-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* min-width: 0 is what lets these shrink past their min-content width, so a long
+       label ellipsises instead of pushing its neighbours out of the cell. */
     min-width: 0;
     flex: 0 1 auto;
 }
@@ -270,7 +276,8 @@
 .calendar-link-icon,
 .drag-icon,
 .delete-icon,
-.info-icon {
+.info-icon,
+.leader-icon {
     flex: 0 0 auto;
 }
 
@@ -301,10 +308,43 @@
     margin-right: 10px; /* Adjust as needed */
 }
 
-.team-member-count {
-    margin-left: 4px;
+/* Secondary labels beside the team name. */
+.team-member-count,
+.team-leader {
     color: #555;
     font-weight: normal;
+}
+
+.team-member-count {
+    margin-left: 4px;
+}
+
+/* The name column is a fixed clamp and the action icons reserve their width even
+   while hidden, so the leader is what gives way: the outsized shrink factor makes it
+   ellipsise long before the team name does. `white-space` is inherited by the label
+   inside, which is where the ellipsis actually happens. */
+.team-leader {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    flex: 0 999 auto;
+    min-width: 0;
+}
+
+.team-leader svg {
+    flex: 0 0 auto;
+}
+
+/* Narrow viewports cannot fit both names, and the team's own name wins: below this
+   width the leader keeps only its icon, with the name still in the tooltip. Nothing
+   is toggled on hover - that would move the icons that follow. */
+@media (max-width: 1449px) {
+    .team-leader-name {
+        display: none;
+    }
 }
 
 .team-row {
@@ -329,7 +369,9 @@
 }
 
 
-/* Hide icons by default */
+/* Hide icons by default. Scoped to the row cells, so the header's "Add team" plus
+   stays visible - it is the only way to add a team. */
+.team-name-cell .add-icon,
 .team-name-cell .edit-icon,
 .team-name-cell .delete-icon,
 .team-name-cell .calendar-link-icon,
@@ -340,10 +382,15 @@
 .member-name-cell .delete-icon,
 .member-name-cell .info-icon,
 .member-name-cell .history-icon {
+    /* visibility, not display: the icons keep their slot while hidden, so revealing
+       them on hover moves nothing - in particular an active subscription bell stays
+       exactly where it sits at rest. The column is widened below to pay for the
+       reserved space. */
     visibility: hidden;
 }
 
 /* Show icons on hover of the cell */
+.team-name-cell:hover .add-icon,
 .team-name-cell:hover .edit-icon,
 .team-name-cell:hover .delete-icon,
 .team-name-cell:hover .calendar-link-icon,
@@ -363,6 +410,7 @@
 }
 
 .watch-icon-active {
+    /* A subscribed team keeps its bell on show, next to the name. */
     visibility: visible !important;
     color: green;
 }

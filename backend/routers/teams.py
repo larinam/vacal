@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import logging
 import time
+import uuid
 from collections import defaultdict
 from decimal import Decimal
 from functools import lru_cache, partial
@@ -26,6 +27,7 @@ from ..dependencies import get_current_active_user_check_tenant, get_tenant, mon
 from ..model import (
     Team,
     TeamMember,
+    find_active_member_by_uid,
     get_unique_countries,
     DayType,
     User,
@@ -268,10 +270,11 @@ class TeamWriteDTO(BaseModel):
     name: str
     available_day_types: List[DayTypeReadDTO] = []
     parent_team_id: str | None = None
+    leader_uid: str | None = None
 
-    @field_validator('parent_team_id', mode='before')
+    @field_validator('parent_team_id', 'leader_uid', mode='before')
     @classmethod
-    def empty_parent_to_none(cls, v):
+    def empty_string_to_none(cls, v):
         return None if v == "" else v
 
 
@@ -431,6 +434,7 @@ def team_to_read_dto(team: Team, include_archived_members: bool = False) -> Team
         ],
         "team_members": member_dtos,
         "parent_team_id": team.parent_team_id,
+        "leader_uid": team.leader_uid,
         "subscribers": [
             mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
             for subscriber in team.list_subscribers()
@@ -508,12 +512,17 @@ def would_create_team_cycle(tenant, team_id: str, parent_team_id: str | None) ->
     return False
 
 
-def check_can_change_team_hierarchy(current_user: User) -> None:
+def check_is_manager(current_user: User, detail: str) -> None:
     if not current_user.is_manager():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only managers can change the team hierarchy."
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+
+
+def check_can_change_team_hierarchy(current_user: User) -> None:
+    check_is_manager(current_user, "Only managers can change the team hierarchy.")
+
+
+def check_can_change_team_leader(current_user: User) -> None:
+    check_is_manager(current_user, "Only managers can change the team leader.")
 
 
 def resolve_parent_team_id(tenant, team_id: str | None, parent_team_id: str | None) -> str | None:
@@ -533,6 +542,42 @@ def resolve_parent_team_id(tenant, team_id: str | None, parent_team_id: str | No
     if team_id and would_create_team_cycle(tenant, team_id, parent_team_id):
         raise HTTPException(status_code=400, detail="Parent team assignment would create a cycle")
     return parent_team_id
+
+
+def resolve_leader_uid(tenant, leader_uid: str | None) -> str | None:
+    """Validate a proposed team leader and return the value to store.
+
+    Any active member of the tenant may lead any team, so unlike a parent team there
+    is no cycle to guard against: the edge runs team -> member, and a member leading
+    their own team is expected.
+    """
+    if not leader_uid:
+        return None
+    try:
+        # UUIDField(binary=False) stores the canonical lowercase form and a query value
+        # is compared as a plain string, so an unnormalised uid would silently match
+        # nothing instead of being rejected.
+        canonical_uid = str(uuid.UUID(str(leader_uid)))
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(status_code=400, detail="Invalid team leader id")
+    if not find_active_member_by_uid(tenant, canonical_uid):
+        raise HTTPException(status_code=404, detail="Team leader not found")
+    return canonical_uid
+
+
+def clear_leader_references(tenant, member_uids: list[str], exclude_team_id=None) -> None:
+    """Drop leader pointers aimed at members who are no longer selectable.
+
+    Archived teams are included, so a stale pointer cannot resurface if one is ever
+    revived; ``exclude_team_id`` keeps the archived team's own pointer intact.
+    """
+    if not member_uids:
+        return
+    teams = Team.objects_with_deleted(tenant=tenant, leader_uid__in=member_uids)
+    if exclude_team_id is not None:
+        teams = teams.filter(id__ne=exclude_team_id)
+    # MongoEngine omits None fields on update, so unset rather than set__...=None.
+    teams.update(unset__leader_uid=1)
 
 
 def reparent_children(tenant, team: Team) -> None:
@@ -569,6 +614,9 @@ async def add_team(team_dto: TeamWriteDTO, current_user: Annotated[User, Depends
     if team_dto.parent_team_id:
         check_can_change_team_hierarchy(current_user)
     team_data["parent_team_id"] = resolve_parent_team_id(tenant, None, team_dto.parent_team_id)
+    if team_dto.leader_uid:
+        check_can_change_team_leader(current_user)
+    team_data["leader_uid"] = resolve_leader_uid(tenant, team_dto.leader_uid)
     team_data.update({"tenant": tenant})
     Team(**team_data).save()
     return {"message": "Team created successfully"}
@@ -581,6 +629,9 @@ async def delete_team(team_id: str, current_user: Annotated[User, Depends(get_cu
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
     reparent_children(tenant, team)
+    # An archived team's members disappear from every picker, so other teams must not
+    # keep pointing at them as leader. The team keeps its own pointer.
+    clear_leader_references(tenant, [str(member.uid) for member in team.members()], exclude_team_id=team.id)
     if not team.team_members:
         team.delete()
         return {"message": "Team deleted successfully"}
@@ -600,11 +651,7 @@ async def delete_team_member(team_id: str, team_member_id: str,
                              tenant: Annotated[Tenant, Depends(get_tenant)],
                              last_working_day: datetime.date = Query(...),
                              separation_type: SeparationType | None = Query(None)):
-    if not current_user.is_manager():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only managers can delete team members."
-        )
+    check_is_manager(current_user, "Only managers can delete team members.")
     team = Team.objects(tenant=tenant, id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -618,6 +665,7 @@ async def delete_team_member(team_id: str, team_member_id: str,
         team_member_to_remove.deleted_at = datetime.datetime.now(datetime.timezone.utc)
         team_member_to_remove.deleted_by = current_user
     team.save()
+    clear_leader_references(tenant, [str(team_member_to_remove.uid)])
     invalidate_holidays_cache()
     return {"message": "Team member deleted successfully"}
 
@@ -635,6 +683,11 @@ async def update_team(team_id: str, team_dto: TeamWriteDTO,
         if "parent_team_id" in team_dto.model_fields_set and team_dto.parent_team_id != team.parent_team_id:
             check_can_change_team_hierarchy(current_user)
             team.parent_team_id = resolve_parent_team_id(tenant, str(team.id), team_dto.parent_team_id)
+        # Same reasoning for the leader: a rename must not unassign it, and re-sending
+        # the stored value must not re-validate a leader who has since been archived.
+        if "leader_uid" in team_dto.model_fields_set and team_dto.leader_uid != team.leader_uid:
+            check_can_change_team_leader(current_user)
+            team.leader_uid = resolve_leader_uid(tenant, team_dto.leader_uid)
         team.save()
         return {"message": "Team modified successfully"}
     else:

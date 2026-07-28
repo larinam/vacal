@@ -123,3 +123,33 @@ test('a structural placeholder row is dimmed, keeps its chevron and exposes no a
   fireEvent.drop(row);
   expect(handlers.onDrop).not.toHaveBeenCalled();
 });
+
+test('shows the team leader when one is resolved', () => {
+  renderRow({leaderName: 'Ada'});
+
+  const leader = screen.getByTitle('Team leader: Ada');
+  expect(leader).toHaveTextContent('Ada');
+});
+
+test('labels the leader with their first name and keeps the full one in the tooltip', () => {
+  // The name column has no room for a full name beside the action icons.
+  renderRow({leaderName: 'Ada Manager'});
+
+  const leader = screen.getByTitle('Team leader: Ada Manager');
+  expect(leader).toHaveTextContent('Ada');
+  expect(leader).not.toHaveTextContent('Manager');
+});
+
+test('shows no leader when the team has none, or the pointer is stale', () => {
+  renderRow();
+
+  expect(screen.queryByTitle(/^Team leader:/)).not.toBeInTheDocument();
+});
+
+test('a structural placeholder shows no leader', () => {
+  // Placeholder rows deliberately carry no member data at all.
+  const placeholder = {_id: 't1', name: 'Alpha', team_members: [], isStructuralPlaceholder: true};
+  renderRow({team: placeholder, leaderName: 'Ada'});
+
+  expect(screen.queryByTitle(/^Team leader:/)).not.toBeInTheDocument();
+});

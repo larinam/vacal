@@ -1,5 +1,12 @@
 import React from 'react';
-import {faEdit, faGripVertical, faInfoCircle, faHistory, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
+import {
+  faEdit,
+  faGripVertical,
+  faInfoCircle,
+  faHistory,
+  faTrashAlt,
+  faUserTie,
+} from '@fortawesome/free-solid-svg-icons';
 import FontAwesomeIconWithTitle from '../FontAwesomeIconWithTitle';
 import MemberDayCell from './MemberDayCell';
 import {buildVacationTooltip, formatDate} from '../../utils/calendar';
@@ -12,6 +19,7 @@ const MemberRow = ({
                      holidayData,
                      selectedCells,
                      isDragging,
+                     isTeamLeader = false,
                      canManageMembers,
                      displayYear,
                      onOpenHistory,
@@ -30,6 +38,13 @@ const MemberRow = ({
         {member.name}
       </span>
       <span className="member-flag" title={member.country}>{member.country_flag}</span>
+      {isTeamLeader && (
+        <FontAwesomeIconWithTitle
+          icon={faUserTie}
+          title="Team leader"
+          wrapperClassName="leader-icon"
+        />
+      )}
       <FontAwesomeIconWithTitle
         icon={faInfoCircle}
         title={buildVacationTooltip(member, displayYear)}

@@ -91,6 +91,13 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
     [teamData]
   );
 
+  // A team can be led from another team, so leader names are resolved against the
+  // whole workspace rather than the teams currently visible.
+  const membersByUid = useMemo(
+    () => new Map(allMembers.map((member) => [member.uid, member])),
+    [allMembers]
+  );
+
   // The team member that corresponds to the logged-in user (matched by email,
   // since there is no hard link between User and TeamMember). Powers the "Me" shortcut.
   const currentMemberUid = useMemo(() => {
@@ -599,6 +606,7 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                 isCollapsed={collapsedSet.has(team._id)}
                 isFocused={effectiveFocusedTeamId === team._id}
                 isSubscribed={team.subscribers?.some(sub => sub._id === user?._id)}
+                leaderName={membersByUid.get(team.leader_uid)?.name}
                 isDropTarget={dropTargetId === team._id}
                 onToggleCollapse={toggleTeamCollapse}
                 onFocusTeam={handleFocusTeam}
@@ -622,6 +630,9 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
                   holidayData={holidayData}
                   selectedCells={selectedCells}
                   isDragging={draggingMemberId === member.uid}
+                  // Marks the leader only inside the team they lead: a leader
+                  // borrowed from elsewhere never lights up their own team's row.
+                  isTeamLeader={team.leader_uid === member.uid}
                   canManageMembers={canManageMembers}
                   displayYear={displayMonth.getFullYear()}
                   onOpenHistory={openMemberHistory}

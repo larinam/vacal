@@ -100,3 +100,13 @@ test('indents the member row to match its team depth', () => {
   expect(row).toHaveAttribute('data-depth', '2');
   expect(row.style.getPropertyValue('--team-depth')).toBe('2');
 });
+
+test('flags the member as team leader when they lead this team', () => {
+  renderRow({isTeamLeader: true});
+  expect(screen.getByRole('img', {name: 'Team leader'})).toBeInTheDocument();
+});
+
+test('shows no leader flag by default', () => {
+  renderRow();
+  expect(screen.queryByRole('img', {name: 'Team leader'})).not.toBeInTheDocument();
+});
