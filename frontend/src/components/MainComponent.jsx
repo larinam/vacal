@@ -19,7 +19,7 @@ import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
 const MainComponent = () => {
     const navigate = useNavigate();
     const {apiCall} = useApi();
-    const { user } = useAuth();
+    const { user, isRestoringSession } = useAuth();
     const [lastCheckedDate, setLastCheckedDate] = useState(new Date().toDateString());
     const [showReportModal, setShowReportModal] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
@@ -81,9 +81,11 @@ const MainComponent = () => {
         };
     }, [isBusy]);
 
-    // Redirect to login if user is not available (e.g., after session expiry)
+    // Redirect to login if user is not available (e.g., after session expiry), but
+    // not while a stored session is still being restored - the access token is
+    // short lived, so a reload usually has to renew it before the user arrives.
     if (!user) {
-        return <Navigate to="/login" replace />;
+        return isRestoringSession ? null : <Navigate to="/login" replace />;
     }
 
     const openReportModal = () => {

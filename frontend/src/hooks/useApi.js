@@ -2,55 +2,43 @@ import {useAuth} from '../contexts/AuthContext';
 import {useCallback} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {authedRequest} from '../utils/apiClient';
-import {refreshAccessToken} from '../utils/tokenRefresh';
 
 export const useApi = () => {
-    const {authHeader, refreshToken, handleLogout, currentTenant, setAuthHeader, setRefreshToken} = useAuth();
+    const {authHeader, currentTenant, refreshSession, handleSessionExpired} = useAuth();
     const navigate = useNavigate();
 
     const apiCall = useCallback(async (url, method = 'GET', body = null, isBlob = false, signal = null) => {
+        const sendRequest = (header) => authedRequest({
+            endpoint: url,
+            method,
+            body,
+            isBlob,
+            authHeader: header,
+            currentTenant,
+            signal,
+        });
+
         try {
-            let response = await authedRequest({
-                endpoint: url,
-                method,
-                body,
-                isBlob,
-                authHeader,
-                currentTenant,
-                signal,
-            });
-            
-            // If 401, try to refresh token and retry
-            if (response.status === 401 && refreshToken) {
-                try {
-                    const data = await refreshAccessToken(refreshToken);
-                    const newAuthHeader = `Bearer ${data.access_token}`;
-                    setAuthHeader(newAuthHeader);
-                    setRefreshToken(data.refresh_token);
-                    
-                    // Retry the original request with new token
-                    response = await authedRequest({
-                        endpoint: url,
-                        method,
-                        body,
-                        isBlob,
-                        authHeader: newAuthHeader,
-                        currentTenant,
-                        signal,
-                    });
-                } catch (refreshError) {
-                    console.error('Token refresh failed:', refreshError);
-                    handleLogout();
-                    navigate('/');
-                    throw new Error('Session expired');
+            let response = await sendRequest(authHeader);
+
+            // If 401, renew the short-lived access token and retry once
+            if (response.status === 401) {
+                const {header: renewedHeader, rejected} = await refreshSession();
+                if (renewedHeader) {
+                    response = await sendRequest(renewedHeader);
+                } else if (!rejected) {
+                    // The backend could not be reached to renew, so the session
+                    // is probably still good - fail this call, keep the session.
+                    throw new Error('Could not renew the session');
                 }
-            } else if (response.status === 401) {
-                // No refresh token available, just logout
-                handleLogout();
+            }
+
+            if (response.status === 401) {
+                handleSessionExpired();
                 navigate('/');
                 throw new Error('Session expired');
             }
-            
+
             if (!response.ok) {
                 const error = new Error(`HTTP error! Status: ${response.status}`);
                 try {
@@ -72,7 +60,7 @@ export const useApi = () => {
             console.error('API call error:', error);
             throw error;
         }
-    }, [authHeader, refreshToken, currentTenant, handleLogout, navigate, setAuthHeader, setRefreshToken]);
+    }, [authHeader, currentTenant, refreshSession, handleSessionExpired, navigate]);
 
     return {apiCall};
 };
