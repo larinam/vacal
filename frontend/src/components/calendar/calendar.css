@@ -1,11 +1,21 @@
 .stickyHeader {
-    /* Three zones: filters (content-sized, left) | month (flexible centre) |
-       reserved space for the fixed action icons (right). The filters column is
-       `auto`, so it always fits its content and can never be overlapped by the
-       centred month; the month pill has a constant width, so switching months
-       moves nothing. */
+    /* Three zones: filters (left) | month control (centre) | the space the fixed
+       action icons overlay (right).
+
+       Both side tracks are `1fr`, which is what makes the month control sit on the
+       true horizontal centre of the screen: equal flex factors resolve to equal
+       widths, so the content-sized middle track is centred in the bar, and the
+       bar's padding is symmetric, so that is the viewport centre too. Nothing the
+       side zones do can pull it off centre - not the scope toggle appearing, not
+       the save flash, not the role-dependent action icons.
+
+       Once the bar is too narrow for that, `1fr` degrades the way we want on its
+       own: a flexible track never shrinks below its own content, so the left track
+       freezes at the filters' width and the month control comes to rest exactly one
+       gap to their right rather than overlapping them. Measured handover point with
+       the current controls: ~1437px. */
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     column-gap: 8px;
     position: fixed;
@@ -42,23 +52,31 @@
 }
 
 .filter-wrapper {
-    /* Left grid zone. Left-aligned, sized to its content; fixed-width children
-       mean nothing here reflows when the scope toggle is shown/hidden. */
+    /* Left grid zone. Left-aligned in a track that is usually wider than it needs;
+       fixed-width children mean nothing here reflows when the scope toggle is
+       shown/hidden.
+
+       Deliberately no `min-width: 0`: that overrides the grid track's automatic
+       minimum, and the left track would then shrink below the filters and let them
+       run over the centred month control on a narrow window (measured: 70px of
+       overlap at 1280px). */
     grid-column: 1;
     justify-self: start;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     gap: 8px;
-    min-width: 0;
 }
 
 /* Manager (reporting-hierarchy) filter — styled to match the search input */
 .stickyHeader .manager-filter {
     height: 32px; /* match the search input / toggle / month pill */
     flex: 0 0 auto;
-    min-width: 148px; /* stable width so switching option (e.g. All members ->
-                         a long name) doesn't resize and shove the toggle */
+    width: 168px; /* Fixed, not intrinsic. A <select> sizes itself to its widest
+                     *option*, so while this was `min-width` the zone grew the moment
+                     manager names arrived from the server - which shoved the month
+                     control sideways by up to 114px mid-load. A long name is clipped
+                     instead; the full list is still readable when open. */
     padding: 5px 8px;
     border: 1px solid #d0d7de;
     border-radius: 6px;
@@ -106,8 +124,10 @@
     color: white;
 }
 
-/* Present but invisible: keeps the toggle's slot in the layout when no manager
-   is selected, so revealing it later doesn't move the centred month control. */
+/* Present but invisible: keeps the toggle's slot in the layout when no manager is
+   selected. Above the handover width the month control is centred regardless, but
+   below it the control rests against the filters, so an unreserved toggle would
+   shove it ~120px sideways the moment a manager was picked. */
 .scope-toggle--reserved {
     visibility: hidden;
 }
@@ -124,16 +144,10 @@
     font-style: italic;
 }
 
+/* Centre zone. The track is content-sized, so this needs no alignment of its own -
+   the position comes entirely from the two 1fr tracks either side. */
 .stickyHeader .monthSelector {
     grid-column: 2;
-    justify-self: center;
-}
-
-/* Reserves the right zone for the app's fixed action icons (archived members,
-   report, avatar) so the centred month never drifts under them. */
-.stickyHeader .header-actions-reserve {
-    grid-column: 3;
-    width: 120px;
 }
 
 .stickyHeader button {
@@ -150,10 +164,20 @@
     background: linear-gradient(to bottom, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
 }
 
+/* Transient "preferences saved" flash. In the right-hand track rather than absolutely
+   positioned at a hand-tuned offset, so it can never land on the month control.
+   Because that track is sized by `1fr` and not by its contents, the flash coming and
+   going moves nothing either.
+
+   Packed to the near edge of the track: the far edge is where the fixed action icons
+   sit, and starting from the left is what keeps the flash clear of them for longest.
+   The bar needs ~1041px to seat the filters, the month control, this flash and the
+   icons without anything touching; below ~1049px the flash begins to overlap the
+   icons. That is well under the width the 31-column calendar table itself needs. */
 .stickyHeader .save-icon {
-    position: absolute;
-    right: 180px;
-    transform: translateX(-50%);
+    grid-column: 3;
+    justify-self: start;
+    margin-left: 16px; /* reads as its own thing, not part of the month control */
     font-size: 24px;
     color: gray;
 }

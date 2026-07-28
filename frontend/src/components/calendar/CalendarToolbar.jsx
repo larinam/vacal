@@ -51,8 +51,10 @@ const CalendarToolbar = ({
           ))}
         </select>
         {/* Always rendered so its width is reserved in the layout even when
-            hidden — revealing it on manager select must not shift the centred
-            month control. Hidden (not removed) via .scope-toggle--reserved. */}
+            hidden. Below the width at which the month control can still be
+            screen-centred it rests against this column, so unmounting the toggle
+            would shove it sideways on manager select. Hidden (not removed) via
+            .scope-toggle--reserved. */}
         <div
           className={`scope-toggle${managerFilterUid ? '' : ' scope-toggle--reserved'}`}
           role="group"
@@ -86,8 +88,8 @@ const CalendarToolbar = ({
         todayYear={todayYear}
         todayMonth={todayMonth}
       />
-      {/* Reserves space for MainComponent's fixed action icons on the right. */}
-      <div className="header-actions-reserve" aria-hidden="true"/>
+      {/* No spacer for MainComponent's fixed action icons: the right-hand grid track
+          mirrors the filter column, which is far wider than the icons need. */}
       {showSaveIcon && <FontAwesomeIcon icon={faSave} className="save-icon"/>}
     </div>
   );
