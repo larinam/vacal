@@ -82,8 +82,12 @@ describe('AuthProvider session bootstrap', () => {
 
     await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('Alice'));
     expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
-    expect(localStorage.getItem('authHeader')).toBe(`Bearer ${freshAccessToken}`);
-    expect(localStorage.getItem('refreshToken')).toBe('rotated-refresh-token');
+    // Persisting runs in an effect, which React may flush after the commit that
+    // rendered the user - so this has to be waited on, not read once.
+    await waitFor(() => {
+      expect(localStorage.getItem('authHeader')).toBe(`Bearer ${freshAccessToken}`);
+      expect(localStorage.getItem('refreshToken')).toBe('rotated-refresh-token');
+    });
     // Nothing must revoke a refresh token that still had days left on it.
     expect(calledUrls()).not.toContain('/logout');
   });
@@ -118,9 +122,11 @@ describe('AuthProvider session bootstrap', () => {
     render(<AuthProvider><Probe/></AuthProvider>);
 
     await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('false'));
-    expect(localStorage.getItem('authHeader')).toBe('');
-    expect(localStorage.getItem('refreshToken')).toBe('');
-    expect(localStorage.getItem('user')).toBeNull();
+    await waitFor(() => {
+      expect(localStorage.getItem('authHeader')).toBe('');
+      expect(localStorage.getItem('refreshToken')).toBe('');
+      expect(localStorage.getItem('user')).toBeNull();
+    });
     expect(toastMock.error).toHaveBeenCalledWith('Session expired. Please log in again.');
     // The token is already dead, so there is nothing to revoke.
     expect(calledUrls()).not.toContain('/logout');
