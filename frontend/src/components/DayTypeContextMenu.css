@@ -44,7 +44,9 @@
   font-size: 0.9em;
 }
 
-.history-icon {
+/* Scoped to this menu: unscoped, it also spaced the calendar rows' history icons,
+   which made one gap in every team and member row wider than the rest. */
+.context-menu .history-icon {
   margin-left: 5px;
   cursor: pointer;
 }
