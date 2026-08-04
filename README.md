@@ -10,6 +10,12 @@ Despite the name, it supports tracking all kinds of absences, not just vacations
 * Give a team a leader — any member of the workspace, including someone from another team. The
   leader is shown on the team row, and flagged in the member list when they belong to the team they
   lead. Only managers can change it.
+* Schedule a departure in advance — set a last working day in the future and the member stays a
+  full member of the team until that date passes, then moves to Archived members automatically.
+  Their vacation allowance is prorated to the last working day rather than granted for the whole
+  year, and days past it are greyed out on the calendar. A scheduled departure can be cancelled,
+  and a member archived by mistake can be restored (team leader assignments are not restored).
+  Only managers can do any of this.
 * Organize and track vacations and other absences.
 * Keep a history of all day modifications. Timestamps are shown in your local timezone.
 * Visualize absences (vacations, sick leave, etc.), weekends, and public holidays in an intuitive interface.

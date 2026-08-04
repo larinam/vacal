@@ -82,3 +82,34 @@ test('plain weekday is selectable on mouse-down', () => {
   fireEvent.mouseDown(getCell());
   expect(handlers.onMouseDown).toHaveBeenCalledWith('t1', 'm1', date, true);
 });
+
+test('days after the last working day are hatched and not selectable', () => {
+  const date = new Date(2026, 6, 10); // Friday, the day after
+  const leaving = {...member(), last_working_day: '2026-07-09'};
+  const handlers = renderCell({member: leaving, date});
+
+  expect(getCell()).toHaveClass('out-of-employment-cell');
+  fireEvent.mouseDown(getCell());
+  expect(handlers.onMouseDown).toHaveBeenCalledWith('t1', 'm1', date, false);
+});
+
+test('the last working day itself is unmarked and still selectable', () => {
+  const date = new Date(2026, 6, 9);
+  const leaving = {...member(), last_working_day: '2026-07-09'};
+  const handlers = renderCell({member: leaving, date});
+
+  expect(getCell()).not.toHaveClass('out-of-employment-cell');
+  fireEvent.mouseDown(getCell());
+  expect(handlers.onMouseDown).toHaveBeenCalledWith('t1', 'm1', date, true);
+});
+
+test('an existing mark past the last working day keeps its own title', () => {
+  // The class must not swallow the day-type title, or stale marks become unreadable.
+  const leaving = {
+    ...member({'2026-07-20': {day_types: [VACATION], comment: 'booked earlier'}}),
+    last_working_day: '2026-07-09',
+  };
+  renderCell({member: leaving, date: new Date(2026, 6, 20)});
+  expect(getCell()).toHaveClass('out-of-employment-cell');
+  expect(getCell()).toHaveAttribute('title', 'Vacation: booked earlier');
+});

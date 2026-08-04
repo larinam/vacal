@@ -118,6 +118,100 @@ def test_export_includes_deleted_member_until_last_working_day():
     assert member_row[vacation_idx] == 1
 
 
+def test_export_clamps_leaving_member_at_last_working_day():
+    """A member with a scheduled future departure is still active, so they arrive through
+    team.members() rather than archived_members - and must appear exactly once, with their
+    working days clamped at the last working day just like an archived member's."""
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+
+    leaving_member = TeamMember(
+        name="Dana",
+        country="Sweden",
+        days={
+            "2025-01-10": DayEntry(day_types=[vacation]),
+            "2025-01-20": DayEntry(day_types=[vacation]),
+        },
+        # In the future relative to the export window, but not yet reached in real time.
+        last_working_day=datetime.date.today() + datetime.timedelta(days=90),
+    )
+
+    team = Team(tenant=tenant, name="TeamLeaving", team_members=[leaving_member])
+    team.save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: User(tenants=[tenant])
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    response = client.get(
+        f"/teams/export-absences?start_date=2025-01-01&end_date=2025-01-31&team_ids={team.id}"
+    )
+
+    app.dependency_overrides = {}
+
+    assert response.status_code == 200
+
+    from io import BytesIO
+
+    workbook = load_workbook(BytesIO(response.content))
+    rows = list(workbook.active.iter_rows(values_only=True))
+    headers = rows[0]
+    working_idx = headers.index("Working Days")
+    absence_idx = headers.index("Absence Days")
+
+    member_rows = [r for r in rows[1:] if r[1] == "Dana"]
+    # active_members and archived_members are a partition, so no duplicate row.
+    assert len(member_rows) == 1
+
+    holidays = get_holidays(tenant)
+    expected_working_days = get_working_days(
+        datetime.date(2025, 1, 1), datetime.date(2025, 1, 31), holidays.get("Sweden", {})
+    )
+    # The last working day is past the window, so the window is not clamped at all.
+    assert member_rows[0][working_idx] == expected_working_days
+    assert member_rows[0][absence_idx] == 2
+
+
+def test_export_clamps_active_member_with_past_scheduled_end():
+    """The clamp itself: a member whose last working day falls inside the window has their
+    working days cut off there."""
+    tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
+    DayType.init_day_types(tenant)
+    vacation = DayType.objects(tenant=tenant, identifier="vacation").first()
+
+    member = TeamMember(
+        name="Erin",
+        country="Sweden",
+        days={"2025-01-10": DayEntry(day_types=[vacation])},
+        last_working_day=datetime.date(2025, 1, 15),
+        is_deleted=True,
+    )
+    team = Team(tenant=tenant, name="TeamClamped", team_members=[member])
+    team.save()
+
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: User(tenants=[tenant])
+    app.dependency_overrides[get_tenant] = lambda: tenant
+
+    response = client.get(
+        f"/teams/export-absences?start_date=2025-01-01&end_date=2025-01-31&team_ids={team.id}"
+    )
+
+    app.dependency_overrides = {}
+
+    from io import BytesIO
+
+    rows = list(load_workbook(BytesIO(response.content)).active.iter_rows(values_only=True))
+    headers = rows[0]
+    working_idx = headers.index("Working Days")
+
+    holidays = get_holidays(tenant)
+    expected_working_days = get_working_days(
+        datetime.date(2025, 1, 1), datetime.date(2025, 1, 15), holidays.get("Sweden", {})
+    )
+    member_row = next(r for r in rows[1:] if r[1] == "Erin")
+    assert member_row[working_idx] == expected_working_days
+
+
 def test_export_excludes_deleted_member_before_period():
     tenant = Tenant(name=f"Tenant{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
     DayType.init_day_types(tenant)

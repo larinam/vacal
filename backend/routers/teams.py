@@ -27,6 +27,8 @@ from ..dependencies import get_current_active_user_check_tenant, get_tenant, mon
 from ..model import (
     Team,
     TeamMember,
+    archive_member,
+    clear_leader_references,
     find_active_member_by_uid,
     get_unique_countries,
     DayType,
@@ -110,43 +112,68 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     deleted_at: datetime.datetime | None = None
     deleted_by: UserWithoutTenantsDTO | None = None
     separation_type: SeparationType | None = None
-    _vacation_split_cache: Optional[Tuple[Dict[int, int], Dict[int, int]]] = PrivateAttr(default=None)
+    _vacation_split_cache: Optional[Tuple[Dict[int, int], Dict[int, int], Dict[int, int]]] = PrivateAttr(default=None)
 
-    def _split_vacation_days(self) -> tuple[Dict[int, int], Dict[int, int]]:
-        """Return two dicts: used days and planned days by year."""
+    def _split_vacation_days(self) -> tuple[Dict[int, int], Dict[int, int], Dict[int, int]]:
+        """Return three dicts by year: used days, planned days, and charged days.
+
+        ``charged`` is what the balance is reduced by. It drops marks that fall after the
+        last working day, symmetrically with entitlement stopping accruing there - and
+        because entitlement stops, charging them too would read 0 for every leaver.
+        ``used`` and ``planned`` stay raw so the tooltip's per-year counts keep matching
+        the coloured cells the user can actually see on the calendar.
+        """
         if self._vacation_split_cache is not None:
             return self._vacation_split_cache
 
         used = defaultdict(int)
         planned = defaultdict(int)
-        vacation_day_type = mongo_to_pydantic(
-            DayType.objects(tenant=tenant_var.get(), name="Vacation").first(),
-            DayTypeReadDTO,
-        )
+        charged = defaultdict(int)
+        # Look the day type up by identifier, not name: renaming the system Vacation day
+        # type is allowed (see daytypes.update_day_type) and a name lookup would then
+        # miss, taking the whole /teams response down with it.
+        vacation_doc = DayType.objects(tenant=tenant_var.get(), identifier="vacation").first()
+        if vacation_doc is None:
+            self._vacation_split_cache = ({}, {}, {})
+            return self._vacation_split_cache
+        vacation_day_type = mongo_to_pydantic(vacation_doc, DayTypeReadDTO)
+
         today = get_today()
         for date_str, day_entry in self.days.items():
             date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-            day_types = day_entry.day_types
-            if vacation_day_type in day_types:
-                if date <= today:
-                    used[date.year] += 1
-                else:
-                    planned[date.year] += 1
+            if vacation_day_type not in day_entry.day_types:
+                continue
+            if date <= today:
+                used[date.year] += 1
+            else:
+                planned[date.year] += 1
+            if self.last_working_day is not None and date > self.last_working_day:
+                continue  # outside the employment window: no entitlement earned, none spent
+            charged[date.year] += 1
 
-        self._vacation_split_cache = (dict(used), dict(planned))
+        self._vacation_split_cache = (dict(used), dict(planned), dict(charged))
         return self._vacation_split_cache
 
     @computed_field
     @property
     def vacation_used_days_by_year(self) -> Dict[int, int]:
-        used, _ = self._split_vacation_days()
+        used, _, _ = self._split_vacation_days()
         return used
 
     @computed_field
     @property
     def vacation_planned_days_by_year(self) -> Dict[int, int]:
-        _, planned = self._split_vacation_days()
+        _, planned, _ = self._split_vacation_days()
         return planned
+
+    def _employment_period_in_year(self, year: int) -> tuple[datetime.date, datetime.date] | None:
+        """The member's employment window inside one calendar year, or None when they
+        were not employed at any point during it."""
+        period_start = max(datetime.date(year, 1, 1), self.employee_start_date)
+        period_end = datetime.date(year, 12, 31)
+        if self.last_working_day is not None:
+            period_end = min(period_end, self.last_working_day)
+        return (period_start, period_end) if period_start <= period_end else None
 
     @computed_field
     @property
@@ -155,30 +182,32 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
             return None
 
         yearly = Decimal(str(self.yearly_vacation_days))
-        start = self.employee_start_date
         today = get_today()
+        # A leaver's entitlement is already fully known - nothing accrues past the last
+        # working day - so crediting the final, prorated year now rather than on Jan 1 is
+        # what makes "days you can still take before you go" a true answer. For open-ended
+        # employment the horizon stays the current year: next year is not earned yet.
+        horizon_year = today.year
+        if self.last_working_day is not None:
+            horizon_year = max(horizon_year, self.last_working_day.year)
 
         total_budget = Decimal("0")
-        for year in range(start.year, today.year + 1):
-            if year == start.year:
-                days_in_year = (datetime.date(year, 12, 31) - datetime.date(year, 1, 1)).days + 1
-                days_employed = (datetime.date(year, 12, 31) - start).days + 1
-                portion = (Decimal(days_employed) / Decimal(days_in_year)) * yearly
-                total_budget += portion
-            else:
-                total_budget += yearly
+        for year in range(self.employee_start_date.year, horizon_year + 1):
+            period = self._employment_period_in_year(year)
+            if period is None:
+                continue  # not employed at all that year
+            period_start, period_end = period
+            days_in_year = (datetime.date(year, 12, 31) - datetime.date(year, 1, 1)).days + 1
+            days_employed = (period_end - period_start).days + 1
+            total_budget += (Decimal(days_employed) / Decimal(days_in_year)) * yearly
 
-        used_total = sum(
-            count for year, count in self.vacation_used_days_by_year.items()
-            if year <= today.year
-        )
-        planned_total = sum(
-            count for year, count in self.vacation_planned_days_by_year.items()
-            if year <= today.year
-        )
+        # The same horizon has to gate the subtraction. Crediting the departure year but
+        # not charging the days already booked in it would be wrong in the generous
+        # direction.
+        _, _, charged = self._split_vacation_days()
+        charged_total = sum(count for year, count in charged.items() if year <= horizon_year)
 
-        available = int(total_budget - used_total - planned_total)
-        return max(0, available)
+        return max(0, int(total_budget - charged_total))
 
     @model_validator(mode='after')
     def include_birthday(self) -> Self:
@@ -264,6 +293,8 @@ class ArchivedMemberDTO(BaseModel):
     separation_type: SeparationType | None = None
     deleted_at: datetime.datetime | None = None
     deleted_by: UserWithoutTenantsDTO | None = None
+    separation_recorded_at: datetime.datetime | None = None
+    separation_recorded_by: UserWithoutTenantsDTO | None = None
 
 
 class TeamWriteDTO(BaseModel):
@@ -565,21 +596,6 @@ def resolve_leader_uid(tenant, leader_uid: str | None) -> str | None:
     return canonical_uid
 
 
-def clear_leader_references(tenant, member_uids: list[str], exclude_team_id=None) -> None:
-    """Drop leader pointers aimed at members who are no longer selectable.
-
-    Archived teams are included, so a stale pointer cannot resurface if one is ever
-    revived; ``exclude_team_id`` keeps the archived team's own pointer intact.
-    """
-    if not member_uids:
-        return
-    teams = Team.objects_with_deleted(tenant=tenant, leader_uid__in=member_uids)
-    if exclude_team_id is not None:
-        teams = teams.filter(id__ne=exclude_team_id)
-    # MongoEngine omits None fields on update, so unset rather than set__...=None.
-    teams.update(unset__leader_uid=1)
-
-
 def reparent_children(tenant, team: Team) -> None:
     """Move a deleted team's children up to its own parent so the tree stays connected."""
     children = Team.objects_with_deleted(tenant=tenant, parent_team_id=str(team.id))
@@ -658,16 +674,64 @@ async def delete_team_member(team_id: str, team_member_id: str,
     team_member_to_remove = team.get_member(team_member_id, include_archived=True)
     if not team_member_to_remove:
         raise HTTPException(status_code=404, detail="Team member not found")
+    if (team_member_to_remove.employee_start_date is not None
+            and last_working_day < team_member_to_remove.employee_start_date):
+        raise HTTPException(status_code=400,
+                            detail="Last working day cannot be before the employee start date.")
+
     team_member_to_remove.last_working_day = last_working_day
     team_member_to_remove.separation_type = separation_type.value if separation_type else None
-    if not getattr(team_member_to_remove, "is_deleted", False):
-        team_member_to_remove.is_deleted = True
-        team_member_to_remove.deleted_at = datetime.datetime.now(datetime.timezone.utc)
-        team_member_to_remove.deleted_by = current_user
+    team_member_to_remove.separation_recorded_at = datetime.datetime.now(datetime.timezone.utc)
+    team_member_to_remove.separation_recorded_by = current_user
+
+    # A future last working day only records the schedule: the member stays a full member
+    # of the team until the day has passed, and the nightly job archives them then. A date
+    # already in the past is materialised right away so the stored state stays canonical.
+    departure_is_due = last_working_day < get_today()
+    if departure_is_due and not getattr(team_member_to_remove, "is_deleted", False):
+        archive_member(team_member_to_remove)
     team.save()
-    clear_leader_references(tenant, [str(team_member_to_remove.uid)])
+    # Leader pointers survive a scheduled departure - leading a team until your last day
+    # is normal - and are cleared when the departure actually takes effect.
+    if departure_is_due:
+        clear_leader_references(tenant, [str(team_member_to_remove.uid)])
     invalidate_holidays_cache()
-    return {"message": "Team member deleted successfully"}
+    if departure_is_due:
+        return {"message": "Team member deleted successfully"}
+    return {"message": "Separation scheduled successfully"}
+
+
+@router.post("/{team_id}/members/{team_member_id}/restore")
+async def restore_team_member(team_id: str, team_member_id: str,
+                              current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
+                              tenant: Annotated[Tenant, Depends(get_tenant)]):
+    """Cancel a scheduled departure, or bring back a member archived by mistake.
+
+    Team leader assignments are not restored: clearing them unsets the pointer and the
+    previous value is not recoverable.
+    """
+    check_is_manager(current_user, "Only managers can restore team members.")
+    team = Team.objects_with_deleted(tenant=tenant, id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team_member = team.get_member(team_member_id, include_archived=True)
+    if not team_member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if team_member.last_working_day is None and not getattr(team_member, "is_deleted", False):
+        raise HTTPException(status_code=400, detail="Team member has no separation to restore")
+
+    team_member.last_working_day = None
+    team_member.separation_type = None
+    team_member.separation_recorded_at = None
+    team_member.separation_recorded_by = None
+    team_member.is_deleted = False
+    team_member.deleted_at = None
+    team_member.deleted_by = None
+    team.save()
+    # The member counts towards the tenant again; the period figure is a high-water mark.
+    tenant.update_max_team_members_in_the_period()
+    invalidate_holidays_cache()
+    return {"message": "Team member restored successfully"}
 
 
 @router.put("/{team_id}")
@@ -705,7 +769,9 @@ async def update_team_member(team_id: str, team_member_id: str, team_member_dto:
     team_member: TeamMember | None = team.get_member(team_member_id, include_archived=True)
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
-    if getattr(team_member, "is_deleted", False):
+    # A member with a scheduled future departure stays editable; one whose last working
+    # day has passed does not, even before the nightly job has flipped the flag.
+    if team_member.is_archived():
         raise HTTPException(status_code=400, detail="Team member is archived")
 
     team_member.name = team_member_dto.name
@@ -1043,7 +1109,8 @@ async def update_days(team_id: str, team_member_id: str, days: Dict[str, Dict[st
     team_member: TeamMember | None = team.get_member(team_member_id, include_archived=True)
     if not team_member:
         raise HTTPException(status_code=404, detail="Team member not found")
-    if getattr(team_member, "is_deleted", False):
+    # A leaving member can still book their remaining vacation; a departed one cannot.
+    if team_member.is_archived():
         raise HTTPException(status_code=400, detail="Team member is archived")
 
     updated_days = {}
@@ -1215,9 +1282,14 @@ def _get_paginated_audits(
     return query.order_by("-timestamp").skip(skip).limit(limit)
 
 
-def _safe_deref_user(member) -> UserWithoutTenantsDTO | None:
+def _safe_deref_user(member, field_name: str = "deleted_by") -> UserWithoutTenantsDTO | None:
+    """Dereference a user reference on a member, tolerating a dangling DBRef.
+
+    Neither deleted_by nor separation_recorded_by carries a reverse_delete_rule, so a
+    deleted user leaves a reference that raises on access.
+    """
     try:
-        ref = member.deleted_by
+        ref = getattr(member, field_name)
         return mongo_to_pydantic(ref, UserWithoutTenantsDTO) if ref else None
     except Exception:
         return None
@@ -1244,5 +1316,7 @@ async def get_archived_members(
                 separation_type=member.separation_type,
                 deleted_at=member.deleted_at,
                 deleted_by=_safe_deref_user(member),
+                separation_recorded_at=member.separation_recorded_at,
+                separation_recorded_by=_safe_deref_user(member, "separation_recorded_by"),
             ))
     return {"archived_members": result}

@@ -11,6 +11,7 @@ import {
   getMemberDayComment,
   getMemberDayEntry,
   haveSameDayTypes,
+  isAfterLastWorkingDay,
   isHoliday,
   isSelectableDay,
 } from './calendar';
@@ -112,6 +113,47 @@ describe('isSelectableDay', () => {
 
   test('plain weekday with no entry is selectable', () => {
     expect(isSelectableDay(member(), new Date(2026, 6, 9), {})).toBe(true);
+  });
+
+  test('a weekday after the last working day is not selectable', () => {
+    const m = {...member(), last_working_day: '2026-07-09'};
+    expect(isSelectableDay(m, new Date(2026, 6, 10), {})).toBe(false); // Friday, day after
+  });
+
+  test('the last working day itself is still selectable', () => {
+    const m = {...member(), last_working_day: '2026-07-09'};
+    expect(isSelectableDay(m, new Date(2026, 6, 9), {})).toBe(true);
+  });
+
+  test('existing marks past the last working day stay drag-selectable for cleanup', () => {
+    // The guard must sit below the base-types branch, or the only way to clear stale
+    // post-departure marks in bulk would be blocked too.
+    const m = {
+      ...member({'2026-07-20': {day_types: [{_id: 'v'}]}}),
+      last_working_day: '2026-07-09',
+    };
+    expect(isSelectableDay(m, new Date(2026, 6, 20), {}, ['v'])).toBe(true);
+  });
+});
+
+describe('isAfterLastWorkingDay', () => {
+  test('false when no last working day is set', () => {
+    expect(isAfterLastWorkingDay(member(), new Date(2026, 6, 20))).toBe(false);
+    expect(isAfterLastWorkingDay(undefined, new Date(2026, 6, 20))).toBe(false);
+  });
+
+  test('true strictly after the last working day', () => {
+    const m = {last_working_day: '2026-07-09'};
+    expect(isAfterLastWorkingDay(m, new Date(2026, 6, 8))).toBe(false);
+    expect(isAfterLastWorkingDay(m, new Date(2026, 6, 9))).toBe(false);
+    expect(isAfterLastWorkingDay(m, new Date(2026, 6, 10))).toBe(true);
+  });
+
+  test('uses local dates, so a late-evening cell is not pushed a day forward', () => {
+    // A Date built from local parts must be compared as that local day, which a
+    // toISOString() round-trip would get wrong east of UTC.
+    const m = {last_working_day: '2026-07-09'};
+    expect(isAfterLastWorkingDay(m, new Date(2026, 6, 9, 23, 30))).toBe(false);
   });
 });
 
@@ -248,5 +290,32 @@ describe('buildVacationTooltip', () => {
       .toContain('0 vacation days available in 2026');
     expect(buildVacationTooltip({...m, vacation_available_days: undefined}, 2026, 2026))
       .toContain('Vacation days availability unknown');
+  });
+
+  test('a leaving member has the balance labelled with the last working day', () => {
+    // The balance can now reach into next year, so "in 2026" would misreport it.
+    const text = buildVacationTooltip({...m, last_working_day: '2027-03-31'}, 2026, 2026);
+    expect(text).toContain('10 vacation days available until 2027-03-31 (last working day)');
+    expect(text).not.toContain('available in 2026');
+    expect(text).toContain('Leaving on 2027-03-31');
+  });
+
+  test('a past last working day reads as already left', () => {
+    const text = buildVacationTooltip({...m, last_working_day: '2020-03-31'}, 2020, 2026);
+    expect(text).toContain('Left on 2020-03-31');
+    expect(text).not.toContain('Leaving on');
+  });
+
+  test('a year past the departure is called out as not employed', () => {
+    // Explains why marks the user can still see in that year do not move the balance.
+    const text = buildVacationTooltip({...m, last_working_day: '2027-03-31'}, 2028, 2026);
+    expect(text).toContain('Not employed in 2028');
+  });
+
+  test('a member with no last working day keeps the original wording', () => {
+    const text = buildVacationTooltip(m, 2026, 2026);
+    expect(text).toContain('10 vacation days available in 2026');
+    expect(text).not.toContain('last working day');
+    expect(text).not.toContain('Leaving on');
   });
 });

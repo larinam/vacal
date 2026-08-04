@@ -7,6 +7,7 @@ import DayTypeCheckbox from './DayTypeCheckbox';
 import {DayHistoryModal} from './HistoryModal';
 import useDayAssignmentsMutation from '../hooks/mutations/useDayAssignmentsMutation';
 import FontAwesomeIconWithTitle from './FontAwesomeIconWithTitle';
+import {isAfterLastWorkingDay} from '../utils/calendar';
 import {getPreferredLocale} from '../utils/locale';
 import useDismiss from '../hooks/useDismiss';
 
@@ -131,15 +132,30 @@ const DayTypeContextMenu = ({
       }
 
       const currentYear = new Date().getFullYear();
-      const allFutureYears = dateRange.length > 0 && dateRange.every((date) => date.getFullYear() > currentYear);
+      // The balance now covers everything up to the last working day, which can reach
+      // into a later year, so the "next year isn't budgeted yet" bypass has to follow the
+      // same horizon the backend uses or it would hide a genuine overdraw.
+      const horizonYear = activeMember.last_working_day
+        ? Math.max(currentYear, Number(activeMember.last_working_day.slice(0, 4)))
+        : currentYear;
+      const allBeyondHorizon = dateRange.length > 0 && dateRange.every((date) => date.getFullYear() > horizonYear);
 
-      if (!allFutureYears &&
+      if (!allBeyondHorizon &&
           activeMember.vacation_available_days != null &&
           dateRange.length > activeMember.vacation_available_days) {
         const proceed = window.confirm('Not enough vacation days available. Do you want to continue?');
         if (!proceed) {
           return;
         }
+      }
+
+      const daysPastDeparture = activeMember.last_working_day
+        ? dateRange.filter((date) => isAfterLastWorkingDay(activeMember, date)).length
+        : 0;
+      if (daysPastDeparture > 0) {
+        toast.warn(`${daysPastDeparture} of the selected days fall after ${activeMember.name}'s `
+          + `last working day (${activeMember.last_working_day}) and will not count against `
+          + 'their balance.');
       }
     }
 

@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from fastapi.testclient import TestClient
 from icalendar import Calendar
 import uuid
@@ -78,3 +80,26 @@ def test_calendar_feed_blocks_cross_tenant_access():
     url = f"/teams/calendar/{team.id}?user_api_key={other_user.auth_details.api_key}"
     resp = client.get(url)
     assert resp.status_code == 404
+
+
+def test_calendar_feed_keeps_leaving_member_and_drops_departed_one():
+    """The feed walks team.members(), so it follows the derived lifecycle state: a
+    scheduled departure stays in the feed, a passed last working day drops out even before
+    the nightly job has flipped the flag."""
+    leaving_team, leaving_user = setup_team()
+    leaving_team.team_members[0].last_working_day = date.today() + timedelta(days=60)
+    leaving_team.save()
+
+    resp = client.get(
+        f"/teams/calendar/{leaving_team.id}?user_api_key={leaving_user.auth_details.api_key}")
+    assert resp.status_code == 200
+    assert "Alice - Vacation" in resp.text
+
+    departed_team, departed_user = setup_team()
+    departed_team.team_members[0].last_working_day = date.today() - timedelta(days=1)
+    departed_team.save()
+
+    resp = client.get(
+        f"/teams/calendar/{departed_team.id}?user_api_key={departed_user.auth_details.api_key}")
+    assert resp.status_code == 200
+    assert "BEGIN:VEVENT" not in resp.text

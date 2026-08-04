@@ -4,6 +4,7 @@ import {
   generateGradientStyle,
   getCellTitle,
   getMemberDayEntry,
+  isAfterLastWorkingDay,
   isHoliday,
   isSelectableDay,
 } from '../../utils/calendar';
@@ -23,6 +24,9 @@ const MemberDayCell = ({teamId, member, date, holidayData, isSelected, onMouseDo
     isWeekend(date) ? 'weekend-cell' : '',
     isToday(date) ? 'current-day' : (isYesterday(date) ? 'yesterday' : ''),
     isSelected ? 'selected-range' : '',
+    // Marks the stretch past a scheduled departure. The row visibly ending is how the
+    // calendar shows a departure is coming.
+    isAfterLastWorkingDay(member, date) ? 'out-of-employment-cell' : '',
   ].filter(Boolean).join(' ');
 
   return (

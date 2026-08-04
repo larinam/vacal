@@ -4,7 +4,7 @@ import os
 import random
 import secrets
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from enum import Enum
 from typing import Iterable
 
@@ -25,6 +25,7 @@ from pymongo import MongoClient
 import pyotp
 
 from .mongodb_migration_engine import run_migrations
+from .utils import get_today
 
 log = logging.getLogger(__name__)
 
@@ -490,6 +491,18 @@ class SeparationType(str, Enum):
     RETIREMENT       = "retirement"
 
 
+def _as_date(value) -> date | None:
+    """Normalise a DateField value to a plain date.
+
+    ``DateField.to_python`` yields a date, but a value assigned in memory before a
+    save/reload is still whatever the caller passed, so a datetime can reach the
+    lifecycle comparisons below and would raise on ``date < datetime``.
+    """
+    if value is None:
+        return None
+    return value.date() if isinstance(value, datetime) else value
+
+
 class TeamMember(EmbeddedDocument):
     uid = UUIDField(binary=False, default=uuid.uuid4, unique=True, sparse=True)
     name = StringField(required=True)
@@ -509,6 +522,31 @@ class TeamMember(EmbeddedDocument):
         choices=[choice.value for choice in SeparationType], default=None
     )
     manager_uid = StringField(default=None)
+    # When the separation was recorded, as opposed to deleted_at/deleted_by which mean
+    # "archived at/by". A departure scheduled for the future stamps only these two.
+    separation_recorded_at = DateTimeField(default=None)
+    separation_recorded_by = ReferenceField('User', default=None)
+
+    def is_archived(self, today: date | None = None) -> bool:
+        """True once the member has left.
+
+        ``is_deleted`` is authoritative: a member somebody explicitly archived stays
+        archived whatever the date says. A last working day that has passed only
+        promotes a departure the nightly job has not materialised yet, so the state is
+        correct even if that job never runs.
+        """
+        if getattr(self, "is_deleted", False):
+            return True
+        last_working_day = _as_date(self.last_working_day)
+        return last_working_day is not None and last_working_day < (today or get_today())
+
+    def is_leaving(self, today: date | None = None) -> bool:
+        """A scheduled departure that has not taken effect yet: still a full member."""
+        return self.last_working_day is not None and not self.is_archived(today)
+
+    def is_separation_due(self, today: date | None = None) -> bool:
+        """Archived by date but not yet by flag - what the nightly job reconciles."""
+        return not getattr(self, "is_deleted", False) and self.is_archived(today)
 
 
 class Team(Document):
@@ -545,11 +583,18 @@ class Team(Document):
 
     @property
     def active_members(self) -> list[TeamMember]:
-        return [member for member in self.team_members if not getattr(member, "is_deleted", False)]
+        """Members still employed, including those with a scheduled future departure.
+
+        Kept a strict partition with :attr:`archived_members` - callers such as the
+        absence report concatenate the two, so a member must land in exactly one.
+        """
+        today = get_today()
+        return [member for member in self.team_members if not member.is_archived(today)]
 
     @property
     def archived_members(self) -> list[TeamMember]:
-        return [member for member in self.team_members if getattr(member, "is_deleted", False)]
+        today = get_today()
+        return [member for member in self.team_members if member.is_archived(today)]
 
     def members(self, include_archived: bool = False) -> list[TeamMember]:
         return list(self.team_members) if include_archived else self.active_members
@@ -643,6 +688,11 @@ class Team(Document):
 
 
 def get_unique_countries(tenant):
+    # Deliberately matches on the stored is_deleted flag rather than the derived
+    # lifecycle state: derived-active is always a subset of stored-alive, so this can
+    # only ever return a superset of the countries in use. The cost of an extra country
+    # is one unused key in the holidays map; expressing the last-working-day comparison
+    # against a DateField inside an $unwind is not worth paying for that.
     pipeline = [
         {"$match": {"tenant": tenant.id}},
         {"$unwind": "$team_members"},
@@ -693,13 +743,49 @@ def find_active_member_by_uid(tenant, member_uid: str) -> tuple[Team, TeamMember
     stores the uid as a canonical string, so this is an indexed lookup and a uid can
     occur in at most one team. Team.objects is the alive-only manager and get_member
     skips archived members, so neither an archived team nor an archived member
-    resolves here.
+    resolves here. A member with a scheduled future departure does resolve - they are
+    still employed, and leading a team until your last day is normal.
     """
     team = Team.objects(tenant=tenant, team_members__uid=member_uid).first()
     if not team:
         return None
     member = team.get_member(member_uid)
     return (team, member) if member else None
+
+
+def archive_member(member: TeamMember, now: datetime | None = None) -> None:
+    """Materialise a due separation on a member. The caller saves the team.
+
+    deleted_at/deleted_by mean "archived at/by", so they are stamped here rather than
+    when a departure is merely scheduled. The actor is carried over from
+    separation_recorded_by, which is why the archived members view keeps naming the
+    manager who recorded it even when the nightly job did the archiving.
+    """
+    member.is_deleted = True
+    member.deleted_at = now or datetime.now(timezone.utc)
+    try:
+        member.deleted_by = member.separation_recorded_by
+    except Exception:  # dangling DBRef after the recording user was deleted
+        log.warning("Could not carry the separation actor for member %s", member.uid)
+
+
+def clear_leader_references(tenant, member_uids: list[str], exclude_team_id=None) -> None:
+    """Drop leader pointers aimed at members who are no longer selectable.
+
+    Archived teams are included, so a stale pointer cannot resurface if one is ever
+    revived; ``exclude_team_id`` keeps the archived team's own pointer intact.
+
+    Called when a departure actually takes effect, not when one is merely scheduled - a
+    departing person normally leads until their last day. The previous pointer is not
+    recoverable, so restoring a member does not restore the teams they led.
+    """
+    if not member_uids:
+        return
+    teams = Team.objects_with_deleted(tenant=tenant, leader_uid__in=member_uids)
+    if exclude_team_id is not None:
+        teams = teams.filter(id__ne=exclude_team_id)
+    # MongoEngine omits None fields on update, so unset rather than set__...=None.
+    teams.update(unset__leader_uid=1)
 
 
 def calculate_team_members_number_in_tenant(tenant):

@@ -621,6 +621,20 @@ th.day-number-header {
     background-color: rgba(var(--weekend-accent-rgb), var(--weekend-surface-alpha));
 }
 
+/* Days past a member's last working day. Hatched rather than filled, and deliberately
+   losing to a real day-type gradient (which sets an inline background), so pre-existing
+   marks past the date stay visible and clearable instead of being hidden. */
+.calendar-table td.out-of-employment-cell:not(.holiday-cell) {
+    background-image: repeating-linear-gradient(
+        135deg,
+        rgba(128, 128, 128, 0.22) 0,
+        rgba(128, 128, 128, 0.22) 2px,
+        transparent 2px,
+        transparent 6px
+    );
+    cursor: default;
+}
+
 .calendar-table thead tr th {
     border-bottom: 0;
     border-top: 0;

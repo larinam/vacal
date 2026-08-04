@@ -26,6 +26,7 @@ import {getApiErrorMessage} from '../utils/apiErrors';
 import {
   filterTeamsByManager,
   filterTeamsByText,
+  formatDate,
   getMemberDayComment,
   getMemberDayEntry,
 } from '../utils/calendar';
@@ -38,7 +39,7 @@ import useDaySelection from '../hooks/useDaySelection';
 
 const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData}) => {
   const {deleteTeamMutation, moveMemberMutation} = useTeamManagementMutations();
-  const {deleteMemberMutation} = useMemberMutations();
+  const {deleteMemberMutation, restoreMemberMutation} = useMemberMutations();
   const {user} = useAuth();
   const isManager = user?.role === 'manager';
   const canManageMembers = isManager;
@@ -290,7 +291,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       },
       {
         onSuccess: () => {
-          toast.success(`Member ${member.name} deleted`);
+          // A future last working day only schedules the departure: the member stays on
+          // the calendar until then, so saying "deleted" would be wrong.
+          const isScheduled = lastWorkingDay >= formatDate(new Date());
+          toast.success(isScheduled
+            ? `${member.name} is leaving on ${lastWorkingDay}`
+            : `Member ${member.name} deleted`);
           if (typeof updateTeamData === 'function') {
             updateTeamData();
           }
@@ -298,7 +304,35 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
         },
         onError: (error) => {
           console.error('Error deleting team member:', error);
-          toast.error('Error deleting team member');
+          toast.error(error?.message || 'Error deleting team member');
+        },
+      }
+    );
+  };
+
+  const handleCancelScheduledDeparture = () => {
+    if (!memberToDelete) {
+      return;
+    }
+    const {teamId, member} = memberToDelete;
+    if (!window.confirm(`Cancel the scheduled departure for ${member.name}? Any teams they `
+        + 'led are not restored.')) {
+      return;
+    }
+
+    restoreMemberMutation.mutate(
+      {teamId, memberId: member.uid},
+      {
+        onSuccess: () => {
+          toast.success(`Scheduled departure for ${member.name} cancelled`);
+          if (typeof updateTeamData === 'function') {
+            updateTeamData();
+          }
+          closeDeleteMemberModal();
+        },
+        onError: (error) => {
+          console.error('Error cancelling the scheduled departure:', error);
+          toast.error('Error cancelling the scheduled departure');
         },
       }
     );
@@ -548,9 +582,12 @@ const CalendarComponent = ({serverTeamData, holidays, dayTypes, updateTeamData})
       <DeleteMemberModal
         isOpen={showDeleteMemberModal}
         memberName={memberToDelete?.member.name || ''}
+        employeeStartDate={memberToDelete?.member.employee_start_date || ''}
+        scheduledLastWorkingDay={memberToDelete?.member.last_working_day || ''}
         onClose={closeDeleteMemberModal}
         onConfirm={handleConfirmDeleteMember}
-        isSubmitting={deleteMemberMutation.isPending}
+        onCancelSeparation={handleCancelScheduledDeparture}
+        isSubmitting={deleteMemberMutation.isPending || restoreMemberMutation.isPending}
       />
       <DayTypeContextMenu
         contextMenuRef={dayMenu.ref}

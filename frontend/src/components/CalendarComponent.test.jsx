@@ -25,6 +25,7 @@ vi.mock('../hooks/mutations/useMemberMutations', () => ({
     createMemberMutation: {mutate: vi.fn()},
     updateMemberMutation: {mutate: vi.fn()},
     deleteMemberMutation: {mutate: vi.fn(), isPending: false},
+    restoreMemberMutation: {mutate: vi.fn(), isPending: false},
   }),
 }));
 

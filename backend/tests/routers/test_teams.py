@@ -24,6 +24,27 @@ from backend.model import (
 client = TestClient(app)
 
 
+def _days_from_today(offset: int) -> datetime.date:
+    """Dates relative to the real clock, so a test does not change meaning over time."""
+    return datetime.date.today() + datetime.timedelta(days=offset)
+
+
+def _setup_manager_and_member(**member_kwargs):
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    team_member = TeamMember(name="Alice", country="Sweden", **member_kwargs)
+    team = Team(tenant=tenant, name=f"Team-{unique_suffix}", team_members=[team_member]).save()
+    user = User(
+        name="Manager",
+        role="manager",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"manager-{unique_suffix}"),
+    ).save()
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: user
+    app.dependency_overrides[get_tenant] = lambda: tenant
+    return tenant, team, team_member, user
+
+
 def test_delete_team_member_stores_last_working_day():
     unique_suffix = str(uuid.uuid4())
     tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
@@ -1423,7 +1444,9 @@ def test_delete_team_member_clears_leader_references():
     try:
         response = client.delete(
             f"/teams/{engineering.id}/members/{leader.uid}",
-            params={"last_working_day": "2026-07-31"},
+            # Relative, so the test keeps testing a departure that has taken effect
+            # rather than silently becoming a scheduled one as the calendar moves.
+            params={"last_working_day": _days_from_today(-4).isoformat()},
             headers={"Tenant-ID": tenant.identifier},
         )
         assert response.status_code == 200
@@ -1434,6 +1457,264 @@ def test_delete_team_member_clears_leader_references():
         assert payments.leader_uid is None
         # A team led by somebody else must be left alone.
         assert bystander.leader_uid == other_leader_uid
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_scheduled_departure_keeps_leader_references():
+    """A departing person normally leads until their last day, so a future last working
+    day must not drop the pointer. The nightly job clears it when they actually go."""
+    tenant, engineering, payments, _ = _setup_teams_with_members()
+    leader = engineering.team_members[0]
+    engineering.leader_uid = str(leader.uid)
+    engineering.save()
+    payments.leader_uid = str(leader.uid)
+    payments.save()
+    try:
+        response = client.delete(
+            f"/teams/{engineering.id}/members/{leader.uid}",
+            params={"last_working_day": _days_from_today(90).isoformat()},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        engineering.reload()
+        payments.reload()
+        assert engineering.leader_uid == str(leader.uid)
+        assert payments.leader_uid == str(leader.uid)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_future_last_working_day_keeps_the_member_active():
+    """The point of the whole feature: a scheduled departure leaves the member a full
+    member of the team - on the calendar, not in the archive."""
+    tenant, team, team_member, _ = _setup_manager_and_member()
+    last_working_day = _days_from_today(240)
+    try:
+        response = client.delete(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            params={"last_working_day": last_working_day.isoformat(),
+                    "separation_type": SeparationType.RESIGNATION.value},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        assert response.json() == {"message": "Separation scheduled successfully"}
+
+        team.reload()
+        stored = team.get_member(team_member.uid)
+        assert stored is not None, "a leaving member must stay reachable as active"
+        assert stored.is_deleted is False
+        assert stored.deleted_at is None
+        assert stored.deleted_by is None
+        assert stored.last_working_day == last_working_day
+        assert stored.separation_type == SeparationType.RESIGNATION.value
+        # The separation itself is stamped, just not the archival.
+        assert stored.separation_recorded_at is not None
+        assert stored.separation_recorded_by is not None
+        assert stored.is_leaving() is True
+
+        # And they are not in the archived list yet.
+        archived = client.get("/teams/archived-members",
+                              headers={"Tenant-ID": tenant.identifier}).json()
+        assert [m for m in archived["archived_members"]
+                if m["uid"] == str(team_member.uid)] == []
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_leaving_member_appears_in_the_teams_response():
+    tenant, team, team_member, _ = _setup_manager_and_member()
+    try:
+        client.delete(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            params={"last_working_day": _days_from_today(60).isoformat()},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        response = client.get("/teams", headers={"Tenant-ID": tenant.identifier})
+        assert response.status_code == 200
+        teams = [t for t in response.json()["teams"] if t["_id"] == str(team.id)]
+        members = teams[0]["team_members"]
+        assert [m["name"] for m in members] == ["Alice"]
+        assert members[0]["last_working_day"] == _days_from_today(60).isoformat()
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_past_last_working_day_still_archives_immediately():
+    tenant, team, team_member, user = _setup_manager_and_member()
+    try:
+        response = client.delete(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            params={"last_working_day": _days_from_today(-1).isoformat()},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        assert response.json() == {"message": "Team member deleted successfully"}
+
+        team.reload()
+        assert team.get_member(team_member.uid) is None
+        stored = team.get_member(team_member.uid, include_archived=True)
+        assert stored.is_deleted is True
+        assert stored.deleted_at is not None
+        assert stored.deleted_by.id == user.id
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_last_working_day_before_start_date_is_rejected():
+    tenant, team, team_member, _ = _setup_manager_and_member(
+        employee_start_date=datetime.date(2025, 5, 1))
+    try:
+        response = client.delete(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            params={"last_working_day": "2025-04-30"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 400
+        assert response.json() == {
+            "detail": "Last working day cannot be before the employee start date."}
+
+        team.reload()
+        stored = team.get_member(team_member.uid)
+        assert stored.last_working_day is None
+        assert stored.is_deleted is False
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_leaving_member_is_still_editable():
+    tenant, team, team_member, _ = _setup_manager_and_member()
+    try:
+        client.delete(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            params={"last_working_day": _days_from_today(45).isoformat()},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        response = client.put(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            json={"name": "Alice Renamed", "country": "Sweden"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        team.reload()
+        stored = team.get_member(team_member.uid)
+        assert stored.name == "Alice Renamed"
+        # Editing must not disturb the scheduled departure.
+        assert stored.last_working_day == _days_from_today(45)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_member_past_last_working_day_is_not_editable_before_reconciliation():
+    """The flag is still False until the nightly job runs, so the guard has to consult the
+    derived state rather than is_deleted."""
+    tenant, team, team_member, _ = _setup_manager_and_member(
+        last_working_day=_days_from_today(-1))
+    try:
+        response = client.put(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            json={"name": "Alice Renamed", "country": "Sweden"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Team member is archived"}
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_restore_cancels_a_scheduled_departure():
+    tenant, team, team_member, _ = _setup_manager_and_member()
+    try:
+        client.delete(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            params={"last_working_day": _days_from_today(120).isoformat(),
+                    "separation_type": SeparationType.RESIGNATION.value},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        response = client.post(
+            f"/teams/{team.id}/members/{team_member.uid}/restore",
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        assert response.json() == {"message": "Team member restored successfully"}
+
+        team.reload()
+        stored = team.get_member(team_member.uid)
+        assert stored is not None
+        assert stored.last_working_day is None
+        assert stored.separation_type is None
+        assert stored.separation_recorded_at is None
+        assert stored.separation_recorded_by is None
+        assert stored.is_deleted is False
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_restore_unarchives_a_member_archived_by_mistake():
+    """The realistic mistake is typing the wrong year and archiving somebody instantly."""
+    tenant, team, team_member, _ = _setup_manager_and_member()
+    try:
+        client.delete(
+            f"/teams/{team.id}/members/{team_member.uid}",
+            params={"last_working_day": "2025-04-30"},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        team.reload()
+        assert team.get_member(team_member.uid) is None
+
+        response = client.post(
+            f"/teams/{team.id}/members/{team_member.uid}/restore",
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+
+        team.reload()
+        stored = team.get_member(team_member.uid)
+        assert stored is not None
+        assert stored.is_deleted is False
+        assert stored.deleted_at is None
+        assert stored.deleted_by is None
+        assert stored.last_working_day is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_restore_requires_manager_role():
+    unique_suffix = str(uuid.uuid4())
+    tenant = Tenant(name=f"Tenant-{unique_suffix}", identifier=f"tenant-{unique_suffix}").save()
+    team_member = TeamMember(name="Alice", country="Sweden", is_deleted=True,
+                             last_working_day=datetime.date(2025, 1, 31))
+    team = Team(tenant=tenant, name=f"Team-{unique_suffix}", team_members=[team_member]).save()
+    employee = User(
+        name="Employee",
+        role="employee",
+        tenants=[tenant],
+        auth_details=AuthDetails(username=f"employee-{unique_suffix}"),
+    ).save()
+    app.dependency_overrides[get_current_active_user_check_tenant] = lambda: employee
+    app.dependency_overrides[get_tenant] = lambda: tenant
+    try:
+        response = client.post(
+            f"/teams/{team.id}/members/{team_member.uid}/restore",
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Only managers can restore team members."}
+        team.reload()
+        assert team.get_member(team_member.uid, include_archived=True).is_deleted is True
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_restore_rejects_a_member_with_no_separation():
+    tenant, team, team_member, _ = _setup_manager_and_member()
+    try:
+        response = client.post(
+            f"/teams/{team.id}/members/{team_member.uid}/restore",
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Team member has no separation to restore"}
     finally:
         app.dependency_overrides = {}
 

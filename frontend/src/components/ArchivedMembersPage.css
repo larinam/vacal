@@ -134,3 +134,15 @@
     padding: 40px;
     color: #888;
 }
+
+.archivedMembersPage__restore {
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.archivedMembersPage__restore:disabled {
+    cursor: default;
+    opacity: 0.6;
+}

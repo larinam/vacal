@@ -30,6 +30,7 @@ from .dependencies import (
 from .model import User, Tenant
 from .routers import users, daytypes, management, teams
 from .scheduled.activate_trials import activate_trials
+from .scheduled.apply_due_separations import apply_due_separations
 from .scheduled.birthdays import send_birthday_email_updates
 from .scheduled.update_max_team_members_numbers import run_update_max_team_members_numbers
 from .scheduled.absence_starts import send_absence_email_updates, send_upcoming_absence_email_updates
@@ -57,6 +58,9 @@ MULTITENANCY_ENABLED = os.getenv("MULTITENANCY_ENABLED", False)
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
     scheduler.add_job(send_recent_calendar_change_notifications, 'cron', minute=0)
+    # Runs before the notification jobs so a member who left yesterday is already
+    # archived by the time the digests are built.
+    scheduler.add_job(apply_due_separations, 'cron', hour=0, minute=10)
     scheduler.add_job(send_absence_email_updates, 'cron', hour=6, minute=0)
     scheduler.add_job(send_upcoming_absence_email_updates, 'cron', hour=6, minute=1)
     scheduler.add_job(send_birthday_email_updates, 'cron', hour=6, minute=5)

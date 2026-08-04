@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import {Link, Navigate} from 'react-router-dom';
+import {toast} from 'react-toastify';
 import {useArchivedMembersQuery} from '../hooks/queries/useArchivedMembersQuery';
+import useMemberMutations from '../hooks/mutations/useMemberMutations';
 import {useApi} from '../hooks/useApi';
 import {useAuth} from '../contexts/AuthContext';
 import './ArchivedMembersPage.css';
@@ -62,13 +64,36 @@ const COLUMNS = [
     {key: 'deleted_at',         label: 'Archived date'},
 ];
 
+// Not sortable, so it stays out of COLUMNS and gets its own header cell.
+const ACTIONS_HEADER = 'Actions';
+
 const ArchivedMembersPage = () => {
     const {user} = useAuth();
     const {apiCall} = useApi();
     if (user?.role !== 'manager') return <Navigate to="/main" replace />;
 
+    const {restoreMemberMutation} = useMemberMutations();
     const {data, isLoading, error} = useArchivedMembersQuery(apiCall);
     const members = data?.archived_members ?? [];
+
+    const handleRestore = (member) => {
+        // Leader pointers were unset when the member was archived and the old value is not
+        // recoverable, so say so rather than quietly losing the assignment.
+        if (!window.confirm(`Restore ${member.name} to ${member.team_name}? Any teams they led `
+            + 'are not restored.')) {
+            return;
+        }
+        restoreMemberMutation.mutate(
+            {teamId: member.team_id, memberId: member.uid},
+            {
+                onSuccess: () => toast.success(`${member.name} restored to ${member.team_name}`),
+                onError: (err) => {
+                    console.error('Error restoring team member:', err);
+                    toast.error('Error restoring team member');
+                },
+            }
+        );
+    };
 
     const teams = useMemo(() => [...new Set(members.map(m => m.team_name))].sort(), [members]);
 
@@ -168,6 +193,7 @@ const ArchivedMembersPage = () => {
                                     {col.label}{sortIndicator(col.key)}
                                 </th>
                             ))}
+                            <th>{ACTIONS_HEADER}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -182,6 +208,16 @@ const ArchivedMembersPage = () => {
                                 <td><SeparationBadge value={m.separation_type} /></td>
                                 <td>{m.deleted_by?.name ?? '—'}</td>
                                 <td>{m.deleted_at ? m.deleted_at.slice(0, 10) : '—'}</td>
+                                <td>
+                                    <button
+                                        type="button"
+                                        className="archivedMembersPage__restore"
+                                        onClick={() => handleRestore(m)}
+                                        disabled={restoreMemberMutation.isPending}
+                                    >
+                                        Restore
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

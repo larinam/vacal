@@ -1,8 +1,18 @@
 import {useEffect, useState} from 'react';
+import {format} from 'date-fns';
 import Modal from './Modal';
 import './DeleteMemberModal.css';
 
-const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting = false}) => {
+const DeleteMemberModal = ({
+                             isOpen,
+                             memberName,
+                             employeeStartDate = '',
+                             scheduledLastWorkingDay = '',
+                             onClose,
+                             onConfirm,
+                             onCancelSeparation,
+                             isSubmitting = false,
+                           }) => {
   const [confirmationName, setConfirmationName] = useState('');
   const [lastWorkingDay, setLastWorkingDay] = useState('');
   const [separationType, setSeparationType] = useState('');
@@ -11,25 +21,36 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
   useEffect(() => {
     if (isOpen) {
       setConfirmationName('');
-      setLastWorkingDay('');
+      setLastWorkingDay(scheduledLastWorkingDay || '');
       setSeparationType('');
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, scheduledLastWorkingDay]);
 
   if (!isOpen) {
     return null;
   }
 
+  // Local, not UTC: new Date().toISOString() reads yesterday late in the evening east of
+  // UTC, which is the off-by-one the old max attribute suffered from.
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const isFutureDeparture = Boolean(lastWorkingDay) && lastWorkingDay >= today;
+
   const handleSubmit = (event) => {
     event.preventDefault();
     if (confirmationName.trim() !== memberName) {
-      setError('The entered name did not match. Deletion cancelled.');
+      setError('The entered name did not match. No changes were made.');
       return;
     }
 
     if (!lastWorkingDay) {
       setError('Please provide the last working day.');
+      return;
+    }
+
+    // The min attribute below only constrains the picker, so the real check lives here.
+    if (employeeStartDate && lastWorkingDay < employeeStartDate) {
+      setError(`The last working day cannot be before the start date (${employeeStartDate}).`);
       return;
     }
 
@@ -42,10 +63,13 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <form className="deleteMemberModal" onSubmit={handleSubmit}>
-        <h2>Delete team member</h2>
+      {/* noValidate so every rejection surfaces through the same inline role="alert"
+          message. Otherwise the browser's own tooltip handles the date bounds while the
+          name mismatch uses our text, and the two disagree in wording and placement. */}
+      <form className="deleteMemberModal" onSubmit={handleSubmit} noValidate>
+        <h2>Schedule member departure</h2>
         <p className="deleteMemberModal__description">
-          To confirm deletion, please type the name of the member: <strong>{memberName}</strong>
+          To confirm this departure, please type the name of the member: <strong>{memberName}</strong>
         </p>
         <label className="deleteMemberModal__label">
           Member name
@@ -63,11 +87,17 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
             type="date"
             value={lastWorkingDay}
             onChange={(event) => setLastWorkingDay(event.target.value)}
-            max={new Date().toISOString().split('T')[0]}
+            min={employeeStartDate || undefined}
             disabled={isSubmitting}
             required
           />
         </label>
+        {isFutureDeparture && (
+          <p className="deleteMemberModal__hint">
+            {memberName} stays on the calendar until {lastWorkingDay}, then moves to
+            Archived members. Their vacation allowance is prorated to that date.
+          </p>
+        )}
         <fieldset className="deleteMemberModal__choiceGroup" disabled={isSubmitting}>
           <legend>Separation type (optional)</legend>
           {[
@@ -94,7 +124,14 @@ const DeleteMemberModal = ({isOpen, memberName, onClose, onConfirm, isSubmitting
         {error && <p className="deleteMemberModal__error" role="alert">{error}</p>}
         <div className="deleteMemberModal__buttons">
           <button type="button" onClick={onClose} disabled={isSubmitting}>Cancel</button>
-          <button type="submit" disabled={isSubmitting}>Delete member</button>
+          {scheduledLastWorkingDay && onCancelSeparation && (
+            <button type="button" onClick={onCancelSeparation} disabled={isSubmitting}>
+              Cancel scheduled departure
+            </button>
+          )}
+          <button type="submit" disabled={isSubmitting}>
+            {isFutureDeparture ? 'Schedule departure' : 'Delete member'}
+          </button>
         </div>
       </form>
     </Modal>

@@ -54,6 +54,13 @@ export const getCellTitle = (holidayData, member, date) => {
   return ''; // No special title for regular days
 };
 
+// Compares ISO date strings rather than Date objects on purpose: last_working_day arrives
+// from the API as 'yyyy-MM-dd', and new Date('2027-03-31') is UTC midnight while
+// new Date(2027, 2, 31) is local, so a Date round-trip introduces an off-by-one.
+// Lexicographic comparison on ISO dates is exact.
+export const isAfterLastWorkingDay = (member, date) =>
+  Boolean(member?.last_working_day) && formatDate(date) > member.last_working_day;
+
 export const haveSameDayTypes = (first = [], second = []) => {
   if (first.length !== second.length) {
     return false;
@@ -67,6 +74,9 @@ export const isSelectableDay = (member, date, holidayData, baseTypes = []) => {
   const dayEntry = getMemberDayEntry(member, date);
   const dayTypeIds = (dayEntry?.day_types || []).map(dt => dt._id);
 
+  // Deliberately above the last-working-day guard: dragging over days that already carry
+  // matching types is how existing marks get cleared, and marks past a newly set last
+  // working day are exactly the ones that need cleaning up.
   if (baseTypes.length > 0) {
     return haveSameDayTypes(baseTypes, dayTypeIds);
   }
@@ -76,7 +86,8 @@ export const isSelectableDay = (member, date, holidayData, baseTypes = []) => {
   return (
     !isWeekend(date) &&
     !isHoliday(holidayData, member.country, date) &&
-    !hasExistingDayTypes
+    !hasExistingDayTypes &&
+    !isAfterLastWorkingDay(member, date)
   );
 };
 
@@ -189,8 +200,14 @@ export const buildVacationTooltip = (member, selectedYear, currentYear = new Dat
   const yearlyVacationDaysText = yearlyVacationDays
     ? `${yearlyVacationDays} vacation days available per year`
     : 'No yearly vacation days defined';
+  // For a leaving member the balance covers everything up to the last working day, which
+  // can reach into next year - so labelling it with the current year would misreport it.
+  const lastWorkingDay = member.last_working_day;
+  const availabilityHorizonText = lastWorkingDay
+    ? `until ${lastWorkingDay} (last working day)`
+    : `in ${currentYear}`;
   const availableVacationDaysText = (availableVacationDays || availableVacationDays === 0)
-    ? `${availableVacationDays} vacation days available in ${currentYear}`
+    ? `${availableVacationDays} vacation days available ${availabilityHorizonText}`
     : 'Vacation days availability unknown';
   let lines = [];
   if (selectedYear < currentYear) {
@@ -201,5 +218,14 @@ export const buildVacationTooltip = (member, selectedYear, currentYear = new Dat
     lines.push(usedText, plannedText);
   }
   lines.push(yearlyVacationDaysText, availableVacationDaysText);
+  if (lastWorkingDay) {
+    lines.push(lastWorkingDay < formatDate(new Date())
+      ? `Left on ${lastWorkingDay}`
+      : `Leaving on ${lastWorkingDay}`);
+    // Explains why marks visible in that year do not move the balance.
+    if (selectedYear > Number(lastWorkingDay.slice(0, 4))) {
+      lines.push(`Not employed in ${selectedYear}`);
+    }
+  }
   return lines.join('\n');
 };

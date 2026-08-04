@@ -11,6 +11,13 @@
   line-height: 1.4;
 }
 
+.deleteMemberModal__hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
 .deleteMemberModal__label {
   display: flex;
   flex-direction: column;

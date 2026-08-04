@@ -1,3 +1,4 @@
+import datetime
 import os
 import uuid
 
@@ -28,6 +29,27 @@ def test_finds_active_member_anywhere_in_the_tenant():
 def test_archived_member_is_not_found():
     tenant = _tenant()
     ada = TeamMember(name="Ada", country="Sweden", is_deleted=True)
+    Team(tenant=tenant, name=f"Engineering-{uuid.uuid4()}", team_members=[ada]).save()
+
+    assert find_active_member_by_uid(tenant, str(ada.uid)) is None
+
+
+def test_leaving_member_is_still_found():
+    """Leading a team until your last day is normal, so a scheduled departure must not
+    make somebody unappointable."""
+    tenant = _tenant()
+    ada = TeamMember(name="Ada", country="Sweden",
+                     last_working_day=datetime.date.today() + datetime.timedelta(days=60))
+    Team(tenant=tenant, name=f"Engineering-{uuid.uuid4()}", team_members=[ada]).save()
+
+    assert find_active_member_by_uid(tenant, str(ada.uid)) is not None
+
+
+def test_member_past_last_working_day_is_not_found():
+    """Even before the nightly job has flipped the flag."""
+    tenant = _tenant()
+    ada = TeamMember(name="Ada", country="Sweden",
+                     last_working_day=datetime.date.today() - datetime.timedelta(days=1))
     Team(tenant=tenant, name=f"Engineering-{uuid.uuid4()}", team_members=[ada]).save()
 
     assert find_active_member_by_uid(tenant, str(ada.uid)) is None
