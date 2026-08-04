@@ -1737,3 +1737,91 @@ def test_delete_team_clears_other_teams_leader_references():
         assert engineering.leader_uid == leader_uid
     finally:
         app.dependency_overrides = {}
+
+
+def test_cannot_assign_a_departed_member_as_manager():
+    """Archival now happens on the clock, so a client holding data cached from before the
+    date rolled over can still offer somebody who has left. The server has to refuse."""
+    tenant, team, report, _ = _setup_manager_and_member()
+    departed = TeamMember(name="Departed", country="Sweden",
+                          last_working_day=_days_from_today(-1))
+    team.team_members.append(departed)
+    team.save()
+    try:
+        response = client.put(
+            f"/teams/{team.id}/members/{report.uid}",
+            json={"name": "Alice", "country": "Sweden", "manager_uid": str(departed.uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Manager not found"}
+
+        team.reload()
+        assert team.get_member(report.uid).manager_uid is None
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_a_leaving_member_can_still_be_assigned_as_manager():
+    """They are still employed until their last day - managing reports until then is
+    normal, and blocking it would be the opposite bug."""
+    tenant, team, report, _ = _setup_manager_and_member()
+    leaving = TeamMember(name="Leaving", country="Sweden",
+                         last_working_day=_days_from_today(45))
+    team.team_members.append(leaving)
+    team.save()
+    try:
+        response = client.put(
+            f"/teams/{team.id}/members/{report.uid}",
+            json={"name": "Alice", "country": "Sweden", "manager_uid": str(leaving.uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+
+        team.reload()
+        assert team.get_member(report.uid).manager_uid == str(leaving.uid)
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_creating_a_member_rejects_a_departed_manager():
+    """The create path is equally reachable from a stale client."""
+    tenant, team, _, _ = _setup_manager_and_member()
+    departed = TeamMember(name="Departed", country="Sweden",
+                          last_working_day=_days_from_today(-1))
+    team.team_members.append(departed)
+    team.save()
+    try:
+        response = client.post(
+            f"/teams/{team.id}/members",
+            json={"name": "New Hire", "country": "Sweden", "manager_uid": str(departed.uid)},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Manager not found"}
+
+        team.reload()
+        assert [m.name for m in team.members()] == ["Alice"]
+    finally:
+        app.dependency_overrides = {}
+
+
+def test_clearing_the_manager_is_still_allowed():
+    """An empty manager_uid must not be mistaken for an invalid one."""
+    tenant, team, report, _ = _setup_manager_and_member()
+    boss = TeamMember(name="Boss", country="Sweden")
+    team.team_members.append(boss)
+    team.save()
+    report.manager_uid = str(boss.uid)
+    team.save()
+    try:
+        response = client.put(
+            f"/teams/{team.id}/members/{report.uid}",
+            json={"name": "Alice", "country": "Sweden", "manager_uid": ""},
+            headers={"Tenant-ID": tenant.identifier},
+        )
+        assert response.status_code == 200
+        team.reload()
+        assert team.get_member(report.uid).manager_uid is None
+    finally:
+        app.dependency_overrides = {}

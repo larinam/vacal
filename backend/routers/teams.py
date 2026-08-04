@@ -147,8 +147,13 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
                 used[date.year] += 1
             else:
                 planned[date.year] += 1
+            # Both ends of the employment window, so charging matches accrual. Bounding
+            # only the upper end would charge a day booked before the member was ever
+            # employed against a budget that never credited that period.
             if self.last_working_day is not None and date > self.last_working_day:
                 continue  # outside the employment window: no entitlement earned, none spent
+            if self.employee_start_date is not None and date < self.employee_start_date:
+                continue
             charged[date.year] += 1
 
         self._vacation_split_cache = (dict(used), dict(planned), dict(charged))
@@ -596,6 +601,20 @@ def resolve_leader_uid(tenant, leader_uid: str | None) -> str | None:
     return canonical_uid
 
 
+def validate_manager_uid(tenant, manager_uid: str | None) -> None:
+    """Reject a manager who is not an active member of the workspace.
+
+    A member with a scheduled departure may still manage reports until their last day; one
+    who has already left may not. This is enforced server-side because a client holding
+    data cached from before the date rolled over can still offer a departed member -
+    archival now happens on the clock, with no user action to invalidate that cache.
+    """
+    if not manager_uid:
+        return
+    if not find_active_member_by_uid(tenant, manager_uid):
+        raise HTTPException(status_code=404, detail="Manager not found")
+
+
 def reparent_children(tenant, team: Team) -> None:
     """Move a deleted team's children up to its own parent so the tree stays connected."""
     children = Team.objects_with_deleted(tenant=tenant, parent_team_id=str(team.id))
@@ -616,6 +635,7 @@ async def add_team_member(team_id: str, team_member_dto: TeamMemberWriteDTO,
     team = Team.objects(tenant=tenant, id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
+    validate_manager_uid(tenant, team_member.manager_uid)
     team.team_members.append(team_member)
     team.save()
     invalidate_holidays_cache()
@@ -783,6 +803,7 @@ async def update_team_member(team_id: str, team_member_id: str, team_member_dto:
     team_member.employee_start_date = team_member_dto.employee_start_date
     team_member.yearly_vacation_days = team_member_dto.yearly_vacation_days
     if team_member_dto.manager_uid != team_member.manager_uid:
+        validate_manager_uid(tenant, team_member_dto.manager_uid)
         if would_create_manager_cycle(tenant, str(team_member.uid), team_member_dto.manager_uid):
             raise HTTPException(status_code=400, detail="Manager assignment would create a cycle")
         team_member.manager_uid = team_member_dto.manager_uid

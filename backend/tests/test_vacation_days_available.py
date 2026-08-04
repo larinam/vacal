@@ -7,7 +7,7 @@ from backend.model import Tenant, DayType, TeamMember, DayEntry
 from backend.dependencies import mongo_to_pydantic, tenant_var
 
 
-def setup_member(days=None, last_working_day=None):
+def setup_member(days=None, last_working_day=None, start=datetime.date(2024, 7, 1)):
     tenant = Tenant(name=f"Test{uuid.uuid4()}", identifier=str(uuid.uuid4())).save()
     DayType.init_day_types(tenant)
     vac = DayType.objects(tenant=tenant, identifier="vacation").first()
@@ -15,7 +15,7 @@ def setup_member(days=None, last_working_day=None):
     member = TeamMember(
         name="Alice",
         country="Sweden",
-        employee_start_date=datetime.date(2024, 7, 1),
+        employee_start_date=start,
         yearly_vacation_days=20,
         last_working_day=last_working_day,
         days=member_days,
@@ -147,4 +147,51 @@ def test_split_uses_the_vacation_identifier_not_the_name():
     with patch("backend.routers.teams.get_today", return_value=datetime.date(2025, 1, 1)):
         assert member_dto.vacation_used_days_by_year == {2024: 5}
         assert member_dto.vacation_available_days == 25
+    tenant_var.reset(token)
+
+
+def test_days_marked_before_the_start_date_are_not_charged():
+    """The charging window is bounded at BOTH ends of employment.
+
+    Entitlement is credited only from the start date, so charging a day booked before the
+    member was ever employed would deduct from a budget that never included that period.
+    """
+    member, vac, tenant = setup_member(last_working_day=datetime.date(2027, 12, 31),
+                                       start=datetime.date(2027, 1, 1))
+    mark_vacation(member, vac, ["2026-03-02"])
+
+    token = tenant_var.set(tenant)
+    member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
+    with patch("backend.routers.teams.get_today", return_value=datetime.date(2026, 8, 4)):
+        # Only 2027 is credited (365/365 * 20 = 20) and the 2026 mark predates employment.
+        assert member_dto.vacation_available_days == 20
+        # The raw counter still reports it (as used, since it predates today): the cell is
+        # on the calendar either way, so the tooltip must keep matching what is visible.
+        assert member_dto.vacation_used_days_by_year == {2026: 1}
+    tenant_var.reset(token)
+
+
+def test_pre_start_mark_does_not_reduce_a_normal_balance():
+    """The same asymmetry with an ordinary past start date - the likelier case, since
+    employee_start_date gets backfilled and corrected in practice."""
+    member, vac, tenant = setup_member(start=datetime.date(2025, 6, 1))
+    mark_vacation(member, vac, ["2025-03-03"])
+
+    token = tenant_var.set(tenant)
+    member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
+    with patch("backend.routers.teams.get_today", return_value=datetime.date(2026, 8, 4)):
+        # 214/365*20 + 20 = 31.72, nothing charged.
+        assert member_dto.vacation_available_days == 31
+    tenant_var.reset(token)
+
+
+def test_in_employment_marks_are_still_charged():
+    """Guard against the lower bound swallowing legitimate deductions."""
+    member, vac, tenant = setup_member(start=datetime.date(2025, 6, 1))
+    mark_vacation(member, vac, ["2025-08-04", "2025-08-05"])
+
+    token = tenant_var.set(tenant)
+    member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
+    with patch("backend.routers.teams.get_today", return_value=datetime.date(2026, 8, 4)):
+        assert member_dto.vacation_available_days == 29  # 31.72 - 2
     tenant_var.reset(token)
