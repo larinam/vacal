@@ -7,7 +7,7 @@ os.environ.setdefault("MONGO_MOCK", "1")
 from backend.model import AuthDetails, Team, TeamMember, Tenant, User
 from backend.scheduled.apply_due_separations import apply_due_separations
 
-TODAY = datetime.date(2026, 8, 4)
+TODAY = datetime.date(2026, 12, 31)
 
 
 def make_tenant():
