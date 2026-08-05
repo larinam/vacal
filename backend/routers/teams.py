@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import math
 import time
 import uuid
 from collections import defaultdict
@@ -212,11 +213,12 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
         _, _, charged = self._split_vacation_days()
         charged_total = sum(count for year, count in charged.items() if year <= horizon_year)
 
-        available = int(total_budget - charged_total)
-        # For departing members, allow negative values to show overage/debt
+        balance = total_budget - charged_total
+        # For departing members, allow negative values to show overage/debt.
+        # Use floor() to properly round down negative decimals (e.g., -0.03 becomes -1).
         if self.last_working_day is not None:
-            return available
-        return max(0, available)
+            return int(math.floor(balance))
+        return max(0, int(balance))
 
     @model_validator(mode='after')
     def include_birthday(self) -> Self:

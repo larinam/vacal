@@ -208,8 +208,8 @@ def test_departing_member_negative_balance():
     token = tenant_var.set(tenant)
     member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
     with patch("backend.routers.teams.get_today", return_value=datetime.date(2025, 9, 1)):
-        # ~20 available (184/366*20 + 181/365*20 = 19.97) - 25 charged = -5
-        assert member_dto.vacation_available_days == -5
+        # ~19.97 available (184/366*20 + 181/365*20) - 25 charged = ~-5.03 floored to -6
+        assert member_dto.vacation_available_days == -6
     tenant_var.reset(token)
 
 
@@ -227,4 +227,24 @@ def test_active_member_never_negative():
     with patch("backend.routers.teams.get_today", return_value=datetime.date(2025, 4, 1)):
         # Should be clamped to 0, not negative
         assert member_dto.vacation_available_days == 0
+    tenant_var.reset(token)
+
+
+def test_departing_member_fractional_negative_balance():
+    """For departing members, fractional negative balances are floored to show the worst case."""
+    member, vac, tenant = setup_member(
+        last_working_day=datetime.date(2025, 6, 30),
+        start=datetime.date(2025, 6, 1)  # Start late in year to create fractional balance
+    )
+    # Mark 11 days of vacation. With June 1-30 employment and 20 yearly days:
+    # 30 days employed / 365 days in year * 20 = ~1.64 days available
+    # 1.64 - 11 = ~-9.36, floored to -10
+    for i in range(1, 12):
+        member.days[f"2025-06-{i:02d}"] = DayEntry(day_types=[vac])
+
+    token = tenant_var.set(tenant)
+    member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
+    with patch("backend.routers.teams.get_today", return_value=datetime.date(2025, 9, 1)):
+        # Verify fractional negative is floored (not truncated at zero)
+        assert member_dto.vacation_available_days == -10
     tenant_var.reset(token)
