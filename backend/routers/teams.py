@@ -212,7 +212,11 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
         _, _, charged = self._split_vacation_days()
         charged_total = sum(count for year, count in charged.items() if year <= horizon_year)
 
-        return max(0, int(total_budget - charged_total))
+        available = int(total_budget - charged_total)
+        # For departing members, allow negative values to show overage/debt
+        if self.last_working_day is not None:
+            return available
+        return max(0, available)
 
     @model_validator(mode='after')
     def include_birthday(self) -> Self:

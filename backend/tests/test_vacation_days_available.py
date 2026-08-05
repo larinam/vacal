@@ -124,8 +124,8 @@ def test_days_planned_before_a_future_last_working_day_are_charged():
 
 
 def test_last_working_day_before_start_date_yields_zero():
-    """Every year's employment window is empty, so the budget is 0 - not None, and never
-    negative."""
+    """Every year's employment window is empty, so the budget is 0 - and for departing
+    members we show the actual available value, which is 0 (charged from an empty budget)."""
     member, _, tenant = setup_member(last_working_day=datetime.date(2024, 6, 1))
     token = tenant_var.set(tenant)
     member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
@@ -194,4 +194,37 @@ def test_in_employment_marks_are_still_charged():
     member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
     with patch("backend.routers.teams.get_today", return_value=datetime.date(2026, 8, 4)):
         assert member_dto.vacation_available_days == 29  # 31.72 - 2
+    tenant_var.reset(token)
+
+
+def test_departing_member_negative_balance():
+    """For departing members, negative values are allowed and shown - indicating they've
+    used more vacation than they earned before leaving."""
+    member, vac, tenant = setup_member(last_working_day=datetime.date(2025, 6, 30))
+    # Mark 25 days of vacation in May (more than the ~19 available)
+    for i in range(1, 26):
+        member.days[f"2025-05-{i:02d}"] = DayEntry(day_types=[vac])
+
+    token = tenant_var.set(tenant)
+    member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
+    with patch("backend.routers.teams.get_today", return_value=datetime.date(2025, 9, 1)):
+        # ~20 available (184/366*20 + 181/365*20 = 19.97) - 25 charged = -5
+        assert member_dto.vacation_available_days == -5
+    tenant_var.reset(token)
+
+
+def test_active_member_never_negative():
+    """Active members (without last_working_day) should never show negative balance."""
+    member, vac, tenant = setup_member()
+    # Mark 35 days of vacation (more than the 30 available)
+    for i in range(1, 26):
+        member.days[f"2025-05-{i:02d}"] = DayEntry(day_types=[vac])
+    for i in range(1, 11):
+        member.days[f"2025-06-{i:02d}"] = DayEntry(day_types=[vac])
+
+    token = tenant_var.set(tenant)
+    member_dto = mongo_to_pydantic(member, TeamMemberReadDTO)
+    with patch("backend.routers.teams.get_today", return_value=datetime.date(2025, 4, 1)):
+        # Should be clamped to 0, not negative
+        assert member_dto.vacation_available_days == 0
     tenant_var.reset(token)
