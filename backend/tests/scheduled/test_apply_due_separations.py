@@ -1,13 +1,23 @@
 import datetime
 import os
 import uuid
+from unittest.mock import patch
 
 os.environ.setdefault("MONGO_MOCK", "1")
 
+import pytest
 from backend.model import AuthDetails, Team, TeamMember, Tenant, User
 from backend.scheduled.apply_due_separations import apply_due_separations
 
-TODAY = datetime.date(2026, 12, 31)
+TODAY = datetime.date(2026, 8, 4)
+
+
+@pytest.fixture(autouse=True)
+def mock_get_today():
+    """Mock get_today() to return the fixed TODAY date for all tests in this module."""
+    with patch("backend.model.get_today", return_value=TODAY):
+        with patch("backend.routers.teams.get_today", return_value=TODAY):
+            yield
 
 
 def make_tenant():
