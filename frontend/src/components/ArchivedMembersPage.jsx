@@ -8,21 +8,23 @@ import {useAuth} from '../contexts/AuthContext';
 import './ArchivedMembersPage.css';
 
 const SEPARATION_LABELS = {
-    resignation:      'Resignation (voluntary)',
-    termination:      'Termination by employer',
-    redundancy:       'Redundancy / position eliminated',
-    mutual_agreement: 'Mutual agreement',
-    end_of_contract:  'End of fixed-term contract',
-    retirement:       'Retirement',
+    resignation:          'Resignation (voluntary)',
+    termination:          'Termination by employer',
+    probation_not_passed: 'Probation not passed',
+    redundancy:           'Redundancy / position eliminated',
+    mutual_agreement:     'Mutual agreement',
+    end_of_contract:      'End of fixed-term contract',
+    retirement:           'Retirement',
 };
 
 const BADGE_CLASS = {
-    resignation:      'neutral',
-    termination:      'amber',
-    redundancy:       'amber',
-    mutual_agreement: 'teal',
-    end_of_contract:  'neutral',
-    retirement:       'neutral',
+    resignation:          'neutral',
+    termination:          'amber',
+    probation_not_passed: 'amber',
+    redundancy:           'amber',
+    mutual_agreement:     'teal',
+    end_of_contract:      'neutral',
+    retirement:           'neutral',
 };
 
 function formatTenure(startDate, endDate) {

@@ -101,12 +101,13 @@ const DeleteMemberModal = ({
         <fieldset className="deleteMemberModal__choiceGroup" disabled={isSubmitting}>
           <legend>Separation type (optional)</legend>
           {[
-            {value: 'resignation',       label: 'Resignation (voluntary)'},
-            {value: 'termination',       label: 'Termination by employer'},
-            {value: 'redundancy',        label: 'Redundancy / position eliminated'},
-            {value: 'mutual_agreement',  label: 'Mutual agreement'},
-            {value: 'end_of_contract',   label: 'End of fixed-term contract'},
-            {value: 'retirement',        label: 'Retirement'},
+            {value: 'resignation',          label: 'Resignation (voluntary)'},
+            {value: 'termination',          label: 'Termination by employer'},
+            {value: 'probation_not_passed', label: 'Probation not passed'},
+            {value: 'redundancy',           label: 'Redundancy / position eliminated'},
+            {value: 'mutual_agreement',     label: 'Mutual agreement'},
+            {value: 'end_of_contract',      label: 'End of fixed-term contract'},
+            {value: 'retirement',           label: 'Retirement'},
           ].map(({value, label}) => (
             <label key={value} className="deleteMemberModal__radio">
               <input

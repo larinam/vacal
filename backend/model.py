@@ -483,12 +483,13 @@ class SoftDeleteQuerySet(QuerySet):
 
 
 class SeparationType(str, Enum):
-    RESIGNATION      = "resignation"
-    TERMINATION      = "termination"
-    REDUNDANCY       = "redundancy"
-    MUTUAL_AGREEMENT = "mutual_agreement"
-    END_OF_CONTRACT  = "end_of_contract"
-    RETIREMENT       = "retirement"
+    RESIGNATION          = "resignation"
+    TERMINATION          = "termination"
+    PROBATION_NOT_PASSED = "probation_not_passed"
+    REDUNDANCY           = "redundancy"
+    MUTUAL_AGREEMENT     = "mutual_agreement"
+    END_OF_CONTRACT      = "end_of_contract"
+    RETIREMENT           = "retirement"
 
 
 def _as_date(value) -> date | None:
