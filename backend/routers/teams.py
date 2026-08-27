@@ -12,6 +12,7 @@ from functools import lru_cache, partial
 from io import BytesIO
 from typing import List, Dict, Annotated, Self, Generator, Optional, Tuple
 
+import mongoengine
 import pycountry
 from bson import ObjectId
 from fastapi import APIRouter, status, Body, Depends, Query, HTTPException
@@ -278,10 +279,13 @@ class TeamMemberReadDTO(TeamMemberWriteDTO):
     @field_validator('deleted_by', mode="before")
     @classmethod
     def convert_deleted_by(cls, value):
+        # A dereferenced User is reduced to its id so it goes through the same
+        # tenant-scoped resolver: serialising it directly skipped every tenant check and
+        # disclosed users who had since left the tenant.
+        if isinstance(value, User):
+            value = value.id
         if isinstance(value, ObjectId):
             return UserWithoutTenantsDTO.from_mongo_reference_field(value)
-        if isinstance(value, User):
-            return mongo_to_pydantic(value, UserWithoutTenantsDTO)
         return value
 
     @computed_field
@@ -342,7 +346,11 @@ class TeamReadDTO(TeamWriteDTO):
         converted_subscribers = []
         for subscriber in v:
             if isinstance(subscriber, ObjectId):
-                converted_subscribers.append(UserWithoutTenantsDTO.from_mongo_reference_field(subscriber))
+                # Skipped rather than appended when it does not resolve in this tenant -
+                # the field is a list of subscribers, not a list of optional slots.
+                resolved = UserWithoutTenantsDTO.from_mongo_reference_field(subscriber)
+                if resolved is not None:
+                    converted_subscribers.append(resolved)
             elif isinstance(subscriber, UserWithoutTenantsDTO):
                 converted_subscribers.append(subscriber)
             elif isinstance(subscriber, dict):
@@ -354,10 +362,13 @@ class TeamReadDTO(TeamWriteDTO):
     @field_validator('deleted_by', mode="before")
     @classmethod
     def convert_deleted_by(cls, value):
+        # A dereferenced User is reduced to its id so it goes through the same
+        # tenant-scoped resolver: serialising it directly skipped every tenant check and
+        # disclosed users who had since left the tenant.
+        if isinstance(value, User):
+            value = value.id
         if isinstance(value, ObjectId):
             return UserWithoutTenantsDTO.from_mongo_reference_field(value)
-        if isinstance(value, User):
-            return mongo_to_pydantic(value, UserWithoutTenantsDTO)
         return value
 
 
@@ -1307,17 +1318,27 @@ def _get_paginated_audits(
     return query.order_by("-timestamp").skip(skip).limit(limit)
 
 
-def _safe_deref_user(member, field_name: str = "deleted_by") -> UserWithoutTenantsDTO | None:
-    """Dereference a user reference on a member, tolerating a dangling DBRef.
+def _safe_deref_user(member, tenant, field_name: str = "deleted_by") -> UserWithoutTenantsDTO | None:
+    """Dereference a user reference on a member, tenant-scoped, tolerating a dangling ref.
 
-    Neither deleted_by nor separation_recorded_by carries a reverse_delete_rule, so a
+    Neither deleted_by nor separation_recorded_by carries a reverse_delete_rule - they are
+    ReferenceFields inside an EmbeddedDocument, where mongoengine cannot apply one - so a
     deleted user leaves a reference that raises on access.
+
+    A user who merely left the tenant still dereferences fine, which is why the membership
+    check is separate from the try: serialising without it disclosed their record, api_key
+    included, to a tenant they no longer belong to. Only DoesNotExist is caught - the
+    previous catch-all also swallowed programming and storage errors. It has to be
+    mongoengine's base class, not User.DoesNotExist: dereferencing a dangling ref inside an
+    EmbeddedDocument raises the base exception, not the per-document subclass.
     """
     try:
         ref = getattr(member, field_name)
-        return mongo_to_pydantic(ref, UserWithoutTenantsDTO) if ref else None
-    except Exception:
+    except mongoengine.DoesNotExist:
         return None
+    if not ref:
+        return None
+    return UserWithoutTenantsDTO.from_mongo_reference_field(ref.id)
 
 
 @router.get("/archived-members")
@@ -1340,8 +1361,8 @@ async def get_archived_members(
                 last_working_day=member.last_working_day,
                 separation_type=member.separation_type,
                 deleted_at=member.deleted_at,
-                deleted_by=_safe_deref_user(member),
+                deleted_by=_safe_deref_user(member, tenant),
                 separation_recorded_at=member.separation_recorded_at,
-                separation_recorded_by=_safe_deref_user(member, "separation_recorded_by"),
+                separation_recorded_by=_safe_deref_user(member, tenant, "separation_recorded_by"),
             ))
     return {"archived_members": result}

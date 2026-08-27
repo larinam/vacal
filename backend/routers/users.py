@@ -40,7 +40,6 @@ class AuthDetailsDTO(BaseModel):
     telegram_id: int | None = None
     telegram_username: str | None = None
     username: str
-    api_key: str | None = None
     google_id: str | None = None
     google_email: str | None = None
 
@@ -51,6 +50,36 @@ class AuthDetailsDTO(BaseModel):
         local, domain = email.split('@', 1)
         masked_local = local[0] + '*' * max(len(local) - 2, 1) + local[-1]
         return f"{masked_local}@{domain}"
+
+
+class SelfAuthDetailsDTO(AuthDetailsDTO):
+    """Auth details for the signed-in user only.
+
+    Carries the raw calendar api_key, which must never appear in a payload another user
+    can read - the base class is what every shared response embeds.
+    """
+    api_key: str | None = None
+
+
+@lru_cache(maxsize=8192)
+def _resolve_user_dto(dto_cls, tenant_id, user_id):
+    """Resolve a user reference to a DTO, scoped to a tenant.
+
+    The tenant is part of the cache key rather than only part of the query: keying on the
+    user id alone means a warm entry serves a user across a tenant boundary, which is
+    reachable whenever someone belongs to two tenants and leaves one.
+    """
+    user_document = User.objects(tenants__in=[tenant_id], id=user_id).first()
+    return mongo_to_pydantic(user_document, dto_cls) if user_document else None
+
+
+def clear_user_dto_cache():
+    """Invalidate the resolver cache.
+
+    Call after any mutation of a serialized user field, and after a tenant join - a miss is
+    cached like a hit, so a user who joins later would stay invisible until this is called.
+    """
+    _resolve_user_dto.cache_clear()
 
 
 class UserWithoutTenantsDTO(BaseModel):
@@ -72,15 +101,19 @@ class UserWithoutTenantsDTO(BaseModel):
         return self.auth_details.telegram_username
 
     @classmethod
-    @lru_cache(maxsize=8192)
     def from_mongo_reference_field(cls, user_document_reference):
-        if user_document_reference:
-            user_document = User.objects.get(tenants__in=[tenant_var.get()], id=user_document_reference)
-            return mongo_to_pydantic(user_document, cls)
-        return None
+        if not user_document_reference:
+            return None
+        tenant = tenant_var.get(None)
+        if tenant is None:
+            # Fail closed rather than querying with a null tenant: without a tenant there
+            # is no scope to resolve against, and every caller treats None as "unknown".
+            return None
+        return _resolve_user_dto(cls, tenant.id, user_document_reference)
 
 
 class UserDTO(UserWithoutTenantsDTO):
+    auth_details: SelfAuthDetailsDTO
     tenants: List[TenantDTO]
 
     @field_validator('tenants', mode="before")
@@ -210,6 +243,9 @@ async def create_tenant_for_user(tenant_creation: TenantCreationModel,
     # Add the new tenant to the current user's list of tenants
     current_user.tenants.append(new_tenant)
     current_user.save()
+    # After the save, never before: a lookup landing in between would re-cache the miss,
+    # and that stale entry would then outlive the join.
+    clear_user_dto_cache()
 
     # Initialize business objects for the new tenant
     await init_business_objects(new_tenant, current_user)
@@ -269,7 +305,7 @@ async def update_user(user_id: str, user_update: UserUpdateModel,
         user.disabled = user_update.disabled
     # Don't update password here; handle password updates separately for security
     user.save()
-    UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
+    clear_user_dto_cache()
     return {"message": "User updated successfully"}
 
 
@@ -297,7 +333,7 @@ async def delete_user(
             raise HTTPException(status_code=400, detail=str(e))
 
         Team.remove_subscriber(tenant, user_to_delete.id)
-        UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
+        clear_user_dto_cache()
         return {"message": f"User removed from tenant {tenant.name} successfully"}
     else:
         # Prevent deletion of the last user in the tenant
@@ -315,7 +351,7 @@ async def delete_user(
         # Only once the delete is confirmed: nothing cascades into the
         # notification_preferences map, so the key would otherwise be orphaned forever.
         Team.remove_subscriber(tenant, deleted_user_id)
-        UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
+        clear_user_dto_cache()
         return {"message": "User deleted successfully"}
 
 
@@ -339,6 +375,7 @@ async def regenerate_api_key(current_user: Annotated[User, Depends(get_current_a
     new_key = secrets.token_urlsafe(16)
     current_user.auth_details.api_key = new_key
     current_user.save()
+    clear_user_dto_cache()
     return {"api_key": new_key}
 
 
@@ -392,7 +429,7 @@ async def remove_tenant(tenant_id: str, current_user: Annotated[User, Depends(ge
             detail=str(e)
         )
     Team.remove_subscriber(tenant, current_user.id)
-    UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
+    clear_user_dto_cache()
     return {"message": "Tenant removed."}
 
 
@@ -556,6 +593,7 @@ async def register_user_via_invite(token: str, user_creation: UserCreationModel)
 
         user.tenants.append(invite.tenant)
         user.save()
+        clear_user_dto_cache()  # a cached miss would outlive the join
     else:
         # User doesn't exist, create a new one
         user = User()
