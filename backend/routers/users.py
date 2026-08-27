@@ -296,6 +296,8 @@ async def delete_user(
         except RuntimeError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+        Team.remove_subscriber(tenant, user_to_delete.id)
+        UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
         return {"message": f"User removed from tenant {tenant.name} successfully"}
     else:
         # Prevent deletion of the last user in the tenant
@@ -303,12 +305,16 @@ async def delete_user(
         if User.objects(tenants__in=[tenant]).count() == 1:
             raise HTTPException(status_code=400, detail="Can't delete the last user in the workspace")
 
+        deleted_user_id = user_to_delete.id
         result = user_to_delete.delete()
         UserInvite.objects(email=user_to_delete.email, tenant=tenant).delete()
 
         if result == 0:
             raise HTTPException(status_code=404, detail="User not found")
 
+        # Only once the delete is confirmed: nothing cascades into the
+        # notification_preferences map, so the key would otherwise be orphaned forever.
+        Team.remove_subscriber(tenant, deleted_user_id)
         UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
         return {"message": "User deleted successfully"}
 
@@ -375,13 +381,18 @@ async def reset_mfa(user_id: str,
 
 @router.delete("/me/remove-tenant/{tenant_id}")
 async def remove_tenant(tenant_id: str, current_user: Annotated[User, Depends(get_current_active_user)]):
+    tenant = Tenant.objects(identifier=tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
     try:
-        current_user.remove_tenant(Tenant.objects(identifier=tenant_id).first())
+        current_user.remove_tenant(tenant)
     except RuntimeError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    Team.remove_subscriber(tenant, current_user.id)
+    UserWithoutTenantsDTO.from_mongo_reference_field.cache_clear()
     return {"message": "Tenant removed."}
 
 

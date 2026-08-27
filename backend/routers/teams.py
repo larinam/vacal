@@ -374,7 +374,6 @@ class TeamSubscriptionPreferenceDTO(BaseModel):
 
 class NotificationSubscriptionUpdateDTO(BaseModel):
     notification_types: List[str]
-    user_id: Optional[str] = None
 
     @field_validator("notification_types", mode="before")
     @classmethod
@@ -462,7 +461,7 @@ def invalidate_holidays_cache():
     get_holidays.cache_clear()
 
 
-def team_to_read_dto(team: Team, include_archived_members: bool = False) -> TeamReadDTO:
+def team_to_read_dto(team: Team, tenant: Tenant, include_archived_members: bool = False) -> TeamReadDTO:
     member_dtos = [
         mongo_to_pydantic(member, TeamMemberReadDTO)
         for member in team.members(include_archived=include_archived_members)
@@ -479,7 +478,7 @@ def team_to_read_dto(team: Team, include_archived_members: bool = False) -> Team
         "leader_uid": team.leader_uid,
         "subscribers": [
             mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
-            for subscriber in team.list_subscribers()
+            for subscriber in team.list_subscribers(tenant)
         ],
         "is_deleted": team.is_deleted,
         "deleted_at": team.deleted_at,
@@ -496,7 +495,7 @@ async def list_teams(current_user: Annotated[User, Depends(get_current_active_us
     start_time = time.perf_counter()
     teams_qs = Team.objects_with_deleted(tenant=tenant) if include_archived else Team.objects(tenant=tenant)
     teams_list = teams_qs.order_by("name")
-    converter = partial(team_to_read_dto, include_archived_members=include_archived_members)
+    converter = partial(team_to_read_dto, tenant=tenant, include_archived_members=include_archived_members)
     teams = {"teams": await asyncio.gather(
         *(run_in_threadpool(converter, team) for team in teams_list))}
     print("teams preparation " + str(time.perf_counter() - start_time))
@@ -824,13 +823,15 @@ async def subscribe_user_to_team(
         team_id: str,
         current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
         tenant: Annotated[Tenant, Depends(get_tenant)],
-        user_id: Optional[str] = None
 ):
     team = Team.objects(tenant=tenant, id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    user_to_subscribe = User.objects(id=user_id).first() if user_id else current_user
+    # Subscriptions are self-service only. The endpoint previously accepted a user_id
+    # that was resolved without a tenant filter, which let any member of one workspace
+    # write a foreign user into another workspace's subscriber map.
+    user_to_subscribe = current_user
 
     if team.is_subscribed(user_to_subscribe):
         raise HTTPException(status_code=400, detail="User already subscribed to the team")
@@ -845,13 +846,14 @@ async def unsubscribe_user_from_team(
         team_id: str,
         current_user: Annotated[User, Depends(get_current_active_user_check_tenant)],
         tenant: Annotated[Tenant, Depends(get_tenant)],
-        user_id: Optional[str] = None,
 ):
     team = Team.objects(tenant=tenant, id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    user_to_unsubscribe = User.objects(id=user_id).first() if user_id else current_user
+    # Self-service only - see subscribe_user_to_team. The user_id form also let any
+    # member silently unsubscribe a colleague from notifications.
+    user_to_unsubscribe = current_user
 
     subscriber_key = str(user_to_unsubscribe.id)
     if subscriber_key not in team.notification_preferences:
@@ -874,7 +876,7 @@ async def list_team_subscribers(
 
     subscribers = [
         mongo_to_pydantic(subscriber, UserWithoutTenantsDTO)
-        for subscriber in team.list_subscribers()
+        for subscriber in team.list_subscribers(tenant)
     ]
 
     return subscribers
@@ -892,7 +894,7 @@ async def get_team_notification_preferences(
 
     default_types = list_notification_type_ids()
     preferences: List[TeamSubscriptionPreferenceDTO] = []
-    for subscriber in team.list_subscribers():
+    for subscriber in team.list_subscribers(tenant):
         types = team.notification_preferences.get(str(subscriber.id))
         effective_types = list(types) if types is not None else list(default_types)
         preferences.append(
@@ -916,12 +918,8 @@ async def update_team_notification_preferences(
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    if subscription_update.user_id:
-        user = User.objects(id=subscription_update.user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-    else:
-        user = current_user
+    # Self-service only - see subscribe_user_to_team.
+    user = current_user
 
     normalized_types = subscription_update.notification_types
     subscriber_key = str(user.id)

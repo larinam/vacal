@@ -614,10 +614,26 @@ class Team(Document):
     def subscriber_ids(self) -> list[str]:
         return list((self.notification_preferences or {}).keys())
 
-    def list_subscribers(self) -> list[User]:
+    def list_subscribers(self, tenant=None) -> list[User]:
+        """Resolve this team's subscribers, scoped to the team's tenant.
+
+        The tenant is accepted as an argument so request paths can pass the tenant they
+        already hold: falling back to ``self.tenant`` costs one dereference per team on
+        the ``GET /teams`` fan-out, and raises ``DoesNotExist`` on a dangling reference.
+        """
         subscriber_ids = self.subscriber_ids()
         if not subscriber_ids:
             return []
+
+        if tenant is None:
+            try:
+                tenant = self.tenant
+            except mongoengine.DoesNotExist:
+                # Tenant deletion cascades to its teams, so this should not happen - but a
+                # dangling reference must not abort a scheduled notification fan-out that
+                # never touched the tenant before this became tenant-scoped.
+                log.warning("Team %s references a tenant that no longer exists", self.id)
+                return []
 
         object_ids: list[ObjectId] = []
         for raw_id in subscriber_ids:
@@ -631,7 +647,9 @@ class Team(Document):
         if not object_ids:
             return []
 
-        users = User.objects(id__in=object_ids)
+        # Tenant-scoped: an unfiltered lookup would resolve - and serialise - users from
+        # other workspaces whose ids ended up in notification_preferences.
+        users = User.objects(id__in=object_ids, tenants=tenant)
         users_by_id = {str(user.id): user for user in users}
 
         ordered_subscribers: list[User] = []
@@ -649,6 +667,25 @@ class Team(Document):
     def is_subscribed(self, user: User) -> bool:
         return str(getattr(user, "id", "")) in (self.notification_preferences or {})
 
+    @classmethod
+    def remove_subscriber(cls, tenant, user_id) -> int:
+        """Drop a user's subscriber entry from every team in a tenant.
+
+        Uses ``objects_with_deleted`` so soft-deleted teams are cleaned too, and filters
+        on the key's presence so the returned count is teams actually changed rather than
+        every team in the tenant (``update`` reports matched, not modified).
+        """
+        # Coerced, not merely stringified: an unvalidated key is parsed as a query path by
+        # mongoengine, so a value like "in" or "S" would turn into an update operator and
+        # unset the whole map. None is rejected explicitly because ObjectId(None) mints a
+        # fresh random id rather than raising, which would silently match nothing.
+        if user_id is None:
+            raise ValueError("user_id is required")
+        key = str(ObjectId(str(user_id)))
+        return cls.objects_with_deleted(
+            **{"tenant": tenant, f"notification_preferences__{key}__exists": True}
+        ).update(**{f"unset__notification_preferences__{key}": 1})
+
     def get_subscriber_emails(
         self,
         notification_type: str | None = None,
@@ -665,6 +702,10 @@ class Team(Document):
         for subscriber in self.list_subscribers():
             subscriber_id = str(getattr(subscriber, "id", ""))
             if excluded_ids and subscriber_id in excluded_ids:
+                continue
+            # A disabled account keeps its subscriber entry - it is only dropped when the
+            # user is deleted or leaves the tenant - but it must stop receiving mail.
+            if getattr(subscriber, "disabled", False):
                 continue
             if notification_type:
                 allowed_types = self.notification_preferences.get(str(subscriber.id))
