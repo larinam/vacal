@@ -278,15 +278,29 @@ class TelegramAuthData(BaseModel):
     @field_validator('auth_date')
     @classmethod
     def check_auth_date(cls, auth_date):
-        if (time.time() - auth_date) > 86400:
+        # Bounded on both sides: a far-future auth_date would otherwise keep a signed
+        # payload replayable indefinitely, since only the elapsed time is checked.
+        skew = time.time() - auth_date
+        if skew > 86400 or skew < -300:
             raise ValueError("Data is outdated")
         return auth_date
 
     @model_validator(mode="before")
     @classmethod
     def check_telegram_authorization(cls, input_values):
+        # Without a bot token the HMAC key degenerates to sha256(b"") - a value anyone
+        # can compute - so every signature would verify. Refuse to authenticate at all
+        # rather than fall open when Telegram is not configured.
+        if not TELEGRAM_BOT_TOKEN:
+            raise ValueError("Telegram authentication is not configured")
+        if not isinstance(input_values, dict):
+            raise ValueError("Malformed Telegram authorization payload")
         values = deepcopy(input_values)
-        telegram_hash = values.pop("hash")
+        telegram_hash = values.pop("hash", None)
+        # compare_digest raises TypeError on non-str and on non-ASCII str, which pydantic
+        # does not turn into a 422 - it would surface as a 500.
+        if not isinstance(telegram_hash, str) or not telegram_hash.isascii():
+            raise ValueError("Malformed Telegram authorization payload")
         data_check_arr = ["{}={}".format(key, value) for key, value in values.items()]
         data_check_arr.sort()
         data_check_string = "\n".join(data_check_arr)

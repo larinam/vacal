@@ -94,3 +94,78 @@ def test_telegram_login_fails_for_disabled_user():
     user.reload()
     assert user.auth_details.telegram_id is None
 
+
+
+def test_telegram_login_rejected_when_bot_token_unset(monkeypatch):
+    """An empty bot token makes the HMAC key sha256(b"") - a constant anyone can compute -
+    so the signature check would accept a forged payload. The endpoint must refuse instead."""
+    User.drop_collection()
+    User(
+        name="TG User",
+        email="tgunset@example.com",
+        auth_details=AuthDetails(username="tgunset", telegram_username="victimtg"),
+    ).save()
+
+    monkeypatch.setattr("backend.main.TELEGRAM_BOT_TOKEN", "")
+
+    auth_date = int(time.time())
+    data_check_string = "\n".join(
+        sorted([f"auth_date={auth_date}", "id=424242", "username=victimtg"])
+    )
+    forged_hash = hmac.new(
+        hashlib.sha256(b"").digest(), data_check_string.encode(), hashlib.sha256
+    ).hexdigest()
+
+    response = client.post(
+        "/telegram-login",
+        json={"hash": forged_hash, "id": 424242, "auth_date": auth_date, "username": "victimtg"},
+    )
+
+    assert response.status_code == 422
+    assert "access_token" not in response.json()
+
+
+def test_telegram_login_rejects_non_string_hash():
+    """compare_digest raises TypeError on a non-str, which pydantic does not turn into a 422."""
+    response = client.post(
+        "/telegram-login",
+        json={"hash": 1, "id": 1, "auth_date": int(time.time()), "username": "whoever"},
+    )
+    assert response.status_code == 422
+
+
+def test_telegram_login_rejects_non_ascii_hash():
+    """compare_digest also raises TypeError when a str contains non-ASCII characters."""
+    response = client.post(
+        "/telegram-login",
+        json={"hash": "ä" * 64, "id": 1, "auth_date": int(time.time()), "username": "whoever"},
+    )
+    assert response.status_code == 422
+
+
+def test_telegram_login_rejects_missing_hash():
+    response = client.post(
+        "/telegram-login",
+        json={"id": 1, "auth_date": int(time.time()), "username": "whoever"},
+    )
+    assert response.status_code == 422
+
+
+def test_telegram_login_rejects_future_auth_date():
+    """Only elapsed time was bounded, so a far-future auth_date stayed replayable forever.
+
+    The hash is computed over the future auth_date so the signature itself is valid - the
+    rejection has to come from the freshness window, not from a mismatched digest.
+    """
+    auth_date = int(time.time()) + 86_400
+    data_check_string = "\n".join(
+        sorted([f"auth_date={auth_date}", "id=1", "username=whoever"])
+    )
+    secret_key = hashlib.sha256(TELEGRAM_BOT_TOKEN.encode()).digest()
+    valid_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
+    response = client.post(
+        "/telegram-login",
+        json={"hash": valid_hash, "id": 1, "auth_date": auth_date, "username": "whoever"},
+    )
+    assert response.status_code == 422
