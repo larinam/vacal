@@ -453,15 +453,34 @@ class DayAuditDTO(BaseModel):
         return v
 
 
+# Sweden's calendar marks every single Sunday as a public holiday, which would paint
+# every Sunday column as a holiday in the calendar view. It is the only country of the
+# 249 the library covers that does this, hence the special case.
+COUNTRIES_MARKING_EVERY_SUNDAY = frozenset({"Sweden"})
+
+
+def _is_sunday_noise(country_holidays_obj, date) -> bool:
+    """True when `date` is in the map only because it is a Sunday.
+
+    Deliberately structural rather than matching the holiday name against "Söndag" /
+    "Sunday": the library resolves names against the ambient locale, so the Swedish
+    Sunday entry reads "Söndag" in the container, "Sunday" on a dev machine with
+    LANG=en_US, and "Неділя" or "วันอาทิตย์" under the other languages Sweden ships.
+    Every Sunday carries the Sunday entry, so a lone entry on a Sunday is that entry,
+    while a second entry means a real holiday coincides and the day must be kept.
+    """
+    return date.weekday() == 6 and len(country_holidays_obj.get_list(date)) == 1
+
+
 @lru_cache(maxsize=32)
 def get_holidays(tenant, year: int = datetime.datetime.now().year) -> dict:
     countries = get_unique_countries(tenant)
     holidays_dict = {}
     for country in countries:
         country_holidays_obj = get_country_holidays(country, year)
-        if country == "Sweden":
-            country_holidays = {date: name for date, name in country_holidays_obj.items() if
-                                name not in ["Söndag", "Sunday"]}
+        if country in COUNTRIES_MARKING_EVERY_SUNDAY:
+            country_holidays = {date: name for date, name in country_holidays_obj.items()
+                                if not _is_sunday_noise(country_holidays_obj, date)}
         else:
             country_holidays = dict(country_holidays_obj)
         holidays_dict.update({country: country_holidays})
